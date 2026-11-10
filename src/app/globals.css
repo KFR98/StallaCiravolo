@@ -1,0 +1,272 @@
+@import "tailwindcss";
+@import "@fontsource/rye/400.css";
+@import "@fontsource/im-fell-english-sc/400.css";
+@import "@fontsource/eb-garamond/400.css";
+@import "@fontsource/eb-garamond/500.css";
+@import "@fontsource/eb-garamond/600.css";
+@import "@fontsource/eb-garamond/700.css";
+
+/* ─────────── Palette "Frontiera 1899" ─────────── */
+@theme {
+  --color-ink: #2b1d12;
+  --color-ink-soft: #5b4632;
+  --color-leather: #5a3a22;
+  --color-leather-dark: #2e1c10;
+  --color-wood: #3a2516;
+  --color-paper: #f1e4c6;
+  --color-paper-2: #e7d4ad;
+  --color-paper-3: #d9c095;
+  --color-sand: #c9ab78;
+  --color-gold: #a8823a;
+  --color-gold-bright: #d6b25e;
+  --color-blood: #8e2b1f;
+  --color-blood-dark: #6a1d14;
+  --color-sage: #55703f;
+  --color-sky: #3f5f73;
+
+  --font-western: "Rye", "Georgia", serif;
+  --font-fell: "IM Fell English SC", "Georgia", serif;
+  --font-serif: "EB Garamond", "Georgia", serif;
+}
+
+:root {
+  --paper-noise: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .35  0 0 0 0 .25  0 0 0 0 .12  0 0 0 .13 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  --wood-grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><filter id='w'><feTurbulence type='fractalNoise' baseFrequency='.012 .35' numOctaves='3' seed='4'/><feColorMatrix values='0 0 0 0 .1  0 0 0 0 .06  0 0 0 0 .02  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23w)'/></svg>");
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  font-family: var(--font-serif);
+  font-size: 17px;
+  color: var(--color-ink);
+  background-color: #2a1a0e;
+  background-image: var(--wood-grain), linear-gradient(180deg, #3a2516, #22140a);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─────────── Superfici ─────────── */
+@utility parchment {
+  position: relative;
+  background-color: var(--color-paper);
+  background-image: var(--paper-noise),
+    radial-gradient(ellipse at center, rgba(255, 250, 235, 0.55) 0%, rgba(255, 250, 235, 0) 60%),
+    radial-gradient(ellipse at center, transparent 55%, rgba(120, 80, 30, 0.22) 100%);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.4) inset, 0 10px 30px -12px rgba(0, 0, 0, 0.6);
+}
+
+.panel {
+  @apply parchment rounded-[3px] border border-[#b89a66];
+  outline: 1px solid rgba(90, 58, 34, 0.35);
+  outline-offset: -6px;
+}
+
+.panel-pad {
+  @apply p-4 sm:p-5;
+}
+
+.leather {
+  background-color: var(--color-leather-dark);
+  background-image: var(--wood-grain), linear-gradient(180deg, #3d2615 0%, #26170c 100%);
+}
+
+/* ─────────── Tipografia ─────────── */
+@utility title-western {
+  font-family: var(--font-western);
+  letter-spacing: 0.04em;
+}
+@utility title-fell {
+  font-family: var(--font-fell);
+  letter-spacing: 0.04em;
+}
+.label {
+  @apply title-fell text-[13px] uppercase tracking-[0.12em] text-ink-soft;
+}
+
+.ornament {
+  @apply flex items-center gap-3 text-gold;
+}
+.ornament::before,
+.ornament::after {
+  content: "";
+  @apply h-px flex-1;
+  background: linear-gradient(90deg, transparent, currentColor 30%, currentColor 70%, transparent);
+}
+
+/* ─────────── Pulsanti ─────────── */
+.btn {
+  @apply title-fell inline-flex items-center justify-center gap-2 rounded-[3px] px-4 py-2 text-[15px] tracking-[0.08em] uppercase transition select-none disabled:cursor-not-allowed disabled:opacity-50;
+  border: 1px solid transparent;
+}
+.btn-primary {
+  @apply text-paper;
+  background: linear-gradient(180deg, #6b4428 0%, #4a2d18 100%);
+  border-color: #2a180c;
+  box-shadow: inset 0 0 0 1px rgba(214, 178, 94, 0.55), 0 2px 0 #1d1007;
+}
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #7b5130 0%, #573620 100%);
+  box-shadow: inset 0 0 0 1px rgba(214, 178, 94, 0.9), 0 2px 0 #1d1007;
+}
+.btn-danger {
+  @apply text-paper;
+  background: linear-gradient(180deg, #9d3325 0%, #6a1d14 100%);
+  border-color: #3e100a;
+  box-shadow: inset 0 0 0 1px rgba(255, 210, 160, 0.4), 0 2px 0 #2c0b06;
+}
+.btn-danger:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+.btn-gold {
+  @apply text-ink;
+  background: linear-gradient(180deg, #e2c27a 0%, #b48c3f 100%);
+  border-color: #6d5222;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 2px 0 #4b3815;
+}
+.btn-gold:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+.btn-ghost {
+  @apply text-leather;
+  border-color: rgba(90, 58, 34, 0.45);
+  background: rgba(255, 250, 235, 0.35);
+}
+.btn-ghost:hover:not(:disabled) {
+  background: rgba(255, 250, 235, 0.7);
+  border-color: rgba(90, 58, 34, 0.8);
+}
+.btn-sm {
+  @apply px-2.5 py-1 text-[13px];
+}
+
+/* ─────────── Campi ─────────── */
+.input {
+  @apply w-full rounded-[3px] px-3 py-2 text-[16px] text-ink outline-none transition;
+  background: rgba(255, 252, 242, 0.75);
+  border: 1px solid #b79c6b;
+  box-shadow: inset 0 1px 3px rgba(80, 50, 20, 0.18);
+}
+.input:focus {
+  border-color: var(--color-leather);
+  box-shadow: inset 0 1px 3px rgba(80, 50, 20, 0.18), 0 0 0 3px rgba(168, 130, 58, 0.3);
+  background: #fffcf2;
+}
+.input::placeholder {
+  color: #9b8564;
+}
+select.input {
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8'><path d='M1 1l5 5 5-5' fill='none' stroke='%235a3a22' stroke-width='1.6'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2rem;
+}
+
+/* ─────────── Tabelle registro ─────────── */
+.ledger {
+  @apply w-full border-collapse text-[15.5px];
+}
+.ledger thead th {
+  @apply title-fell border-b-2 border-leather/60 px-3 py-2 text-left text-[13px] tracking-[0.1em] text-leather uppercase whitespace-nowrap;
+}
+.ledger tbody td {
+  @apply border-b border-dashed border-[#bfa476] px-3 py-2 align-middle;
+}
+.ledger tbody tr:hover td {
+  background: rgba(214, 178, 94, 0.13);
+}
+.ledger .num {
+  @apply text-right tabular-nums whitespace-nowrap;
+}
+
+/* ─────────── Badge / sigilli ─────────── */
+.badge {
+  @apply title-fell inline-flex items-center gap-1 rounded-[2px] border px-2 py-0.5 text-[12px] tracking-[0.08em] uppercase whitespace-nowrap;
+}
+.badge-gold {
+  @apply border-gold/70 bg-gold-bright/25 text-leather;
+}
+.badge-red {
+  @apply border-blood/60 bg-blood/10 text-blood;
+}
+.badge-green {
+  @apply border-sage/60 bg-sage/12 text-sage;
+}
+.badge-blue {
+  @apply border-sky/60 bg-sky/10 text-sky;
+}
+.badge-ink {
+  @apply border-ink/40 bg-ink/5 text-ink-soft;
+}
+
+/* ─────────── Barre statistiche stile RDR2 ─────────── */
+.statbar {
+  @apply relative h-[10px] w-full overflow-hidden rounded-[1px];
+  background: rgba(90, 58, 34, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(60, 38, 18, 0.5);
+}
+.statbar > span {
+  @apply absolute inset-y-0 left-0 transition-[width] duration-700;
+  background: linear-gradient(180deg, #6b4428 0%, #2e1c10 100%);
+}
+.statbar::after {
+  content: "";
+  @apply pointer-events-none absolute inset-0;
+  background-image: repeating-linear-gradient(90deg, transparent 0 calc(10% - 2px), rgba(241, 228, 198, 0.95) calc(10% - 2px) 10%);
+}
+
+/* ─────────── Animazioni leggere ─────────── */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.rise {
+  animation: rise 0.35s ease-out both;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #8a6a43;
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Leaflet su pergamena */
+.leaflet-container {
+  background: #d4b98a !important;
+  font-family: var(--font-serif) !important;
+}
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: var(--color-paper) !important;
+  color: var(--color-ink) !important;
+  border-radius: 3px !important;
+  border: 1px solid #b89a66;
+}
+.spawn-label {
+  background: rgba(43, 29, 18, 0.82) !important;
+  color: #f1e4c6 !important;
+  border: 1px solid #a8823a !important;
+  border-radius: 2px !important;
+  font-family: var(--font-fell) !important;
+  font-size: 12px !important;
+  padding: 1px 6px !important;
+  box-shadow: none !important;
+}
+.spawn-label::before {
+  display: none;
+}

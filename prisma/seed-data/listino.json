@@ -1,0 +1,4090 @@
+{
+  "sheetNames": [
+    "LISTINO",
+    "CRAFT",
+    "PRENOTAZIONI CAVALLI",
+    "PREZZI",
+    "3",
+    "4",
+    "7",
+    "8",
+    "9",
+    "10",
+    "11",
+    "12",
+    "13",
+    "14",
+    "15"
+  ],
+  "statColumns": [
+    {
+      "key": "veloc",
+      "label": "VELOC."
+    },
+    {
+      "key": "stamina",
+      "label": "STAMINA"
+    },
+    {
+      "key": "vita",
+      "label": "VITA"
+    },
+    {
+      "key": "accel",
+      "label": "ACCEL."
+    },
+    {
+      "key": "destr",
+      "label": "DESTR."
+    }
+  ],
+  "rows": [
+    {
+      "row": 3,
+      "breedOriginal": "AMERICAN PAINT HORSE",
+      "breedName": "AMERICAN PAINT HORSE",
+      "coatOriginal": "Grey Overo",
+      "coatName": "Grey Overo",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 1050,
+        "basePriceA": 525,
+        "basePriceB": 420,
+        "trainingPrice": 105,
+        "salePriceA": 630,
+        "salePriceB": 525,
+        "governmentPrice": 31.5
+      },
+      "stats": {
+        "veloc": 3.5,
+        "stamina": 2.5,
+        "vita": 2.5,
+        "accel": 3,
+        "destr": 2
+      }
+    },
+    {
+      "row": 4,
+      "breedOriginal": "AMERICAN PAINT HORSE",
+      "breedName": "AMERICAN PAINT HORSE",
+      "coatOriginal": "Overo",
+      "coatName": "Overo",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 550,
+        "basePriceA": 275,
+        "basePriceB": 220,
+        "trainingPrice": 55,
+        "salePriceA": 330,
+        "salePriceB": 275,
+        "governmentPrice": 16.5
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 2,
+        "vita": 1.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 5,
+      "breedOriginal": "AMERICAN PAINT HORSE",
+      "breedName": "AMERICAN PAINT HORSE",
+      "coatOriginal": "Splashed White",
+      "coatName": "Splashed White",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 648,
+        "basePriceA": 325,
+        "basePriceB": 260,
+        "trainingPrice": 65,
+        "salePriceA": 390,
+        "salePriceB": 325,
+        "governmentPrice": 19.44
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 2.5,
+        "vita": 1.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 6,
+      "breedOriginal": "AMERICAN PAINT HORSE",
+      "breedName": "AMERICAN PAINT HORSE",
+      "coatOriginal": "Tobiano",
+      "coatName": "Tobiano",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 550,
+        "basePriceA": 275,
+        "basePriceB": 220,
+        "trainingPrice": 55,
+        "salePriceA": 330,
+        "salePriceB": 275,
+        "governmentPrice": 16.5
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 2,
+        "vita": 1.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 7,
+      "breedOriginal": "AMERICAN PAINT HORSE",
+      "breedName": "AMERICAN PAINT HORSE",
+      "coatOriginal": "EagleFlies",
+      "coatName": "Eagle Flies",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 648,
+        "basePriceA": 325,
+        "basePriceB": 260,
+        "trainingPrice": 65,
+        "salePriceA": 390,
+        "salePriceB": 325,
+        "governmentPrice": 19.44
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 2,
+        "vita": 1.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 8,
+      "breedOriginal": "AMERICAN STANDARD (Trottatore americano)",
+      "breedName": "AMERICAN STANDARD (Trottatore americano)",
+      "coatOriginal": "Black",
+      "coatName": "Black",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 768,
+        "basePriceA": 385,
+        "basePriceB": 310,
+        "trainingPrice": 80,
+        "salePriceA": 465,
+        "salePriceB": 390,
+        "governmentPrice": 23.04
+      },
+      "stats": {
+        "veloc": 3.5,
+        "stamina": 1.5,
+        "vita": 1.5,
+        "accel": 2.5,
+        "destr": 3
+      }
+    },
+    {
+      "row": 9,
+      "breedOriginal": "AMERICAN STANDARD (Trottatore americano)",
+      "breedName": "AMERICAN STANDARD (Trottatore americano)",
+      "coatOriginal": "Buckskin",
+      "coatName": "Buckskin",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 768,
+        "basePriceA": 385,
+        "basePriceB": 310,
+        "trainingPrice": 80,
+        "salePriceA": 465,
+        "salePriceB": 390,
+        "governmentPrice": 23.04
+      },
+      "stats": {
+        "veloc": 3.5,
+        "stamina": 1.5,
+        "vita": 1.5,
+        "accel": 2.5,
+        "destr": 3
+      }
+    },
+    {
+      "row": 10,
+      "breedOriginal": "AMERICAN STANDARD (Trottatore americano)",
+      "breedName": "AMERICAN STANDARD (Trottatore americano)",
+      "coatOriginal": "Palomino Dapple",
+      "coatName": "Palomino Dapple",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 925,
+        "basePriceA": 465,
+        "basePriceB": 370,
+        "trainingPrice": 95,
+        "salePriceA": 560,
+        "salePriceB": 465,
+        "governmentPrice": 27.75
+      },
+      "stats": {
+        "veloc": 4,
+        "stamina": 1.5,
+        "vita": 1.5,
+        "accel": 3,
+        "destr": 3
+      }
+    },
+    {
+      "row": 11,
+      "breedOriginal": "AMERICAN STANDARD (Trottatore americano)",
+      "breedName": "AMERICAN STANDARD (Trottatore americano)",
+      "coatOriginal": "Silver Tail Buckskin",
+      "coatName": "Silver Tail Buckskin",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 925,
+        "basePriceA": 465,
+        "basePriceB": 370,
+        "trainingPrice": 95,
+        "salePriceA": 560,
+        "salePriceB": 465,
+        "governmentPrice": 27.75
+      },
+      "stats": {
+        "veloc": 4,
+        "stamina": 2,
+        "vita": 2,
+        "accel": 3,
+        "destr": 2
+      }
+    },
+    {
+      "row": 12,
+      "breedOriginal": "ANDALUSIAN",
+      "breedName": "ANDALUSIAN",
+      "coatOriginal": "Dark Bay",
+      "coatName": "Dark Bay",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 768,
+        "basePriceA": 385,
+        "basePriceB": 310,
+        "trainingPrice": 80,
+        "salePriceA": 465,
+        "salePriceB": 390,
+        "governmentPrice": 23.04
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 2,
+        "vita": 2.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 13,
+      "breedOriginal": "ANDALUSIAN",
+      "breedName": "ANDALUSIAN",
+      "coatOriginal": "Rose Gray",
+      "coatName": "Rose Gray",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 1050,
+        "basePriceA": 525,
+        "basePriceB": 420,
+        "trainingPrice": 105,
+        "salePriceA": 630,
+        "salePriceB": 525,
+        "governmentPrice": 31.5
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 2.5,
+        "vita": 3.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 14,
+      "breedOriginal": "ANDALUSIAN",
+      "breedName": "ANDALUSIAN",
+      "coatOriginal": "Perlino",
+      "coatName": "Perlino",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 1050,
+        "basePriceA": 525,
+        "basePriceB": 420,
+        "trainingPrice": 105,
+        "salePriceA": 630,
+        "salePriceB": 525,
+        "governmentPrice": 31.5
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 2.5,
+        "vita": 3.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 15,
+      "breedOriginal": "APPALOOSA",
+      "breedName": "APPALOOSA",
+      "coatOriginal": "Black Snow Flake",
+      "coatName": "Black Snow Flake",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 648,
+        "basePriceA": 325,
+        "basePriceB": 260,
+        "trainingPrice": 65,
+        "salePriceA": 390,
+        "salePriceB": 325,
+        "governmentPrice": 19.44
+      },
+      "stats": {
+        "veloc": 3.5,
+        "stamina": 3,
+        "vita": 2.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 16,
+      "breedOriginal": "APPALOOSA",
+      "breedName": "APPALOOSA",
+      "coatOriginal": "Blancket",
+      "coatName": "Blanket",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 550,
+        "basePriceA": 275,
+        "basePriceB": 220,
+        "trainingPrice": 55,
+        "salePriceA": 330,
+        "salePriceB": 275,
+        "governmentPrice": 16.5
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 2,
+        "vita": 1.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 17,
+      "breedOriginal": "APPALOOSA",
+      "breedName": "APPALOOSA",
+      "coatOriginal": "Brown Leopard",
+      "coatName": "Brown Leopard",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 1050,
+        "basePriceA": 525,
+        "basePriceB": 420,
+        "trainingPrice": 105,
+        "salePriceA": 630,
+        "salePriceB": 525,
+        "governmentPrice": 31.5
+      },
+      "stats": {
+        "veloc": 3.5,
+        "stamina": 3,
+        "vita": 2.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 18,
+      "breedOriginal": "APPALOOSA",
+      "breedName": "APPALOOSA",
+      "coatOriginal": "Few Spots",
+      "coatName": "Few Spots",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 648,
+        "basePriceA": 325,
+        "basePriceB": 260,
+        "trainingPrice": 65,
+        "salePriceA": 390,
+        "salePriceB": 325,
+        "governmentPrice": 19.44
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 1.5,
+        "vita": 1.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 19,
+      "breedOriginal": "APPALOOSA",
+      "breedName": "APPALOOSA",
+      "coatOriginal": "Leopard",
+      "coatName": "Leopard",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 1050,
+        "basePriceA": 525,
+        "basePriceB": 420,
+        "trainingPrice": 105,
+        "salePriceA": 630,
+        "salePriceB": 525,
+        "governmentPrice": 31.5
+      },
+      "stats": {
+        "veloc": 3.5,
+        "stamina": 3,
+        "vita": 2.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 20,
+      "breedOriginal": "APPALOOSA",
+      "breedName": "APPALOOSA",
+      "coatOriginal": "Leopard Blanket",
+      "coatName": "Leopard Blanket",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 550,
+        "basePriceA": 275,
+        "basePriceB": 220,
+        "trainingPrice": 55,
+        "salePriceA": 330,
+        "salePriceB": 275,
+        "governmentPrice": 16.5
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 2,
+        "vita": 1.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 21,
+      "breedOriginal": "APPALOOSA",
+      "breedName": "APPALOOSA",
+      "coatOriginal": "Charles",
+      "coatName": "Charles",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 648,
+        "basePriceA": 325,
+        "basePriceB": 260,
+        "trainingPrice": 65,
+        "salePriceA": 390,
+        "salePriceB": 325,
+        "governmentPrice": 19.44
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 2,
+        "vita": 1.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 22,
+      "breedOriginal": "APPALOOSA",
+      "breedName": "APPALOOSA",
+      "coatOriginal": "Trelawney",
+      "coatName": "Trelawney",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 648,
+        "basePriceA": 325,
+        "basePriceB": 260,
+        "trainingPrice": 65,
+        "salePriceA": 390,
+        "salePriceB": 325,
+        "governmentPrice": 19.44
+      },
+      "stats": {
+        "veloc": 3.5,
+        "stamina": 3,
+        "vita": 2.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 23,
+      "breedOriginal": "APPALOOSA",
+      "breedName": "APPALOOSA",
+      "coatOriginal": "Endless Summer",
+      "coatName": "Endless Summer",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 648,
+        "basePriceA": 325,
+        "basePriceB": 260,
+        "trainingPrice": 65,
+        "salePriceA": 390,
+        "salePriceB": 325,
+        "governmentPrice": 19.44
+      },
+      "stats": {
+        "veloc": 3.5,
+        "stamina": 3,
+        "vita": 2.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 24,
+      "breedOriginal": "ARABIAN (Arabo)",
+      "breedName": "ARABIAN (Arabo)",
+      "coatOriginal": "Black",
+      "coatName": "Black",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 3,
+        "vita": 3,
+        "accel": 4,
+        "destr": 4
+      }
+    },
+    {
+      "row": 25,
+      "breedOriginal": "ARABIAN (Arabo)",
+      "breedName": "ARABIAN (Arabo)",
+      "coatOriginal": "Grey",
+      "coatName": "Grey",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2187,
+        "basePriceA": 1095,
+        "basePriceB": 875,
+        "trainingPrice": 220,
+        "salePriceA": 1315,
+        "salePriceB": 1095,
+        "governmentPrice": 65.61
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 3,
+        "vita": 3,
+        "accel": 4,
+        "destr": 4
+      }
+    },
+    {
+      "row": 26,
+      "breedOriginal": "ARABIAN (Arabo)",
+      "breedName": "ARABIAN (Arabo)",
+      "coatOriginal": "Red Chestnut",
+      "coatName": "Red Chestnut",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 1750,
+        "basePriceA": 875,
+        "basePriceB": 700,
+        "trainingPrice": 175,
+        "salePriceA": 1050,
+        "salePriceB": 875,
+        "governmentPrice": 52.5
+      },
+      "stats": {
+        "veloc": 4,
+        "stamina": 2,
+        "vita": 1.5,
+        "accel": 3,
+        "destr": 4
+      }
+    },
+    {
+      "row": 27,
+      "breedOriginal": "ARABIAN (Arabo)",
+      "breedName": "ARABIAN (Arabo)",
+      "coatOriginal": "Rose Grey Bay",
+      "coatName": "Rose Grey Bay",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 3.5,
+        "vita": 3.5,
+        "accel": 4,
+        "destr": 4
+      }
+    },
+    {
+      "row": 28,
+      "breedOriginal": "ARABIAN (Arabo)",
+      "breedName": "ARABIAN (Arabo)",
+      "coatOriginal": "Warped Brindle",
+      "coatName": "Warped Brindle",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 2.5,
+        "vita": 1.5,
+        "accel": 3,
+        "destr": 4
+      }
+    },
+    {
+      "row": 29,
+      "breedOriginal": "ARABIAN (Arabo)",
+      "breedName": "ARABIAN (Arabo)",
+      "coatOriginal": "White",
+      "coatName": "White",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2187,
+        "basePriceA": 1095,
+        "basePriceB": 875,
+        "trainingPrice": 220,
+        "salePriceA": 1315,
+        "salePriceB": 1095,
+        "governmentPrice": 65.61
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 2.5,
+        "vita": 2.5,
+        "accel": 4,
+        "destr": 4
+      }
+    },
+    {
+      "row": 30,
+      "breedOriginal": "ARABIAN (Arabo)",
+      "breedName": "ARABIAN (Arabo)",
+      "coatOriginal": "Dutch",
+      "coatName": "Dutch",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 2.5,
+        "vita": 1.5,
+        "accel": 3,
+        "destr": 4
+      }
+    },
+    {
+      "row": 31,
+      "breedOriginal": "ARDENNES",
+      "breedName": "ARDENNES",
+      "coatOriginal": "Bayroan",
+      "coatName": "Bay Roan",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 768,
+        "basePriceA": 385,
+        "basePriceB": 310,
+        "trainingPrice": 80,
+        "salePriceA": 465,
+        "salePriceB": 390,
+        "governmentPrice": 23.04
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 2,
+        "vita": 2.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 32,
+      "breedOriginal": "ARDENNES",
+      "breedName": "ARDENNES",
+      "coatOriginal": "IronGreyRoan",
+      "coatName": "Iron Grey Roan",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 1050,
+        "basePriceA": 525,
+        "basePriceB": 420,
+        "trainingPrice": 105,
+        "salePriceA": 630,
+        "salePriceB": 525,
+        "governmentPrice": 31.5
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 2.5,
+        "vita": 3.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 33,
+      "breedOriginal": "ARDENNES",
+      "breedName": "ARDENNES",
+      "coatOriginal": "StrawberryRoan",
+      "coatName": "Strawberry Roan",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 1050,
+        "basePriceA": 525,
+        "basePriceB": 420,
+        "trainingPrice": 105,
+        "salePriceA": 630,
+        "salePriceB": 525,
+        "governmentPrice": 31.5
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 2.5,
+        "vita": 3.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 34,
+      "breedOriginal": "ARDENNES",
+      "breedName": "ARDENNES",
+      "coatOriginal": "Bill",
+      "coatName": "Bill",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 768,
+        "basePriceA": 385,
+        "basePriceB": 310,
+        "trainingPrice": 80,
+        "salePriceA": 465,
+        "salePriceB": 390,
+        "governmentPrice": 23.04
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 2,
+        "vita": 2.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 35,
+      "breedOriginal": "BELGIAN",
+      "breedName": "BELGIAN",
+      "coatOriginal": "Blond Chestnut",
+      "coatName": "Blond Chestnut",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 175,
+        "basePriceA": 90,
+        "basePriceB": 70,
+        "trainingPrice": 20,
+        "salePriceA": 110,
+        "salePriceB": 90,
+        "governmentPrice": 5.25
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 1.5,
+        "vita": 1.5,
+        "accel": 2.5,
+        "destr": 1
+      }
+    },
+    {
+      "row": 36,
+      "breedOriginal": "BELGIAN",
+      "breedName": "BELGIAN",
+      "coatOriginal": "Mealy Chestnut",
+      "coatName": "Mealy Chestnut",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 175,
+        "basePriceA": 90,
+        "basePriceB": 70,
+        "trainingPrice": 20,
+        "salePriceA": 110,
+        "salePriceB": 90,
+        "governmentPrice": 5.25
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 1.5,
+        "vita": 1.5,
+        "accel": 2.5,
+        "destr": 1
+      }
+    },
+    {
+      "row": 37,
+      "breedOriginal": "BRETONE",
+      "breedName": "BRETONE",
+      "coatOriginal": "Grullo Dun",
+      "coatName": "Grullo Dun",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 1175,
+        "basePriceA": 590,
+        "basePriceB": 470,
+        "trainingPrice": 120,
+        "salePriceA": 710,
+        "salePriceB": 590,
+        "governmentPrice": 35.25
+      },
+      "stats": {
+        "veloc": 4,
+        "stamina": 3,
+        "vita": 2.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 38,
+      "breedOriginal": "BRETONE",
+      "breedName": "BRETONE",
+      "coatOriginal": "Mealy Dapple Bay",
+      "coatName": "Mealy Dapple Bay",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 3.5,
+        "vita": 3,
+        "accel": 3,
+        "destr": 2
+      }
+    },
+    {
+      "row": 39,
+      "breedOriginal": "BRETONE",
+      "breedName": "BRETONE",
+      "coatOriginal": "Red Roan",
+      "coatName": "Red Roan",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 768,
+        "basePriceA": 385,
+        "basePriceB": 310,
+        "trainingPrice": 80,
+        "salePriceA": 465,
+        "salePriceB": 390,
+        "governmentPrice": 23.04
+      },
+      "stats": {
+        "veloc": 3.5,
+        "stamina": 2.5,
+        "vita": 2,
+        "accel": 2,
+        "destr": 2
+      }
+    },
+    {
+      "row": 40,
+      "breedOriginal": "BRETONE",
+      "breedName": "BRETONE",
+      "coatOriginal": "Sorrel",
+      "coatName": "Sorrel",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 768,
+        "basePriceA": 385,
+        "basePriceB": 310,
+        "trainingPrice": 80,
+        "salePriceA": 465,
+        "salePriceB": 390,
+        "governmentPrice": 23.04
+      },
+      "stats": {
+        "veloc": 3.5,
+        "stamina": 2.5,
+        "vita": 2,
+        "accel": 2,
+        "destr": 2
+      }
+    },
+    {
+      "row": 41,
+      "breedOriginal": "BRETONE",
+      "breedName": "BRETONE",
+      "coatOriginal": "Steel Grey",
+      "coatName": "Steel Grey",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 3.5,
+        "vita": 3,
+        "accel": 3,
+        "destr": 2
+      }
+    },
+    {
+      "row": 42,
+      "breedOriginal": "BRETONE",
+      "breedName": "BRETONE",
+      "coatOriginal": "Seal Brown",
+      "coatName": "Seal Brown",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 1175,
+        "basePriceA": 590,
+        "basePriceB": 470,
+        "trainingPrice": 120,
+        "salePriceA": 710,
+        "salePriceB": 590,
+        "governmentPrice": 35.25
+      },
+      "stats": {
+        "veloc": 4,
+        "stamina": 3,
+        "vita": 2.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 43,
+      "breedOriginal": "CRIOLLO",
+      "breedName": "CRIOLLO",
+      "coatOriginal": "Bay Brindle",
+      "coatName": "Bay Brindle",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 768,
+        "basePriceA": 385,
+        "basePriceB": 310,
+        "trainingPrice": 80,
+        "salePriceA": 465,
+        "salePriceB": 390,
+        "governmentPrice": 23.04
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 2.5,
+        "vita": 2,
+        "accel": 3,
+        "destr": 2
+      }
+    },
+    {
+      "row": 44,
+      "breedOriginal": "CRIOLLO",
+      "breedName": "CRIOLLO",
+      "coatOriginal": "Bay Frame Overo",
+      "coatName": "Bay Frame Overo",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 5,
+        "stamina": 3,
+        "vita": 2.5,
+        "accel": 3.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 45,
+      "breedOriginal": "CRIOLLO",
+      "breedName": "CRIOLLO",
+      "coatOriginal": "Bay Roan Overo",
+      "coatName": "Bay Roan Overo",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 768,
+        "basePriceA": 385,
+        "basePriceB": 310,
+        "trainingPrice": 80,
+        "salePriceA": 465,
+        "salePriceB": 390,
+        "governmentPrice": 23.04
+      },
+      "stats": {
+        "veloc": 4,
+        "stamina": 2,
+        "vita": 1.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 46,
+      "breedOriginal": "CRIOLLO",
+      "breedName": "CRIOLLO",
+      "coatOriginal": "Dun",
+      "coatName": "Dun",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 768,
+        "basePriceA": 385,
+        "basePriceB": 310,
+        "trainingPrice": 80,
+        "salePriceA": 465,
+        "salePriceB": 390,
+        "governmentPrice": 23.04
+      },
+      "stats": {
+        "veloc": 4,
+        "stamina": 2,
+        "vita": 1.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 47,
+      "breedOriginal": "CRIOLLO",
+      "breedName": "CRIOLLO",
+      "coatOriginal": "Marble Sabino",
+      "coatName": "Marble Sabino",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 5,
+        "stamina": 3,
+        "vita": 2.5,
+        "accel": 3.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 48,
+      "breedOriginal": "CRIOLLO",
+      "breedName": "CRIOLLO",
+      "coatOriginal": "Sorrel Overo",
+      "coatName": "Sorrel Overo",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 1175,
+        "basePriceA": 590,
+        "basePriceB": 470,
+        "trainingPrice": 120,
+        "salePriceA": 710,
+        "salePriceB": 590,
+        "governmentPrice": 35.25
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 2.5,
+        "vita": 2,
+        "accel": 3,
+        "destr": 2
+      }
+    },
+    {
+      "row": 49,
+      "breedOriginal": "DUTCH WARMBLOOD (Olandese)",
+      "breedName": "DUTCH WARMBLOOD (Olandese)",
+      "coatOriginal": "Chocolate Roan",
+      "coatName": "Chocolate Roan",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 1050,
+        "basePriceA": 525,
+        "basePriceB": 420,
+        "trainingPrice": 105,
+        "salePriceA": 630,
+        "salePriceB": 525,
+        "governmentPrice": 31.5
+      },
+      "stats": {
+        "veloc": 3.5,
+        "stamina": 3,
+        "vita": 2.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 50,
+      "breedOriginal": "DUTCH WARMBLOOD (Olandese)",
+      "breedName": "DUTCH WARMBLOOD (Olandese)",
+      "coatOriginal": "Seal Brown",
+      "coatName": "Seal Brown",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 768,
+        "basePriceA": 385,
+        "basePriceB": 310,
+        "trainingPrice": 80,
+        "salePriceA": 465,
+        "salePriceB": 390,
+        "governmentPrice": 23.04
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 2.5,
+        "vita": 2,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 51,
+      "breedOriginal": "DUTCH WARMBLOOD (Olandese)",
+      "breedName": "DUTCH WARMBLOOD (Olandese)",
+      "coatOriginal": "Sooty Buckskin",
+      "coatName": "Sooty Buckskin",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 768,
+        "basePriceA": 385,
+        "basePriceB": 310,
+        "trainingPrice": 80,
+        "salePriceA": 465,
+        "salePriceB": 390,
+        "governmentPrice": 23.04
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 2.5,
+        "vita": 2,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 52,
+      "breedOriginal": "DUTCH WARMBLOOD (Olandese)",
+      "breedName": "DUTCH WARMBLOOD (Olandese)",
+      "coatOriginal": "War Vets",
+      "coatName": "War Vets",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2187,
+        "basePriceA": 1095,
+        "basePriceB": 875,
+        "trainingPrice": 220,
+        "salePriceA": 1315,
+        "salePriceB": 1095,
+        "governmentPrice": 65.61
+      },
+      "stats": {
+        "veloc": 4,
+        "stamina": 3,
+        "vita": 3,
+        "accel": 3.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 53,
+      "breedOriginal": "FOSTER",
+      "breedName": "FOSTER",
+      "coatOriginal": "Bob",
+      "coatName": "Bob",
+      "isCustom": true,
+      "prices": {
+        "govListPrice": 2200,
+        "basePriceA": 1100,
+        "basePriceB": 880,
+        "trainingPrice": 220,
+        "salePriceA": 1320,
+        "salePriceB": 1100,
+        "governmentPrice": 65
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 2.5,
+        "vita": 2.5,
+        "accel": 4,
+        "destr": 4
+      }
+    },
+    {
+      "row": 54,
+      "breedOriginal": "FOSTER",
+      "breedName": "FOSTER",
+      "coatOriginal": "Perlino",
+      "coatName": "Perlino",
+      "isCustom": true,
+      "prices": {
+        "govListPrice": 2200,
+        "basePriceA": 1100,
+        "basePriceB": 880,
+        "trainingPrice": 220,
+        "salePriceA": 1320,
+        "salePriceB": 1100,
+        "governmentPrice": 65
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 2.5,
+        "vita": 2.5,
+        "accel": 4,
+        "destr": 4
+      }
+    },
+    {
+      "row": 55,
+      "breedOriginal": "FOSTER",
+      "breedName": "FOSTER",
+      "coatOriginal": "Imperial",
+      "coatName": "Imperial",
+      "isCustom": true,
+      "prices": {
+        "govListPrice": 2200,
+        "basePriceA": 1100,
+        "basePriceB": 880,
+        "trainingPrice": 220,
+        "salePriceA": 1320,
+        "salePriceB": 1100,
+        "governmentPrice": 65
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 2.5,
+        "vita": 2.5,
+        "accel": 4,
+        "destr": 4
+      }
+    },
+    {
+      "row": 56,
+      "breedOriginal": "GRONINGEN",
+      "breedName": "GRONINGEN",
+      "coatOriginal": "Red Roan",
+      "coatName": "Red Roan",
+      "isCustom": true,
+      "prices": {
+        "govListPrice": 2200,
+        "basePriceA": 1100,
+        "basePriceB": 880,
+        "trainingPrice": 220,
+        "salePriceA": 1320,
+        "salePriceB": 1100,
+        "governmentPrice": 65
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 2.5,
+        "vita": 2.5,
+        "accel": 4,
+        "destr": 4
+      }
+    },
+    {
+      "row": 57,
+      "breedOriginal": "GRONINGEN",
+      "breedName": "GRONINGEN",
+      "coatOriginal": "Buckskin Brindle",
+      "coatName": "Buckskin Brindle",
+      "isCustom": true,
+      "prices": {
+        "govListPrice": 2200,
+        "basePriceA": 1100,
+        "basePriceB": 880,
+        "trainingPrice": 220,
+        "salePriceA": 1320,
+        "salePriceB": 1100,
+        "governmentPrice": 65
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 2.5,
+        "vita": 2.5,
+        "accel": 4,
+        "destr": 4
+      }
+    },
+    {
+      "row": 58,
+      "breedOriginal": "GYPSYCOB",
+      "breedName": "GYPSY COB",
+      "coatOriginal": "White Blangdon",
+      "coatName": "White Blagdon",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 1175,
+        "basePriceA": 590,
+        "basePriceB": 470,
+        "trainingPrice": 120,
+        "salePriceA": 710,
+        "salePriceB": 590,
+        "governmentPrice": 35.25
+      },
+      "stats": {
+        "veloc": 2.5,
+        "stamina": 2.5,
+        "vita": 3,
+        "accel": 2,
+        "destr": 2
+      }
+    },
+    {
+      "row": 59,
+      "breedOriginal": "GYPSYCOB",
+      "breedName": "GYPSY COB",
+      "coatOriginal": "Splashed Piebland",
+      "coatName": "Splashed Piebald",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 4,
+        "stamina": 3.5,
+        "vita": 3.5,
+        "accel": 3,
+        "destr": 2
+      }
+    },
+    {
+      "row": 60,
+      "breedOriginal": "GYPSYCOB",
+      "breedName": "GYPSY COB",
+      "coatOriginal": "Splashed Bay",
+      "coatName": "Splashed Bay",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 4,
+        "stamina": 3.5,
+        "vita": 3.5,
+        "accel": 3,
+        "destr": 2
+      }
+    },
+    {
+      "row": 61,
+      "breedOriginal": "GYPSYCOB",
+      "breedName": "GYPSY COB",
+      "coatOriginal": "Skewbald",
+      "coatName": "Skewbald",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 1175,
+        "basePriceA": 590,
+        "basePriceB": 470,
+        "trainingPrice": 120,
+        "salePriceA": 710,
+        "salePriceB": 590,
+        "governmentPrice": 35.25
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 3,
+        "vita": 3.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 62,
+      "breedOriginal": "GYPSYCOB",
+      "breedName": "GYPSY COB",
+      "coatOriginal": "Piebald",
+      "coatName": "Piebald",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 1175,
+        "basePriceA": 590,
+        "basePriceB": 470,
+        "trainingPrice": 120,
+        "salePriceA": 710,
+        "salePriceB": 590,
+        "governmentPrice": 35.25
+      },
+      "stats": {
+        "veloc": 2.5,
+        "stamina": 2.5,
+        "vita": 3,
+        "accel": 2,
+        "destr": 2
+      }
+    },
+    {
+      "row": 63,
+      "breedOriginal": "GYPSYCOB",
+      "breedName": "GYPSY COB",
+      "coatOriginal": "Palomino Blagdon",
+      "coatName": "Palomino Blagdon",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 3,
+        "vita": 3.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 64,
+      "breedOriginal": "HUNGARIAN",
+      "breedName": "HUNGARIAN",
+      "coatOriginal": "John",
+      "coatName": "John",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 550,
+        "basePriceA": 275,
+        "basePriceB": 220,
+        "trainingPrice": 55,
+        "salePriceA": 330,
+        "salePriceB": 275,
+        "governmentPrice": 16.5
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 1.5,
+        "vita": 2,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 65,
+      "breedOriginal": "HUNGARIAN",
+      "breedName": "HUNGARIAN",
+      "coatOriginal": "Dark Dapple Grey",
+      "coatName": "Dark Dapple Grey",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 768,
+        "basePriceA": 385,
+        "basePriceB": 310,
+        "trainingPrice": 80,
+        "salePriceA": 465,
+        "salePriceB": 390,
+        "governmentPrice": 23.04
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 2,
+        "vita": 2.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 66,
+      "breedOriginal": "HUNGARIAN",
+      "breedName": "HUNGARIAN",
+      "coatOriginal": "Piebald Tobiano",
+      "coatName": "Piebald Tobiano",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 550,
+        "basePriceA": 275,
+        "basePriceB": 220,
+        "trainingPrice": 55,
+        "salePriceA": 330,
+        "salePriceB": 275,
+        "governmentPrice": 16.5
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 1.5,
+        "vita": 2,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 67,
+      "breedOriginal": "HUNGARIAN",
+      "breedName": "HUNGARIAN",
+      "coatOriginal": "Liver Chestnut",
+      "coatName": "Liver Chestnut",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 550,
+        "basePriceA": 275,
+        "basePriceB": 220,
+        "trainingPrice": 55,
+        "salePriceA": 330,
+        "salePriceB": 275,
+        "governmentPrice": 16.5
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 1.5,
+        "vita": 2,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 68,
+      "breedOriginal": "HUNGARIAN",
+      "breedName": "HUNGARIAN",
+      "coatOriginal": "FlaxenChestnut",
+      "coatName": "Flaxen Chestnut",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 768,
+        "basePriceA": 385,
+        "basePriceB": 310,
+        "trainingPrice": 80,
+        "salePriceA": 465,
+        "salePriceB": 390,
+        "governmentPrice": 23.04
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 1.5,
+        "vita": 2,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 69,
+      "breedOriginal": "KENTUCKY SADDLE (Americano da sella)",
+      "breedName": "KENTUCKY SADDLE (Americano da sella)",
+      "coatOriginal": "Black",
+      "coatName": "Black",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 425,
+        "basePriceA": 215,
+        "basePriceB": 170,
+        "trainingPrice": 45,
+        "salePriceA": 260,
+        "salePriceB": 215,
+        "governmentPrice": 12.75
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 1,
+        "vita": 1.5,
+        "accel": 2,
+        "destr": 2
+      }
+    },
+    {
+      "row": 70,
+      "breedOriginal": "KENTUCKY SADDLE (Americano da sella)",
+      "breedName": "KENTUCKY SADDLE (Americano da sella)",
+      "coatOriginal": "Buttermilk Buckskin",
+      "coatName": "Buttermilk Buckskin",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 175,
+        "basePriceA": 90,
+        "basePriceB": 70,
+        "trainingPrice": 20,
+        "salePriceA": 110,
+        "salePriceB": 90,
+        "governmentPrice": 5.25
+      },
+      "stats": {
+        "veloc": 3.5,
+        "stamina": 1.5,
+        "vita": 1.5,
+        "accel": 2,
+        "destr": 2
+      }
+    },
+    {
+      "row": 71,
+      "breedOriginal": "KENTUCKY SADDLE (Americano da sella)",
+      "breedName": "KENTUCKY SADDLE (Americano da sella)",
+      "coatOriginal": "Chestnut Pinto",
+      "coatName": "Chestnut Pinto",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 175,
+        "basePriceA": 90,
+        "basePriceB": 70,
+        "trainingPrice": 20,
+        "salePriceA": 110,
+        "salePriceB": 90,
+        "governmentPrice": 5.25
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 2,
+        "vita": 1.5,
+        "accel": 2,
+        "destr": 2
+      }
+    },
+    {
+      "row": 72,
+      "breedOriginal": "KENTUCKY SADDLE (Americano da sella)",
+      "breedName": "KENTUCKY SADDLE (Americano da sella)",
+      "coatOriginal": "Grey",
+      "coatName": "Grey",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 175,
+        "basePriceA": 90,
+        "basePriceB": 70,
+        "trainingPrice": 20,
+        "salePriceA": 110,
+        "salePriceB": 90,
+        "governmentPrice": 5.25
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 1,
+        "vita": 1.5,
+        "accel": 2,
+        "destr": 2
+      }
+    },
+    {
+      "row": 73,
+      "breedOriginal": "KENTUCKY SADDLE (Americano da sella)",
+      "breedName": "KENTUCKY SADDLE (Americano da sella)",
+      "coatOriginal": "Silver Bay",
+      "coatName": "Silver Bay",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 175,
+        "basePriceA": 90,
+        "basePriceB": 70,
+        "trainingPrice": 20,
+        "salePriceA": 110,
+        "salePriceB": 90,
+        "governmentPrice": 5.25
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 1,
+        "vita": 1.5,
+        "accel": 2,
+        "destr": 2
+      }
+    },
+    {
+      "row": 74,
+      "breedOriginal": "KLADRUBER",
+      "breedName": "KLADRUBER",
+      "coatOriginal": "Cremello",
+      "coatName": "Cremello",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 1175,
+        "basePriceA": 590,
+        "basePriceB": 470,
+        "trainingPrice": 120,
+        "salePriceA": 710,
+        "salePriceB": 590,
+        "governmentPrice": 35.25
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 3,
+        "vita": 3,
+        "accel": 3,
+        "destr": 2
+      }
+    },
+    {
+      "row": 75,
+      "breedOriginal": "KLADRUBER",
+      "breedName": "KLADRUBER",
+      "coatOriginal": "Dapple Rose Grey",
+      "coatName": "Dapple Rose Grey",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 3.5,
+        "stamina": 3.5,
+        "vita": 3.5,
+        "accel": 3.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 76,
+      "breedOriginal": "KLADRUBER",
+      "breedName": "KLADRUBER",
+      "coatOriginal": "Grey",
+      "coatName": "Grey",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 1175,
+        "basePriceA": 590,
+        "basePriceB": 470,
+        "trainingPrice": 120,
+        "salePriceA": 710,
+        "salePriceB": 590,
+        "governmentPrice": 35.25
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 3,
+        "vita": 3,
+        "accel": 3,
+        "destr": 2
+      }
+    },
+    {
+      "row": 77,
+      "breedOriginal": "KLADRUBER",
+      "breedName": "KLADRUBER",
+      "coatOriginal": "Silver",
+      "coatName": "Silver",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 3.5,
+        "stamina": 3.5,
+        "vita": 3.5,
+        "accel": 3.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 78,
+      "breedOriginal": "KLADRUBER",
+      "breedName": "KLADRUBER",
+      "coatOriginal": "Black",
+      "coatName": "Black",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 768,
+        "basePriceA": 385,
+        "basePriceB": 310,
+        "trainingPrice": 80,
+        "salePriceA": 465,
+        "salePriceB": 390,
+        "governmentPrice": 23.04
+      },
+      "stats": {
+        "veloc": 2.5,
+        "stamina": 2.5,
+        "vita": 2.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 79,
+      "breedOriginal": "KLADRUBER",
+      "breedName": "KLADRUBER",
+      "coatOriginal": "White",
+      "coatName": "White",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 768,
+        "basePriceA": 385,
+        "basePriceB": 310,
+        "trainingPrice": 80,
+        "salePriceA": 465,
+        "salePriceB": 390,
+        "governmentPrice": 23.04
+      },
+      "stats": {
+        "veloc": 2.5,
+        "stamina": 2.5,
+        "vita": 2.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 80,
+      "breedOriginal": "MISSOURI FOX TROTTER",
+      "breedName": "MISSOURI FOX TROTTER",
+      "coatOriginal": "Micah",
+      "coatName": "Micah",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 5,
+        "stamina": 3,
+        "vita": 2.5,
+        "accel": 3.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 81,
+      "breedOriginal": "MISSOURI FOX TROTTER",
+      "breedName": "MISSOURI FOX TROTTER",
+      "coatOriginal": "Amber Champagne",
+      "coatName": "Amber Champagne",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 5,
+        "stamina": 3,
+        "vita": 2.5,
+        "accel": 3.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 82,
+      "breedOriginal": "MISSOURI FOX TROTTER",
+      "breedName": "MISSOURI FOX TROTTER",
+      "coatOriginal": "Sable Champagne",
+      "coatName": "Sable Champagne",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 5,
+        "stamina": 3,
+        "vita": 2.5,
+        "accel": 3.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 83,
+      "breedOriginal": "MISSOURI FOX TROTTER",
+      "breedName": "MISSOURI FOX TROTTER",
+      "coatOriginal": "Silver Dapple Pinto",
+      "coatName": "Silver Dapple Pinto",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 5,
+        "stamina": 3,
+        "vita": 2.5,
+        "accel": 3.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 84,
+      "breedOriginal": "MISSOURI FOX TROTTER",
+      "breedName": "MISSOURI FOX TROTTER",
+      "coatOriginal": "Dapple Grey",
+      "coatName": "Dapple Grey",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 5,
+        "stamina": 3,
+        "vita": 2.5,
+        "accel": 3.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 85,
+      "breedOriginal": "MISSOURI FOX TROTTER",
+      "breedName": "MISSOURI FOX TROTTER",
+      "coatOriginal": "Black Tovero",
+      "coatName": "Black Tovero",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 5,
+        "stamina": 3,
+        "vita": 2.5,
+        "accel": 3.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 86,
+      "breedOriginal": "MISSOURI FOX TROTTER",
+      "breedName": "MISSOURI FOX TROTTER",
+      "coatOriginal": "Blue Roan",
+      "coatName": "Blue Roan",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 5,
+        "stamina": 3,
+        "vita": 2.5,
+        "accel": 3.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 87,
+      "breedOriginal": "MISSOURI FOX TROTTER",
+      "breedName": "MISSOURI FOX TROTTER",
+      "coatOriginal": "Buckskin Brindle",
+      "coatName": "Buckskin Brindle",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 5,
+        "stamina": 3,
+        "vita": 2.5,
+        "accel": 3.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 88,
+      "breedOriginal": "MORGAN",
+      "breedName": "MORGAN",
+      "coatOriginal": "Bay",
+      "coatName": "Bay",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 175,
+        "basePriceA": 90,
+        "basePriceB": 70,
+        "trainingPrice": 20,
+        "salePriceA": 110,
+        "salePriceB": 90,
+        "governmentPrice": 5.25
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 1.5,
+        "vita": 1,
+        "accel": 2,
+        "destr": 2
+      }
+    },
+    {
+      "row": 89,
+      "breedOriginal": "MORGAN",
+      "breedName": "MORGAN",
+      "coatOriginal": "Bay Roan",
+      "coatName": "Bay Roan",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 175,
+        "basePriceA": 90,
+        "basePriceB": 70,
+        "trainingPrice": 20,
+        "salePriceA": 110,
+        "salePriceB": 90,
+        "governmentPrice": 5.25
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 1.5,
+        "vita": 1,
+        "accel": 2,
+        "destr": 2
+      }
+    },
+    {
+      "row": 90,
+      "breedOriginal": "MORGAN",
+      "breedName": "MORGAN",
+      "coatOriginal": "Flaxen Chestnut",
+      "coatName": "Flaxen Chestnut",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 175,
+        "basePriceA": 90,
+        "basePriceB": 70,
+        "trainingPrice": 20,
+        "salePriceA": 110,
+        "salePriceB": 90,
+        "governmentPrice": 5.25
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 1.5,
+        "vita": 1,
+        "accel": 2,
+        "destr": 2
+      }
+    },
+    {
+      "row": 91,
+      "breedOriginal": "MORGAN",
+      "breedName": "MORGAN",
+      "coatOriginal": "Liver Chestnut",
+      "coatName": "Liver Chestnut",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 425,
+        "basePriceA": 215,
+        "basePriceB": 170,
+        "trainingPrice": 45,
+        "salePriceA": 260,
+        "salePriceB": 215,
+        "governmentPrice": 12.75
+      },
+      "stats": {
+        "veloc": 3.5,
+        "stamina": 2,
+        "vita": 1,
+        "accel": 2,
+        "destr": 2
+      }
+    },
+    {
+      "row": 92,
+      "breedOriginal": "MORGAN",
+      "breedName": "MORGAN",
+      "coatOriginal": "Palomino",
+      "coatName": "Palomino",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 175,
+        "basePriceA": 90,
+        "basePriceB": 70,
+        "trainingPrice": 20,
+        "salePriceA": 110,
+        "salePriceB": 90,
+        "governmentPrice": 5.25
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 1.5,
+        "vita": 1,
+        "accel": 2,
+        "destr": 2
+      }
+    },
+    {
+      "row": 93,
+      "breedOriginal": "MUSTANG",
+      "breedName": "MUSTANG",
+      "coatOriginal": "Lenny",
+      "coatName": "Lenny",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 3.5,
+        "stamina": 2.5,
+        "vita": 2.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 94,
+      "breedOriginal": "MUSTANG",
+      "breedName": "MUSTANG",
+      "coatOriginal": "Endless Summer",
+      "coatName": "Endless Summer",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 925,
+        "basePriceA": 465,
+        "basePriceB": 370,
+        "trainingPrice": 95,
+        "salePriceA": 560,
+        "salePriceB": 465,
+        "governmentPrice": 27.75
+      },
+      "stats": {
+        "veloc": 3.5,
+        "stamina": 2.5,
+        "vita": 2.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 95,
+      "breedOriginal": "MUSTANG",
+      "breedName": "MUSTANG",
+      "coatOriginal": "Golden Dun",
+      "coatName": "Golden Dun",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 3.5,
+        "stamina": 2.5,
+        "vita": 2.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 96,
+      "breedOriginal": "MUSTANG",
+      "breedName": "MUSTANG",
+      "coatOriginal": "Grullo Dun",
+      "coatName": "Grullo Dun",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 925,
+        "basePriceA": 465,
+        "basePriceB": 370,
+        "trainingPrice": 95,
+        "salePriceA": 560,
+        "salePriceB": 465,
+        "governmentPrice": 27.75
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 2,
+        "vita": 2,
+        "accel": 2,
+        "destr": 2
+      }
+    },
+    {
+      "row": 97,
+      "breedOriginal": "MUSTANG",
+      "breedName": "MUSTANG",
+      "coatOriginal": "Tiger Striped Bay",
+      "coatName": "Tiger Striped Bay",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 925,
+        "basePriceA": 465,
+        "basePriceB": 370,
+        "trainingPrice": 95,
+        "salePriceA": 560,
+        "salePriceB": 465,
+        "governmentPrice": 27.75
+      },
+      "stats": {
+        "veloc": 3.5,
+        "stamina": 2.5,
+        "vita": 2.5,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 98,
+      "breedOriginal": "MUSTANG",
+      "breedName": "MUSTANG",
+      "coatOriginal": "Wild Bay",
+      "coatName": "Wild Bay",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 950,
+        "basePriceA": 475,
+        "basePriceB": 380,
+        "trainingPrice": 95,
+        "salePriceA": 570,
+        "salePriceB": 475,
+        "governmentPrice": 28.5
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 2,
+        "vita": 2,
+        "accel": 2,
+        "destr": 2
+      }
+    },
+    {
+      "row": 99,
+      "breedOriginal": "MUSTANG",
+      "breedName": "MUSTANG",
+      "coatOriginal": "Buckskin",
+      "coatName": "Buckskin",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 3.5,
+        "vita": 3.5,
+        "accel": 3,
+        "destr": 2
+      }
+    },
+    {
+      "row": 100,
+      "breedOriginal": "MUSTANG",
+      "breedName": "MUSTANG",
+      "coatOriginal": "Chestnut Tovero",
+      "coatName": "Chestnut Tovero",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 3.5,
+        "vita": 3.5,
+        "accel": 3,
+        "destr": 2
+      }
+    },
+    {
+      "row": 101,
+      "breedOriginal": "MUSTANG",
+      "breedName": "MUSTANG",
+      "coatOriginal": "Red Dun Overo",
+      "coatName": "Red Dun Overo",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 3.5,
+        "vita": 3.5,
+        "accel": 3,
+        "destr": 2
+      }
+    },
+    {
+      "row": 102,
+      "breedOriginal": "MUSTANG",
+      "breedName": "MUSTANG",
+      "coatOriginal": "Black Overo",
+      "coatName": "Black Overo",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 3.5,
+        "vita": 3.5,
+        "accel": 3,
+        "destr": 2
+      }
+    },
+    {
+      "row": 103,
+      "breedOriginal": "NOKOTA",
+      "breedName": "NOKOTA",
+      "coatOriginal": "Endless Summer",
+      "coatName": "Endless Summer",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 768,
+        "basePriceA": 385,
+        "basePriceB": 310,
+        "trainingPrice": 80,
+        "salePriceA": 465,
+        "salePriceB": 390,
+        "governmentPrice": 23.04
+      },
+      "stats": {
+        "veloc": 3.5,
+        "stamina": 1.5,
+        "vita": 1.5,
+        "accel": 2.5,
+        "destr": 3
+      }
+    },
+    {
+      "row": 104,
+      "breedOriginal": "NOKOTA",
+      "breedName": "NOKOTA",
+      "coatOriginal": "Karen",
+      "coatName": "Karen",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 768,
+        "basePriceA": 385,
+        "basePriceB": 310,
+        "trainingPrice": 80,
+        "salePriceA": 465,
+        "salePriceB": 390,
+        "governmentPrice": 23.04
+      },
+      "stats": {
+        "veloc": 3.5,
+        "stamina": 1.5,
+        "vita": 1.5,
+        "accel": 2.5,
+        "destr": 3
+      }
+    },
+    {
+      "row": 105,
+      "breedOriginal": "NOKOTA",
+      "breedName": "NOKOTA",
+      "coatOriginal": "Blue Roan",
+      "coatName": "Blue Roan",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 768,
+        "basePriceA": 385,
+        "basePriceB": 310,
+        "trainingPrice": 80,
+        "salePriceA": 465,
+        "salePriceB": 390,
+        "governmentPrice": 23.04
+      },
+      "stats": {
+        "veloc": 3.5,
+        "stamina": 1.5,
+        "vita": 1.5,
+        "accel": 2.5,
+        "destr": 3
+      }
+    },
+    {
+      "row": 106,
+      "breedOriginal": "NOKOTA",
+      "breedName": "NOKOTA",
+      "coatOriginal": "Reverse Dapple Roan",
+      "coatName": "Reverse Dapple Roan",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 1750,
+        "basePriceA": 875,
+        "basePriceB": 700,
+        "trainingPrice": 175,
+        "salePriceA": 1050,
+        "salePriceB": 875,
+        "governmentPrice": 52.5
+      },
+      "stats": {
+        "veloc": 5,
+        "stamina": 1.5,
+        "vita": 1.5,
+        "accel": 3.5,
+        "destr": 3
+      }
+    },
+    {
+      "row": 107,
+      "breedOriginal": "NOKOTA",
+      "breedName": "NOKOTA",
+      "coatOriginal": "White Roan",
+      "coatName": "White Roan",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 768,
+        "basePriceA": 385,
+        "basePriceB": 310,
+        "trainingPrice": 80,
+        "salePriceA": 465,
+        "salePriceB": 390,
+        "governmentPrice": 23.04
+      },
+      "stats": {
+        "veloc": 3.5,
+        "stamina": 1.5,
+        "vita": 1.5,
+        "accel": 2.5,
+        "destr": 3
+      }
+    },
+    {
+      "row": 108,
+      "breedOriginal": "NORFOLK ROADSTE",
+      "breedName": "NORFOLK ROADSTER",
+      "coatOriginal": "Black",
+      "coatName": "Black",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 768,
+        "basePriceA": 385,
+        "basePriceB": 310,
+        "trainingPrice": 80,
+        "salePriceA": 465,
+        "salePriceB": 390,
+        "governmentPrice": 23.04
+      },
+      "stats": {
+        "veloc": 4,
+        "stamina": 2,
+        "vita": 1,
+        "accel": 3,
+        "destr": 2
+      }
+    },
+    {
+      "row": 109,
+      "breedOriginal": "NORFOLK ROADSTE",
+      "breedName": "NORFOLK ROADSTER",
+      "coatOriginal": "Dapple Buckskin",
+      "coatName": "Dapple Buckskin",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 5,
+        "stamina": 3,
+        "vita": 2,
+        "accel": 4,
+        "destr": 2
+      }
+    },
+    {
+      "row": 110,
+      "breedOriginal": "NORFOLK ROADSTE",
+      "breedName": "NORFOLK ROADSTER",
+      "coatOriginal": "Piebald Roan",
+      "coatName": "Piebald Roan",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 1175,
+        "basePriceA": 590,
+        "basePriceB": 470,
+        "trainingPrice": 120,
+        "salePriceA": 710,
+        "salePriceB": 590,
+        "governmentPrice": 35.25
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 2.5,
+        "vita": 1.5,
+        "accel": 3.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 111,
+      "breedOriginal": "NORFOLK ROADSTE",
+      "breedName": "NORFOLK ROADSTER",
+      "coatOriginal": "Rose Grey",
+      "coatName": "Rose Grey",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 1175,
+        "basePriceA": 590,
+        "basePriceB": 470,
+        "trainingPrice": 120,
+        "salePriceA": 710,
+        "salePriceB": 590,
+        "governmentPrice": 35.25
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 2.5,
+        "vita": 1.5,
+        "accel": 3.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 112,
+      "breedOriginal": "NORFOLK ROADSTE",
+      "breedName": "NORFOLK ROADSTER",
+      "coatOriginal": "SpeckledGrey",
+      "coatName": "Speckled Grey",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 768,
+        "basePriceA": 385,
+        "basePriceB": 310,
+        "trainingPrice": 80,
+        "salePriceA": 465,
+        "salePriceB": 390,
+        "governmentPrice": 23.04
+      },
+      "stats": {
+        "veloc": 4,
+        "stamina": 2,
+        "vita": 1,
+        "accel": 3,
+        "destr": 2
+      }
+    },
+    {
+      "row": 113,
+      "breedOriginal": "NORFOLK ROADSTE",
+      "breedName": "NORFOLK ROADSTER",
+      "coatOriginal": "Spotted Tricolor",
+      "coatName": "Spotted Tricolor",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 5,
+        "stamina": 3,
+        "vita": 2,
+        "accel": 4,
+        "destr": 2
+      }
+    },
+    {
+      "row": 114,
+      "breedOriginal": "LUSITANO",
+      "breedName": "LUSITANO",
+      "coatOriginal": "Imperial",
+      "coatName": "Imperial",
+      "isCustom": true,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 2.5,
+        "vita": 2.5,
+        "accel": 4,
+        "destr": 4
+      }
+    },
+    {
+      "row": 115,
+      "breedOriginal": "LUSITANO",
+      "breedName": "LUSITANO",
+      "coatOriginal": "Liver Chestnut",
+      "coatName": "Liver Chestnut",
+      "isCustom": true,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 2.5,
+        "vita": 2.5,
+        "accel": 4,
+        "destr": 4
+      }
+    },
+    {
+      "row": 116,
+      "breedOriginal": "LUSITANO",
+      "breedName": "LUSITANO",
+      "coatOriginal": "Golden Dun",
+      "coatName": "Golden Dun",
+      "isCustom": true,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 2.5,
+        "vita": 2.5,
+        "accel": 4,
+        "destr": 4
+      }
+    },
+    {
+      "row": 117,
+      "breedOriginal": "SHIRE",
+      "breedName": "SHIRE",
+      "coatOriginal": "Dark Bay",
+      "coatName": "Dark Bay",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 1175,
+        "basePriceA": 590,
+        "basePriceB": 470,
+        "trainingPrice": 120,
+        "salePriceA": 710,
+        "salePriceB": 590,
+        "governmentPrice": 35.25
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 1.5,
+        "vita": 2,
+        "accel": 2,
+        "destr": 1
+      }
+    },
+    {
+      "row": 118,
+      "breedOriginal": "SHIRE",
+      "breedName": "SHIRE",
+      "coatOriginal": "Ligth Grey",
+      "coatName": "Light Grey",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 1175,
+        "basePriceA": 590,
+        "basePriceB": 470,
+        "trainingPrice": 120,
+        "salePriceA": 710,
+        "salePriceB": 590,
+        "governmentPrice": 35.25
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 1.5,
+        "vita": 2,
+        "accel": 2,
+        "destr": 1
+      }
+    },
+    {
+      "row": 119,
+      "breedOriginal": "SHIRE",
+      "breedName": "SHIRE",
+      "coatOriginal": "Raven Black",
+      "coatName": "Raven Black",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 1300,
+        "basePriceA": 650,
+        "basePriceB": 520,
+        "trainingPrice": 130,
+        "salePriceA": 780,
+        "salePriceB": 650,
+        "governmentPrice": 39
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 2,
+        "vita": 2,
+        "accel": 2,
+        "destr": 1
+      }
+    },
+    {
+      "row": 120,
+      "breedOriginal": "SUFFOLKPUNCH",
+      "breedName": "SUFFOLK PUNCH",
+      "coatOriginal": "Red Chestnut",
+      "coatName": "Red Chestnut",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 175,
+        "basePriceA": 90,
+        "basePriceB": 70,
+        "trainingPrice": 20,
+        "salePriceA": 110,
+        "salePriceB": 90,
+        "governmentPrice": 5.25
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 2,
+        "vita": 1.5,
+        "accel": 2,
+        "destr": 1
+      }
+    },
+    {
+      "row": 121,
+      "breedOriginal": "SUFFOLKPUNCH",
+      "breedName": "SUFFOLK PUNCH",
+      "coatOriginal": "Sorrel",
+      "coatName": "Sorrel",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 175,
+        "basePriceA": 90,
+        "basePriceB": 70,
+        "trainingPrice": 20,
+        "salePriceA": 110,
+        "salePriceB": 90,
+        "governmentPrice": 5.25
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 2,
+        "vita": 1.5,
+        "accel": 2,
+        "destr": 1
+      }
+    },
+    {
+      "row": 122,
+      "breedOriginal": "TENNESSE WALKER",
+      "breedName": "TENNESSEE WALKER",
+      "coatOriginal": "Kieran",
+      "coatName": "Kieran",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 175,
+        "basePriceA": 90,
+        "basePriceB": 70,
+        "trainingPrice": 20,
+        "salePriceA": 110,
+        "salePriceB": 90,
+        "governmentPrice": 5.25
+      },
+      "stats": {
+        "veloc": 2.5,
+        "stamina": 1.5,
+        "vita": 1.5,
+        "accel": 2,
+        "destr": 2
+      }
+    },
+    {
+      "row": 123,
+      "breedOriginal": "TENNESSE WALKER",
+      "breedName": "TENNESSEE WALKER",
+      "coatOriginal": "Black Rabicano",
+      "coatName": "Black Rabicano",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 175,
+        "basePriceA": 90,
+        "basePriceB": 70,
+        "trainingPrice": 20,
+        "salePriceA": 110,
+        "salePriceB": 90,
+        "governmentPrice": 5.25
+      },
+      "stats": {
+        "veloc": 2.5,
+        "stamina": 1.5,
+        "vita": 1.5,
+        "accel": 2,
+        "destr": 2
+      }
+    },
+    {
+      "row": 124,
+      "breedOriginal": "TENNESSE WALKER",
+      "breedName": "TENNESSEE WALKER",
+      "coatOriginal": "Chestnut",
+      "coatName": "Chestnut",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 175,
+        "basePriceA": 90,
+        "basePriceB": 70,
+        "trainingPrice": 20,
+        "salePriceA": 110,
+        "salePriceB": 90,
+        "governmentPrice": 5.25
+      },
+      "stats": {
+        "veloc": 2.5,
+        "stamina": 1.5,
+        "vita": 1.5,
+        "accel": 2,
+        "destr": 2
+      }
+    },
+    {
+      "row": 125,
+      "breedOriginal": "TENNESSE WALKER",
+      "breedName": "TENNESSEE WALKER",
+      "coatOriginal": "Dapple Bay",
+      "coatName": "Dapple Bay",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 175,
+        "basePriceA": 90,
+        "basePriceB": 70,
+        "trainingPrice": 20,
+        "salePriceA": 110,
+        "salePriceB": 90,
+        "governmentPrice": 5.25
+      },
+      "stats": {
+        "veloc": 2.5,
+        "stamina": 1.5,
+        "vita": 1.5,
+        "accel": 2,
+        "destr": 2
+      }
+    },
+    {
+      "row": 126,
+      "breedOriginal": "TENNESSE WALKER",
+      "breedName": "TENNESSEE WALKER",
+      "coatOriginal": "Flaxen Roan",
+      "coatName": "Flaxen Roan",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 768,
+        "basePriceA": 385,
+        "basePriceB": 310,
+        "trainingPrice": 80,
+        "salePriceA": 465,
+        "salePriceB": 390,
+        "governmentPrice": 23.04
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 2.5,
+        "vita": 2,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 127,
+      "breedOriginal": "TENNESSE WALKER",
+      "breedName": "TENNESSEE WALKER",
+      "coatOriginal": "Gold Palomino",
+      "coatName": "Gold Palomino",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 425,
+        "basePriceA": 215,
+        "basePriceB": 170,
+        "trainingPrice": 45,
+        "salePriceA": 260,
+        "salePriceB": 215,
+        "governmentPrice": 12.75
+      },
+      "stats": {
+        "veloc": 3,
+        "stamina": 2,
+        "vita": 1.5,
+        "accel": 2,
+        "destr": 2
+      }
+    },
+    {
+      "row": 128,
+      "breedOriginal": "TENNESSE WALKER",
+      "breedName": "TENNESSEE WALKER",
+      "coatOriginal": "Mahogany Bay",
+      "coatName": "Mahogany Bay",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 300,
+        "basePriceA": 150,
+        "basePriceB": 120,
+        "trainingPrice": 30,
+        "salePriceA": 180,
+        "salePriceB": 150,
+        "governmentPrice": 9
+      },
+      "stats": {
+        "veloc": 2.5,
+        "stamina": 2,
+        "vita": 1.5,
+        "accel": 2,
+        "destr": 2
+      }
+    },
+    {
+      "row": 129,
+      "breedOriginal": "TENNESSE WALKER",
+      "breedName": "TENNESSEE WALKER",
+      "coatOriginal": "Red Roan",
+      "coatName": "Red Roan",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 175,
+        "basePriceA": 90,
+        "basePriceB": 70,
+        "trainingPrice": 20,
+        "salePriceA": 110,
+        "salePriceB": 90,
+        "governmentPrice": 5.25
+      },
+      "stats": {
+        "veloc": 2.5,
+        "stamina": 1.5,
+        "vita": 1.5,
+        "accel": 2,
+        "destr": 2
+      }
+    },
+    {
+      "row": 130,
+      "breedOriginal": "THOROUGHBRED (Purosangue)",
+      "breedName": "THOROUGHBRED (Purosangue)",
+      "coatOriginal": "Endless Summer",
+      "coatName": "Endless Summer",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 1750,
+        "basePriceA": 875,
+        "basePriceB": 700,
+        "trainingPrice": 175,
+        "salePriceA": 1050,
+        "salePriceB": 875,
+        "governmentPrice": 52.5
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 2,
+        "vita": 2,
+        "accel": 3,
+        "destr": 3
+      }
+    },
+    {
+      "row": 131,
+      "breedOriginal": "THOROUGHBRED (Purosangue)",
+      "breedName": "THOROUGHBRED (Purosangue)",
+      "coatOriginal": "Black Chestnut",
+      "coatName": "Black Chestnut",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 1750,
+        "basePriceA": 875,
+        "basePriceB": 700,
+        "trainingPrice": 175,
+        "salePriceA": 1050,
+        "salePriceB": 875,
+        "governmentPrice": 52.5
+      },
+      "stats": {
+        "veloc": 5,
+        "stamina": 1.5,
+        "vita": 1.5,
+        "accel": 3.5,
+        "destr": 3
+      }
+    },
+    {
+      "row": 132,
+      "breedOriginal": "THOROUGHBRED (Purosangue)",
+      "breedName": "THOROUGHBRED (Purosangue)",
+      "coatOriginal": "Blood Bay",
+      "coatName": "Blood Bay",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 768,
+        "basePriceA": 385,
+        "basePriceB": 310,
+        "trainingPrice": 80,
+        "salePriceA": 465,
+        "salePriceB": 390,
+        "governmentPrice": 23.04
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 2,
+        "vita": 2,
+        "accel": 2.5,
+        "destr": 3
+      }
+    },
+    {
+      "row": 133,
+      "breedOriginal": "THOROUGHBRED (Purosangue)",
+      "breedName": "THOROUGHBRED (Purosangue)",
+      "coatOriginal": "Brindle",
+      "coatName": "Brindle",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 1750,
+        "basePriceA": 875,
+        "basePriceB": 700,
+        "trainingPrice": 175,
+        "salePriceA": 1050,
+        "salePriceB": 875,
+        "governmentPrice": 52.5
+      },
+      "stats": {
+        "veloc": 5,
+        "stamina": 1.5,
+        "vita": 1.5,
+        "accel": 3.5,
+        "destr": 3
+      }
+    },
+    {
+      "row": 134,
+      "breedOriginal": "THOROUGHBRED (Purosangue)",
+      "breedName": "THOROUGHBRED (Purosangue)",
+      "coatOriginal": "Dapple Grey",
+      "coatName": "Dapple Grey",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 768,
+        "basePriceA": 385,
+        "basePriceB": 310,
+        "trainingPrice": 80,
+        "salePriceA": 465,
+        "salePriceB": 390,
+        "governmentPrice": 23.04
+      },
+      "stats": {
+        "veloc": 3.5,
+        "stamina": 1.5,
+        "vita": 1.5,
+        "accel": 2.5,
+        "destr": 3
+      }
+    },
+    {
+      "row": 135,
+      "breedOriginal": "THOROUGHBRED (Purosangue)",
+      "breedName": "THOROUGHBRED (Purosangue)",
+      "coatOriginal": "Reverse Daplle Black",
+      "coatName": "Reverse Dapple Black",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 1750,
+        "basePriceA": 875,
+        "basePriceB": 700,
+        "trainingPrice": 175,
+        "salePriceA": 1050,
+        "salePriceB": 875,
+        "governmentPrice": 52.5
+      },
+      "stats": {
+        "veloc": 5,
+        "stamina": 1.5,
+        "vita": 1.5,
+        "accel": 3.5,
+        "destr": 3
+      }
+    },
+    {
+      "row": 136,
+      "breedOriginal": "TURKOMAN",
+      "breedName": "TURKOMAN",
+      "coatOriginal": "Dark Bay",
+      "coatName": "Dark Bay",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 2.5,
+        "vita": 3.5,
+        "accel": 3.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 137,
+      "breedOriginal": "TURKOMAN",
+      "breedName": "TURKOMAN",
+      "coatOriginal": "Silver",
+      "coatName": "Silver",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 2.5,
+        "vita": 3.5,
+        "accel": 3.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 138,
+      "breedOriginal": "TURKOMAN",
+      "breedName": "TURKOMAN",
+      "coatOriginal": "Gold",
+      "coatName": "Gold",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 2.5,
+        "vita": 3.5,
+        "accel": 3.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 139,
+      "breedOriginal": "TURKOMAN",
+      "breedName": "TURKOMAN",
+      "coatOriginal": "Sadie",
+      "coatName": "Sadie",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 2.5,
+        "vita": 3.5,
+        "accel": 3.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 140,
+      "breedOriginal": "TURKOMAN",
+      "breedName": "TURKOMAN",
+      "coatOriginal": "Black",
+      "coatName": "Black",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 2.5,
+        "vita": 3.5,
+        "accel": 3.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 141,
+      "breedOriginal": "TURKOMAN",
+      "breedName": "TURKOMAN",
+      "coatOriginal": "Chestnut",
+      "coatName": "Chestnut",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 2.5,
+        "vita": 3.5,
+        "accel": 3.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 142,
+      "breedOriginal": "TURKOMAN",
+      "breedName": "TURKOMAN",
+      "coatOriginal": "Grey",
+      "coatName": "Grey",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 2.5,
+        "vita": 3.5,
+        "accel": 3.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 143,
+      "breedOriginal": "TURKOMAN",
+      "breedName": "TURKOMAN",
+      "coatOriginal": "Perlino",
+      "coatName": "Perlino",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 2500,
+        "basePriceA": 1250,
+        "basePriceB": 1000,
+        "trainingPrice": 250,
+        "salePriceA": 1500,
+        "salePriceB": 1250,
+        "governmentPrice": 75
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 2.5,
+        "vita": 3.5,
+        "accel": 3.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 144,
+      "breedOriginal": "WARLANDER",
+      "breedName": "WARLANDER",
+      "coatOriginal": "Dun",
+      "coatName": "Dun",
+      "isCustom": true,
+      "prices": {
+        "govListPrice": 2200,
+        "basePriceA": 1100,
+        "basePriceB": 880,
+        "trainingPrice": 220,
+        "salePriceA": 1320,
+        "salePriceB": 1100,
+        "governmentPrice": 65
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 2.5,
+        "vita": 2.5,
+        "accel": 4,
+        "destr": 4
+      }
+    },
+    {
+      "row": 145,
+      "breedOriginal": "WARLANDER",
+      "breedName": "WARLANDER",
+      "coatOriginal": "Black Snow Flake",
+      "coatName": "Black Snow Flake",
+      "isCustom": true,
+      "prices": {
+        "govListPrice": 2200,
+        "basePriceA": 1100,
+        "basePriceB": 880,
+        "trainingPrice": 220,
+        "salePriceA": 1320,
+        "salePriceB": 1100,
+        "governmentPrice": 65
+      },
+      "stats": {
+        "veloc": 4.5,
+        "stamina": 2.5,
+        "vita": 2.5,
+        "accel": 4,
+        "destr": 4
+      }
+    },
+    {
+      "row": 146,
+      "breedOriginal": "NELL II",
+      "breedName": "NELL II",
+      "coatOriginal": "Nell II",
+      "coatName": "Nell II",
+      "isCustom": true,
+      "prices": {
+        "govListPrice": 80,
+        "basePriceA": 40,
+        "basePriceB": 35,
+        "trainingPrice": 10,
+        "salePriceA": 50,
+        "salePriceB": 45,
+        "governmentPrice": 2.4
+      },
+      "stats": {
+        "veloc": 2,
+        "stamina": 2,
+        "vita": 2,
+        "accel": 2.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 147,
+      "breedOriginal": "MANGY",
+      "breedName": "MANGY",
+      "coatOriginal": "Backup",
+      "coatName": "Backup",
+      "isCustom": true,
+      "prices": {
+        "govListPrice": 20,
+        "basePriceA": 10,
+        "basePriceB": 10,
+        "trainingPrice": 5,
+        "salePriceA": 15,
+        "salePriceB": 15,
+        "governmentPrice": 0.6
+      },
+      "stats": {
+        "veloc": 2,
+        "stamina": 1.5,
+        "vita": 1,
+        "accel": 1.5,
+        "destr": 2
+      }
+    },
+    {
+      "row": 148,
+      "breedOriginal": "MULI",
+      "breedName": "MULI",
+      "coatOriginal": "Mule",
+      "coatName": "Mule",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 20,
+        "basePriceA": 10,
+        "basePriceB": 10,
+        "trainingPrice": 5,
+        "salePriceA": 15,
+        "salePriceB": 15,
+        "governmentPrice": 0.6
+      },
+      "stats": {
+        "veloc": 1.5,
+        "stamina": 1,
+        "vita": 1,
+        "accel": 1.5,
+        "destr": 1
+      }
+    },
+    {
+      "row": 149,
+      "breedOriginal": "MULI",
+      "breedName": "MULI",
+      "coatOriginal": "Mule Painted",
+      "coatName": "Mule Painted",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 20,
+        "basePriceA": 10,
+        "basePriceB": 10,
+        "trainingPrice": 5,
+        "salePriceA": 15,
+        "salePriceB": 15,
+        "governmentPrice": 0.6
+      },
+      "stats": {
+        "veloc": 1.5,
+        "stamina": 1,
+        "vita": 1,
+        "accel": 1.5,
+        "destr": 1
+      }
+    },
+    {
+      "row": 150,
+      "breedOriginal": "ASINI",
+      "breedName": "ASINI",
+      "coatOriginal": "Donkey",
+      "coatName": "Donkey",
+      "isCustom": false,
+      "prices": {
+        "govListPrice": 20,
+        "basePriceA": 10,
+        "basePriceB": 10,
+        "trainingPrice": 5,
+        "salePriceA": 15,
+        "salePriceB": 15,
+        "governmentPrice": 0.6
+      },
+      "stats": {
+        "veloc": 1,
+        "stamina": 1,
+        "vita": 1,
+        "accel": 1.5,
+        "destr": 1
+      }
+    }
+  ],
+  "anomalies": [
+    {
+      "row": 2,
+      "level": "info",
+      "message": "Intestazioni incoerenti: \"11-15 ANNI\" e \"TOT 11-16 ANNI\". Le fasce d'età sono configurabili nelle impostazioni."
+    },
+    {
+      "row": 7,
+      "level": "info",
+      "message": "Nome manto corretto: \"EagleFlies\" → \"Eagle Flies\" (AMERICAN PAINT HORSE)."
+    },
+    {
+      "row": 16,
+      "level": "info",
+      "message": "Nome manto corretto: \"Blancket\" → \"Blanket\" (APPALOOSA)."
+    },
+    {
+      "row": 31,
+      "level": "info",
+      "message": "Nome manto corretto: \"Bayroan\" → \"Bay Roan\" (ARDENNES)."
+    },
+    {
+      "row": 32,
+      "level": "info",
+      "message": "Nome manto corretto: \"IronGreyRoan\" → \"Iron Grey Roan\" (ARDENNES)."
+    },
+    {
+      "row": 33,
+      "level": "info",
+      "message": "Nome manto corretto: \"StrawberryRoan\" → \"Strawberry Roan\" (ARDENNES)."
+    },
+    {
+      "row": 53,
+      "level": "info",
+      "message": "FOSTER – Bob: GOVERNO = 65 (la formula del file darebbe 66). Mantenuto il valore del file."
+    },
+    {
+      "row": 54,
+      "level": "info",
+      "message": "FOSTER – Perlino: GOVERNO = 65 (la formula del file darebbe 66). Mantenuto il valore del file."
+    },
+    {
+      "row": 55,
+      "level": "info",
+      "message": "FOSTER – Imperial: GOVERNO = 65 (la formula del file darebbe 66). Mantenuto il valore del file."
+    },
+    {
+      "row": 56,
+      "level": "info",
+      "message": "GRONINGEN – Red Roan: GOVERNO = 65 (la formula del file darebbe 66). Mantenuto il valore del file."
+    },
+    {
+      "row": 57,
+      "level": "info",
+      "message": "GRONINGEN – Buckskin Brindle: GOVERNO = 65 (la formula del file darebbe 66). Mantenuto il valore del file."
+    },
+    {
+      "row": 58,
+      "level": "info",
+      "message": "Nome razza corretto: \"GYPSYCOB\" → \"GYPSY COB\"."
+    },
+    {
+      "row": 58,
+      "level": "info",
+      "message": "Nome manto corretto: \"White Blangdon\" → \"White Blagdon\" (GYPSY COB)."
+    },
+    {
+      "row": 59,
+      "level": "info",
+      "message": "Nome razza corretto: \"GYPSYCOB\" → \"GYPSY COB\"."
+    },
+    {
+      "row": 59,
+      "level": "info",
+      "message": "Nome manto corretto: \"Splashed Piebland\" → \"Splashed Piebald\" (GYPSY COB)."
+    },
+    {
+      "row": 60,
+      "level": "info",
+      "message": "Nome razza corretto: \"GYPSYCOB\" → \"GYPSY COB\"."
+    },
+    {
+      "row": 61,
+      "level": "info",
+      "message": "Nome razza corretto: \"GYPSYCOB\" → \"GYPSY COB\"."
+    },
+    {
+      "row": 62,
+      "level": "info",
+      "message": "Nome razza corretto: \"GYPSYCOB\" → \"GYPSY COB\"."
+    },
+    {
+      "row": 63,
+      "level": "info",
+      "message": "Nome razza corretto: \"GYPSYCOB\" → \"GYPSY COB\"."
+    },
+    {
+      "row": 68,
+      "level": "info",
+      "message": "Nome manto corretto: \"FlaxenChestnut\" → \"Flaxen Chestnut\" (HUNGARIAN)."
+    },
+    {
+      "row": 74,
+      "level": "info",
+      "message": "Spazi superflui nel nome razza \"KLADRUBER \" rimossi."
+    },
+    {
+      "row": 75,
+      "level": "info",
+      "message": "Spazi superflui nel nome razza \"KLADRUBER \" rimossi."
+    },
+    {
+      "row": 76,
+      "level": "info",
+      "message": "Spazi superflui nel nome razza \"KLADRUBER \" rimossi."
+    },
+    {
+      "row": 77,
+      "level": "info",
+      "message": "Spazi superflui nel nome razza \"KLADRUBER \" rimossi."
+    },
+    {
+      "row": 78,
+      "level": "info",
+      "message": "Spazi superflui nel nome razza \"KLADRUBER \" rimossi."
+    },
+    {
+      "row": 80,
+      "level": "info",
+      "message": "Spazi superflui nel nome razza \"MISSOURI FOX TROTTER \" rimossi."
+    },
+    {
+      "row": 81,
+      "level": "info",
+      "message": "Spazi superflui nel nome razza \"MISSOURI FOX TROTTER \" rimossi."
+    },
+    {
+      "row": 82,
+      "level": "info",
+      "message": "Spazi superflui nel nome razza \"MISSOURI FOX TROTTER \" rimossi."
+    },
+    {
+      "row": 83,
+      "level": "info",
+      "message": "Spazi superflui nel nome razza \"MISSOURI FOX TROTTER \" rimossi."
+    },
+    {
+      "row": 84,
+      "level": "info",
+      "message": "Spazi superflui nel nome razza \"MISSOURI FOX TROTTER \" rimossi."
+    },
+    {
+      "row": 85,
+      "level": "info",
+      "message": "Spazi superflui nel nome razza \"MISSOURI FOX TROTTER \" rimossi."
+    },
+    {
+      "row": 86,
+      "level": "info",
+      "message": "Spazi superflui nel nome razza \"MISSOURI FOX TROTTER \" rimossi."
+    },
+    {
+      "row": 87,
+      "level": "info",
+      "message": "Spazi superflui nel nome razza \"MISSOURI FOX TROTTER \" rimossi."
+    },
+    {
+      "row": 94,
+      "level": "warning",
+      "message": "MUSTANG – Endless Summer: valore non valido in \"TOT 5-10 ANNI\"."
+    },
+    {
+      "row": 94,
+      "level": "warning",
+      "message": "MUSTANG – Endless Summer: \"5-10 ANNI\" vuoto, ricalcolato con la formula del file = 465."
+    },
+    {
+      "row": 94,
+      "level": "warning",
+      "message": "MUSTANG – Endless Summer: \"TOT 5-10 ANNI\" in errore, ricalcolato = 560."
+    },
+    {
+      "row": 108,
+      "level": "info",
+      "message": "Nome razza corretto: \"NORFOLK ROADSTE\" → \"NORFOLK ROADSTER\"."
+    },
+    {
+      "row": 109,
+      "level": "info",
+      "message": "Nome razza corretto: \"NORFOLK ROADSTE\" → \"NORFOLK ROADSTER\"."
+    },
+    {
+      "row": 110,
+      "level": "info",
+      "message": "Nome razza corretto: \"NORFOLK ROADSTE\" → \"NORFOLK ROADSTER\"."
+    },
+    {
+      "row": 111,
+      "level": "info",
+      "message": "Nome razza corretto: \"NORFOLK ROADSTE\" → \"NORFOLK ROADSTER\"."
+    },
+    {
+      "row": 112,
+      "level": "info",
+      "message": "Nome razza corretto: \"NORFOLK ROADSTE\" → \"NORFOLK ROADSTER\"."
+    },
+    {
+      "row": 112,
+      "level": "info",
+      "message": "Nome manto corretto: \"SpeckledGrey\" → \"Speckled Grey\" (NORFOLK ROADSTER)."
+    },
+    {
+      "row": 113,
+      "level": "info",
+      "message": "Nome razza corretto: \"NORFOLK ROADSTE\" → \"NORFOLK ROADSTER\"."
+    },
+    {
+      "row": 118,
+      "level": "info",
+      "message": "Nome manto corretto: \"Ligth Grey\" → \"Light Grey\" (SHIRE)."
+    },
+    {
+      "row": 120,
+      "level": "info",
+      "message": "Nome razza corretto: \"SUFFOLKPUNCH\" → \"SUFFOLK PUNCH\"."
+    },
+    {
+      "row": 121,
+      "level": "info",
+      "message": "Nome razza corretto: \"SUFFOLKPUNCH\" → \"SUFFOLK PUNCH\"."
+    },
+    {
+      "row": 122,
+      "level": "info",
+      "message": "Nome razza corretto: \"TENNESSE WALKER\" → \"TENNESSEE WALKER\"."
+    },
+    {
+      "row": 123,
+      "level": "info",
+      "message": "Nome razza corretto: \"TENNESSE WALKER\" → \"TENNESSEE WALKER\"."
+    },
+    {
+      "row": 124,
+      "level": "info",
+      "message": "Nome razza corretto: \"TENNESSE WALKER\" → \"TENNESSEE WALKER\"."
+    },
+    {
+      "row": 125,
+      "level": "info",
+      "message": "Nome razza corretto: \"TENNESSE WALKER\" → \"TENNESSEE WALKER\"."
+    },
+    {
+      "row": 126,
+      "level": "info",
+      "message": "Nome razza corretto: \"TENNESSE WALKER\" → \"TENNESSEE WALKER\"."
+    },
+    {
+      "row": 127,
+      "level": "info",
+      "message": "Nome razza corretto: \"TENNESSE WALKER\" → \"TENNESSEE WALKER\"."
+    },
+    {
+      "row": 128,
+      "level": "info",
+      "message": "Nome razza corretto: \"TENNESSE WALKER\" → \"TENNESSEE WALKER\"."
+    },
+    {
+      "row": 129,
+      "level": "info",
+      "message": "Nome razza corretto: \"TENNESSE WALKER\" → \"TENNESSEE WALKER\"."
+    },
+    {
+      "row": 135,
+      "level": "info",
+      "message": "Nome manto corretto: \"Reverse Daplle Black\" → \"Reverse Dapple Black\" (THOROUGHBRED (Purosangue))."
+    },
+    {
+      "row": 144,
+      "level": "info",
+      "message": "WARLANDER – Dun: GOVERNO = 65 (la formula del file darebbe 66). Mantenuto il valore del file."
+    },
+    {
+      "row": 145,
+      "level": "info",
+      "message": "WARLANDER – Black Snow Flake: GOVERNO = 65 (la formula del file darebbe 66). Mantenuto il valore del file."
+    },
+    {
+      "row": null,
+      "level": "info",
+      "message": "Razza personalizzata/mod rilevata: FOSTER (3 manti)."
+    },
+    {
+      "row": null,
+      "level": "info",
+      "message": "Razza personalizzata/mod rilevata: GRONINGEN (2 manti)."
+    },
+    {
+      "row": null,
+      "level": "info",
+      "message": "Razza personalizzata/mod rilevata: LUSITANO (3 manti)."
+    },
+    {
+      "row": null,
+      "level": "info",
+      "message": "Razza personalizzata/mod rilevata: WARLANDER (2 manti)."
+    },
+    {
+      "row": null,
+      "level": "info",
+      "message": "Razza personalizzata/mod rilevata: NELL II (1 manti)."
+    },
+    {
+      "row": null,
+      "level": "info",
+      "message": "Razza personalizzata/mod rilevata: MANGY (1 manti)."
+    }
+  ],
+  "ignoredSheets": [
+    "CRAFT",
+    "PRENOTAZIONI CAVALLI",
+    "PREZZI",
+    "3",
+    "4",
+    "7",
+    "8",
+    "9",
+    "10",
+    "11",
+    "12",
+    "13",
+    "14",
+    "15"
+  ],
+  "breeds": [
+    {
+      "name": "AMERICAN PAINT HORSE",
+      "isCustom": false,
+      "coats": 5
+    },
+    {
+      "name": "AMERICAN STANDARD (Trottatore americano)",
+      "isCustom": false,
+      "coats": 4
+    },
+    {
+      "name": "ANDALUSIAN",
+      "isCustom": false,
+      "coats": 3
+    },
+    {
+      "name": "APPALOOSA",
+      "isCustom": false,
+      "coats": 9
+    },
+    {
+      "name": "ARABIAN (Arabo)",
+      "isCustom": false,
+      "coats": 7
+    },
+    {
+      "name": "ARDENNES",
+      "isCustom": false,
+      "coats": 4
+    },
+    {
+      "name": "BELGIAN",
+      "isCustom": false,
+      "coats": 2
+    },
+    {
+      "name": "BRETONE",
+      "isCustom": false,
+      "coats": 6
+    },
+    {
+      "name": "CRIOLLO",
+      "isCustom": false,
+      "coats": 6
+    },
+    {
+      "name": "DUTCH WARMBLOOD (Olandese)",
+      "isCustom": false,
+      "coats": 4
+    },
+    {
+      "name": "FOSTER",
+      "isCustom": true,
+      "coats": 3
+    },
+    {
+      "name": "GRONINGEN",
+      "isCustom": true,
+      "coats": 2
+    },
+    {
+      "name": "GYPSY COB",
+      "isCustom": false,
+      "coats": 6
+    },
+    {
+      "name": "HUNGARIAN",
+      "isCustom": false,
+      "coats": 5
+    },
+    {
+      "name": "KENTUCKY SADDLE (Americano da sella)",
+      "isCustom": false,
+      "coats": 5
+    },
+    {
+      "name": "KLADRUBER",
+      "isCustom": false,
+      "coats": 6
+    },
+    {
+      "name": "MISSOURI FOX TROTTER",
+      "isCustom": false,
+      "coats": 8
+    },
+    {
+      "name": "MORGAN",
+      "isCustom": false,
+      "coats": 5
+    },
+    {
+      "name": "MUSTANG",
+      "isCustom": false,
+      "coats": 10
+    },
+    {
+      "name": "NOKOTA",
+      "isCustom": false,
+      "coats": 5
+    },
+    {
+      "name": "NORFOLK ROADSTER",
+      "isCustom": false,
+      "coats": 6
+    },
+    {
+      "name": "LUSITANO",
+      "isCustom": true,
+      "coats": 3
+    },
+    {
+      "name": "SHIRE",
+      "isCustom": false,
+      "coats": 3
+    },
+    {
+      "name": "SUFFOLK PUNCH",
+      "isCustom": false,
+      "coats": 2
+    },
+    {
+      "name": "TENNESSEE WALKER",
+      "isCustom": false,
+      "coats": 8
+    },
+    {
+      "name": "THOROUGHBRED (Purosangue)",
+      "isCustom": false,
+      "coats": 6
+    },
+    {
+      "name": "TURKOMAN",
+      "isCustom": false,
+      "coats": 8
+    },
+    {
+      "name": "WARLANDER",
+      "isCustom": true,
+      "coats": 2
+    },
+    {
+      "name": "NELL II",
+      "isCustom": true,
+      "coats": 1
+    },
+    {
+      "name": "MANGY",
+      "isCustom": true,
+      "coats": 1
+    },
+    {
+      "name": "MULI",
+      "isCustom": false,
+      "coats": 2
+    },
+    {
+      "name": "ASINI",
+      "isCustom": false,
+      "coats": 1
+    }
+  ]
+}

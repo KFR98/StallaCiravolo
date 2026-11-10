@@ -1,0 +1,424 @@
+// Gestionale Stalla Ciravolo – schema database
+// Database: MySQL / MariaDB (nativo nei pannelli Pterodactyl).
+// Per usare PostgreSQL basta cambiare `provider` e rigenerare le migrazioni.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────────── UTENTI E SESSIONI ─────────────────────────────
+
+enum Role {
+  ADMIN
+  DIRETTORE
+  GESTORE
+  DIPENDENTE
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  username      String    @unique @db.VarChar(50)
+  displayName   String    @db.VarChar(100)
+  passwordHash  String    @db.VarChar(255)
+  role          Role      @default(DIPENDENTE)
+  active        Boolean   @default(true)
+  /// Percentuale stipendio personalizzata (null = usa quella globale)
+  salaryPercent Decimal?  @db.Decimal(5, 2)
+  notes         String?   @db.Text
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sessions          Session[]
+  capturedHorses    Horse[]          @relation("HorseCapturedBy")
+  sales             Sale[]           @relation("SaleSeller")
+  voidedSales       Sale[]           @relation("SaleVoidedBy")
+  spawns            Spawn[]          @relation("SpawnCreatedBy")
+  spawnsUpdated     Spawn[]          @relation("SpawnUpdatedBy")
+  reservations      Reservation[]    @relation("ReservationAssigned")
+  reservationsMade  Reservation[]    @relation("ReservationCreatedBy")
+  reservationsEdit  Reservation[]    @relation("ReservationUpdatedBy")
+  payrollEntries    PayrollEntry[]   @relation("PayrollUser")
+  payrollPaid       PayrollEntry[]   @relation("PayrollPaidBy")
+  payments          Payment[]        @relation("PaymentUser")
+  paymentsRecorded  Payment[]        @relation("PaymentRecordedBy")
+  priceChanges      PriceHistory[]
+  auditLogs         AuditLog[]
+}
+
+model Session {
+  id        String   @id @db.VarChar(64) // hash SHA-256 del token
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  ip        String?  @db.VarChar(64)
+  userAgent String?  @db.VarChar(255)
+
+  @@index([userId])
+}
+
+// ───────────────────────────── CATALOGO ─────────────────────────────
+
+model Breed {
+  id           Int      @id @default(autoincrement())
+  name         String   @unique @db.VarChar(120)
+  /// Nome come scritto nel file Excel originale
+  originalName String?  @db.VarChar(120)
+  description  String?  @db.Text
+  /// Razza personalizzata / da mod (non presente in RDR2 originale)
+  isCustom     Boolean  @default(false)
+  sortOrder    Int      @default(0)
+  archived     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  coats        Coat[]
+  horses       Horse[]
+  spawns       Spawn[]
+  reservations Reservation[]
+}
+
+model Coat {
+  id           Int      @id @default(autoincrement())
+  breedId      Int
+  breed        Breed    @relation(fields: [breedId], references: [id], onDelete: Restrict)
+  name         String   @db.VarChar(120)
+  originalName String?  @db.VarChar(120)
+  description  String?  @db.Text
+  /// Percorso relativo nella cartella upload (es. "coats/arabian-black.webp")
+  imagePath    String?  @db.VarChar(255)
+
+  // Prezzi (colonne del LISTINO). Tutti modificabili dall'admin.
+  /// LISTINO GOV – prezzo di acquisto al blip (informativo)
+  govListPrice    Decimal? @db.Decimal(10, 2)
+  /// 5-10 ANNI – prezzo base senza addestramento
+  basePriceA      Decimal? @db.Decimal(10, 2)
+  /// 11-15 ANNI – prezzo base senza addestramento
+  basePriceB      Decimal? @db.Decimal(10, 2)
+  /// ADDEST. – costo addestramento
+  trainingPrice   Decimal? @db.Decimal(10, 2)
+  /// TOT 5-10 ANNI – prezzo di vendita di riferimento fascia A
+  salePriceA      Decimal? @db.Decimal(10, 2)
+  /// TOT 11-16 ANNI – prezzo di vendita di riferimento fascia B
+  salePriceB      Decimal? @db.Decimal(10, 2)
+  /// GOVERNO – prezzo di vendita al blip del Governo
+  governmentPrice Decimal? @db.Decimal(10, 2)
+
+  notes     String?  @db.Text
+  sortOrder Int      @default(0)
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  stats        CoatStat[]
+  horses       Horse[]
+  spawns       Spawn[]
+  reservations Reservation[]
+  priceHistory PriceHistory[]
+
+  @@unique([breedId, name])
+}
+
+model StatDefinition {
+  id        Int        @id @default(autoincrement())
+  key       String     @unique @db.VarChar(40)
+  /// Etichetta visualizzata (es. "VELOC."), modificabile dall'admin
+  label     String     @db.VarChar(60)
+  sortOrder Int        @default(0)
+  values    CoatStat[]
+}
+
+model CoatStat {
+  coatId Int
+  statId Int
+  coat   Coat           @relation(fields: [coatId], references: [id], onDelete: Cascade)
+  stat   StatDefinition @relation(fields: [statId], references: [id], onDelete: Cascade)
+  value  Decimal?       @db.Decimal(6, 2)
+
+  @@id([coatId, statId])
+}
+
+model PriceHistory {
+  id          Int      @id @default(autoincrement())
+  coatId      Int
+  coat        Coat     @relation(fields: [coatId], references: [id], onDelete: Cascade)
+  field       String   @db.VarChar(40)
+  oldValue    Decimal? @db.Decimal(10, 2)
+  newValue    Decimal? @db.Decimal(10, 2)
+  changedById Int?
+  changedBy   User?    @relation(fields: [changedById], references: [id], onDelete: SetNull)
+  changedAt   DateTime @default(now())
+
+  @@index([coatId])
+}
+
+// ───────────────────────────── CAVALLI (CATTURE + STALLA) ─────────────────────────────
+
+enum Sex {
+  MASCHIO
+  FEMMINA
+}
+
+enum HorseStatus {
+  /// Depositato e disponibile in stalla
+  IN_STALLA
+  /// Venduto dalla stalla
+  VENDUTO
+  /// Venduto direttamente al blip del Governo (mai entrato in stalla)
+  VENDUTO_GOVERNO
+  /// Uscito dalla stalla per altri motivi (morto, liberato, trasferito...)
+  RIMOSSO
+}
+
+/// Ogni cavallo catturato. È contemporaneamente lo storico catture
+/// e l'inventario della stalla (status = IN_STALLA).
+model Horse {
+  id        Int         @id @default(autoincrement())
+  breedId   Int
+  breed     Breed       @relation(fields: [breedId], references: [id], onDelete: Restrict)
+  coatId    Int
+  coat      Coat        @relation(fields: [coatId], references: [id], onDelete: Restrict)
+  sex       Sex
+  plate     String      @db.VarChar(40)
+  status    HorseStatus
+  /// Condizione del cavallo (es. Sano, Ferito...)
+  condition String?     @db.VarChar(60)
+  notes     String?     @db.Text
+
+  /// Età maturata fino a ageCheckpointAt (anni, con decimali)
+  ageBase         Decimal  @db.Decimal(8, 3)
+  /// Da questo istante l'età continua ad avanzare automaticamente
+  ageCheckpointAt DateTime
+  /// Età dichiarata alla cattura (storico, non cambia)
+  initialAge      Decimal  @db.Decimal(8, 3)
+
+  capturedById Int
+  capturedBy   User     @relation("HorseCapturedBy", fields: [capturedById], references: [id], onDelete: Restrict)
+  capturedAt   DateTime @default(now())
+  /// Valorizzato se il cavallo è stato depositato in stalla
+  depositedAt  DateTime?
+  exitedAt     DateTime?
+  exitReason   String?  @db.VarChar(255)
+
+  /// Chiave anti doppio invio del modulo
+  requestId String?  @unique @db.VarChar(64)
+  /// Versione per il blocco ottimistico
+  version   Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sales Sale[]
+
+  @@index([status])
+  @@index([capturedById])
+  @@index([capturedAt])
+  @@index([plate])
+}
+
+// ───────────────────────────── VENDITE ─────────────────────────────
+
+enum SaleType {
+  STALLA
+  GOVERNO
+}
+
+enum DiscountType {
+  PERCENTUALE
+  IMPORTO
+}
+
+/// Vendita: conserva una fotografia dei dati al momento della transazione.
+model Sale {
+  id      Int      @id @default(autoincrement())
+  horseId Int
+  horse   Horse    @relation(fields: [horseId], references: [id], onDelete: Restrict)
+  type    SaleType
+
+  // Fotografia anagrafica
+  breedName String   @db.VarChar(120)
+  coatName  String   @db.VarChar(120)
+  sex       Sex
+  plate     String   @db.VarChar(40)
+  ageAtSale Decimal  @db.Decimal(8, 3)
+
+  // Fotografia economica
+  /// Fascia di prezzo applicata (es. "5-10", "11-16", "Libero", "Governo")
+  priceBracket  String        @db.VarChar(40)
+  listPrice     Decimal?      @db.Decimal(10, 2)
+  discountType  DiscountType?
+  discountValue Decimal?      @db.Decimal(10, 2)
+  finalPrice    Decimal       @db.Decimal(10, 2)
+
+  sellerId   Int
+  seller     User    @relation("SaleSeller", fields: [sellerId], references: [id], onDelete: Restrict)
+  sellerName String  @db.VarChar(100)
+  buyerName  String? @db.VarChar(120)
+  notes      String? @db.Text
+  soldAt     DateTime @default(now())
+
+  /// Le vendite non si cancellano: si annullano
+  voided       Boolean   @default(false)
+  voidedAt     DateTime?
+  voidedById   Int?
+  voidedBy     User?     @relation("SaleVoidedBy", fields: [voidedById], references: [id], onDelete: SetNull)
+  voidReason   String?   @db.VarChar(255)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([soldAt])
+  @@index([sellerId, soldAt])
+  @@index([type])
+  @@index([horseId])
+}
+
+// ───────────────────────────── MAPPA SPAWN ─────────────────────────────
+
+model Spawn {
+  id          Int      @id @default(autoincrement())
+  /// Coordinate in pixel sull'immagine della mappa
+  x           Float
+  y           Float
+  breedId     Int?
+  breed       Breed?   @relation(fields: [breedId], references: [id], onDelete: SetNull)
+  coatId      Int?
+  coat        Coat?    @relation(fields: [coatId], references: [id], onDelete: SetNull)
+  location    String?  @db.VarChar(120)
+  description String?  @db.Text
+  notes       String?  @db.Text
+  createdById Int
+  createdBy   User     @relation("SpawnCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  updatedById Int?
+  updatedBy   User?    @relation("SpawnUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ───────────────────────────── NOTE / PRENOTAZIONI ─────────────────────────────
+
+enum ReservationStatus {
+  DA_CATTURARE
+  PRENOTATO
+  VENDIBILE_DA_TUTTI
+  AFFARE_CHIUSO
+  ANNULLATO
+}
+
+model Reservation {
+  id           Int               @id @default(autoincrement())
+  title        String?           @db.VarChar(150)
+  customerName String?           @db.VarChar(120)
+  missiva      String?           @db.VarChar(40)
+  breedId      Int?
+  breed        Breed?            @relation(fields: [breedId], references: [id], onDelete: SetNull)
+  coatId       Int?
+  coat         Coat?             @relation(fields: [coatId], references: [id], onDelete: SetNull)
+  plate        String?           @db.VarChar(40)
+  price        Decimal?          @db.Decimal(10, 2)
+  deposit      Decimal?          @db.Decimal(10, 2)
+  deliveryDate DateTime?
+  status       ReservationStatus @default(PRENOTATO)
+  assignedToId Int?
+  assignedTo   User?             @relation("ReservationAssigned", fields: [assignedToId], references: [id], onDelete: SetNull)
+  notes        String?           @db.Text
+  createdById  Int
+  createdBy    User              @relation("ReservationCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  updatedById  Int?
+  updatedBy    User?             @relation("ReservationUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([status])
+}
+
+// ───────────────────────────── STIPENDI ─────────────────────────────
+
+enum PayrollStatus {
+  DA_PAGARE
+  PAGATO
+}
+
+/// Registro stipendio di una settimana per un dipendente.
+/// Le righe vengono create quando si paga/modifica/annota una settimana;
+/// le settimane senza riga sono calcolate al volo dalle vendite.
+model PayrollEntry {
+  id             Int           @id @default(autoincrement())
+  userId         Int
+  user           User          @relation("PayrollUser", fields: [userId], references: [id], onDelete: Restrict)
+  /// Lunedì 00:00 (fuso orario della stalla) della settimana
+  weekStart      DateTime
+  status         PayrollStatus @default(DA_PAGARE)
+  /// Fotografia al momento del pagamento
+  salesCount     Int?
+  salesTotal     Decimal?      @db.Decimal(12, 2)
+  percent        Decimal?      @db.Decimal(5, 2)
+  computedAmount Decimal?      @db.Decimal(12, 2)
+  /// Importo modificato manualmente (sostituisce il calcolo)
+  amountOverride Decimal?      @db.Decimal(12, 2)
+  paidAmount     Decimal?      @db.Decimal(12, 2)
+  paidAt         DateTime?
+  paidById       Int?
+  paidBy         User?         @relation("PayrollPaidBy", fields: [paidById], references: [id], onDelete: SetNull)
+  notes          String?       @db.Text
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  payments Payment[]
+
+  @@unique([userId, weekStart])
+}
+
+enum PaymentAction {
+  PAGATO
+  ANNULLATO
+}
+
+/// Storico pagamenti: ogni pagamento (o annullamento) è una riga permanente.
+model Payment {
+  id             Int           @id @default(autoincrement())
+  payrollEntryId Int
+  payrollEntry   PayrollEntry  @relation(fields: [payrollEntryId], references: [id], onDelete: Restrict)
+  userId         Int
+  user           User          @relation("PaymentUser", fields: [userId], references: [id], onDelete: Restrict)
+  weekStart      DateTime
+  amount         Decimal       @db.Decimal(12, 2)
+  action         PaymentAction
+  recordedById   Int?
+  recordedBy     User?         @relation("PaymentRecordedBy", fields: [recordedById], references: [id], onDelete: SetNull)
+  notes          String?       @db.Text
+  createdAt      DateTime      @default(now())
+
+  @@index([userId, createdAt])
+}
+
+// ───────────────────────────── IMPOSTAZIONI E AUDIT ─────────────────────────────
+
+model Setting {
+  key       String   @id @db.VarChar(60)
+  value     String   @db.Text // JSON
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  username  String?  @db.VarChar(50)
+  action    String   @db.VarChar(60)
+  entity    String   @db.VarChar(40)
+  entityId  String?  @db.VarChar(40)
+  summary   String   @db.VarChar(500)
+  details   String?  @db.Text // JSON con prima/dopo
+  ip        String?  @db.VarChar(64)
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([entity, entityId])
+  @@index([userId])
+}

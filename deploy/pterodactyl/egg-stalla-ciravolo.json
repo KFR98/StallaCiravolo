@@ -1,0 +1,162 @@
+{
+    "_comment": "Egg Pterodactyl per il Gestionale Stalla Ciravolo (Next.js + MySQL)",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2026-11-10T00:00:00+00:00",
+    "name": "Stalla Ciravolo",
+    "author": "admin@example.com",
+    "description": "Gestionale della stalla per server RedM. Scarica il codice da GitHub, lo compila al primo avvio e lo aggiorna automaticamente a ogni riavvio (se AUTO_UPDATE = 1). Richiede un database MySQL/MariaDB creato dalla scheda Databases del server.",
+    "features": null,
+    "docker_images": {
+        "Node.js 22": "ghcr.io/parkervcp/yolks:nodejs_22"
+    },
+    "file_denylist": [],
+    "startup": "if [[ -d .git ]] && [[ \"${AUTO_UPDATE}\" == \"1\" ]]; then OLD=$(git rev-parse HEAD); git pull --ff-only origin ${BRANCH} || echo '[aggiornamento] git pull non riuscito, avvio la versione attuale'; if [[ \"$OLD\" != \"$(git rev-parse HEAD)\" ]]; then rm -rf .next; fi; fi; if [[ ! -f .next/standalone/server.js ]]; then echo '[build] Installazione dipendenze e compilazione (alcuni minuti)...'; npm ci --no-audit --no-fund && npm run build || exit 1; fi; node scripts/start.mjs",
+    "config": {
+        "files": "{}",
+        "startup": "{\r\n    \"done\": \"Gestionale in ascolto\"\r\n}",
+        "logs": "{}",
+        "stop": "stop"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Installazione: scarica il codice da GitHub. La compilazione avviene al primo avvio\n# nello stesso container in cui il gestionale girerà.\napt update && apt install -y git ca-certificates\nmkdir -p /mnt/server\ncd /mnt/server\n\nif [[ -z \"${GIT_ADDRESS}\" ]]; then echo 'GIT_ADDRESS mancante'; exit 1; fi\nADDR=${GIT_ADDRESS}\n[[ ${ADDR} != *.git ]] && ADDR=${ADDR}.git\nif [[ -n \"${USERNAME}\" && -n \"${ACCESS_TOKEN}\" ]]; then\n  ADDR=\"https://${USERNAME}:${ACCESS_TOKEN}@$(echo -e ${ADDR} | cut -d/ -f3-)\"\nfi\n\nif [[ -d .git ]]; then\n  echo 'Repository già presente: aggiornamento'\n  git pull --ff-only origin ${BRANCH}\nelse\n  # Conserva eventuali dati esistenti (upload/backup)\n  if [[ -d data ]]; then mv data /tmp/data-keep; fi\n  rm -rf /mnt/server/* /mnt/server/.[!.]* 2>/dev/null\n  git clone --branch ${BRANCH} --single-branch ${ADDR} .\n  if [[ -d /tmp/data-keep ]]; then mv /tmp/data-keep data; fi\nfi\nmkdir -p data/uploads data/backups\necho 'Installazione completata. Avvia il server: la prima compilazione richiede alcuni minuti.'\n",
+            "container": "ghcr.io/parkervcp/installers:debian",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Repository Git",
+            "description": "Indirizzo del repository GitHub (es. https://github.com/KFR98/StallaCiravolo).",
+            "env_variable": "GIT_ADDRESS",
+            "default_value": "https://github.com/KFR98/StallaCiravolo",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Branch",
+            "description": "Branch da installare e aggiornare.",
+            "env_variable": "BRANCH",
+            "default_value": "main",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Utente GitHub",
+            "description": "Solo per repository privati: nome utente GitHub.",
+            "env_variable": "USERNAME",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Token GitHub",
+            "description": "Solo per repository privati: personal access token con permesso di lettura.",
+            "env_variable": "ACCESS_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Aggiornamento automatico",
+            "description": "1 = a ogni avvio scarica l'ultima versione da GitHub e ricompila se è cambiata. 0 = disattivato.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "URL database",
+            "description": "mysql://UTENTE:PASSWORD@HOST:3306/NOME_DB (dati dalla scheda Databases). Codifica i caratteri speciali della password (@ = %40, : = %3A, / = %2F, # = %23).",
+            "env_variable": "DATABASE_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Indirizzo pubblico",
+            "description": "URL pubblico del gestionale (es. https://stalla.tuodominio.it).",
+            "env_variable": "APP_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Cookie sicuri (HTTPS)",
+            "description": "true se il sito è raggiungibile in HTTPS tramite il reverse proxy (consigliato). false solo per test in HTTP.",
+            "env_variable": "COOKIE_SECURE",
+            "default_value": "true",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Nome utente admin iniziale",
+            "description": "Creato al primo avvio solo se non esiste nessun amministratore.",
+            "env_variable": "ADMIN_USERNAME",
+            "default_value": "admin",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:50",
+            "field_type": "text"
+        },
+        {
+            "name": "Password admin iniziale",
+            "description": "Usata solo al primo avvio. Se vuota viene generata e mostrata in console. Cambiala dopo il primo accesso.",
+            "env_variable": "ADMIN_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Fuso orario",
+            "description": "Fuso orario per giornate e settimane stipendiali.",
+            "env_variable": "TZ_STALLA",
+            "default_value": "Europe/Rome",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Backup da conservare",
+            "description": "Numero di backup automatici giornalieri del database da tenere in data/backups.",
+            "env_variable": "BACKUP_KEEP",
+            "default_value": "14",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:1|max:365",
+            "field_type": "text"
+        },
+        {
+            "name": "Domini consentiti (opzionale)",
+            "description": "Solo se i moduli danno errore dietro al proxy: dominio pubblico, es. stalla.tuodominio.it",
+            "env_variable": "ALLOWED_ORIGINS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        }
+    ]
+}
