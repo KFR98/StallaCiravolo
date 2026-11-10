@@ -36,9 +36,17 @@ export async function clientIp() {
   return (h.get("x-forwarded-for")?.split(",")[0] || h.get("x-real-ip") || "").trim().slice(0, 64) || null;
 }
 
-function cookieSecure() {
-  if (process.env.COOKIE_SECURE) return process.env.COOKIE_SECURE === "true";
-  return process.env.NODE_ENV === "production" && (process.env.APP_URL ?? "").startsWith("https");
+/**
+ * Il cookie è "Secure" solo se la richiesta arriva davvero in HTTPS (direttamente o tramite
+ * reverse proxy). Così il login funziona sia su http://IP:porta sia su https://dominio.
+ * COOKIE_SECURE=false lo disattiva sempre.
+ */
+function cookieSecure(h: Headers) {
+  if (process.env.COOKIE_SECURE === "false") return false;
+  const proto = h.get("x-forwarded-proto")?.split(",")[0].trim().toLowerCase();
+  if (proto) return proto === "https";
+  const origin = h.get("origin") || h.get("referer") || "";
+  return origin.startsWith("https://");
 }
 
 export async function createSession(userId: number) {
@@ -57,7 +65,7 @@ export async function createSession(userId: number) {
   (await cookies()).set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: cookieSecure(),
+    secure: cookieSecure(h),
     path: "/",
     expires: expiresAt,
   });

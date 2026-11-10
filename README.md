@@ -123,13 +123,13 @@ Il gestionale ascolta sulla porta dell'allocazione (es. `IP_NODO:25570`). Per ra
    sudo nginx -t && sudo systemctl reload nginx
    ```
    Se il pannello Pterodactyl usa già nginx sulla stessa macchina va benissimo: è solo un altro `server {}`.
-3. Nel server Pterodactyl imposta `Indirizzo pubblico = https://stalla.tuodominio.it` e `Cookie sicuri = true`, poi riavvia.
+3. Nel server Pterodactyl imposta `Indirizzo pubblico = https://stalla.tuodominio.it` poi riavvia (i cookie diventano sicuri in automatico quando il sito è aperto in HTTPS).
 4. Facoltativo: con il firewall consenti la porta dell'allocazione solo da `127.0.0.1`/IP del proxy,
    così il sito è raggiungibile solo tramite il dominio in HTTPS.
 
 ### Opzione B – Cloudflare Tunnel
 Crea un tunnel che punta a `http://IP_NODO:PORTA` con hostname `stalla.tuodominio.it`.
-Niente porte da aprire; imposta comunque `APP_URL` e `COOKIE_SECURE=true`.
+Niente porte da aprire; imposta comunque `APP_URL`.
 
 > Se dietro al proxy i moduli rispondono "Errore imprevisto" o non salvano, imposta la
 > variabile `Domini consentiti` = `stalla.tuodominio.it` (controllo anti-CSRF dei moduli).

@@ -99,13 +99,13 @@
             "field_type": "text"
         },
         {
-            "name": "Cookie sicuri (HTTPS)",
-            "description": "true se il sito è raggiungibile in HTTPS tramite il reverse proxy (consigliato). false solo per test in HTTP.",
+            "name": "Cookie sicuri (automatico)",
+            "description": "auto = il cookie è sicuro solo quando il sito è aperto in HTTPS (consigliato). false = mai sicuro.",
             "env_variable": "COOKIE_SECURE",
-            "default_value": "true",
+            "default_value": "auto",
             "user_viewable": true,
             "user_editable": true,
-            "rules": "required|string|in:true,false",
+            "rules": "required|string|in:auto,true,false",
             "field_type": "text"
         },
         {
