@@ -1,5 +1,5 @@
 {
-    "_comment": "Egg Pterodactyl per il Gestionale Stalla Ciravolo (Next.js + MySQL)",
+    "_comment": "Egg Pterodactyl per il Gestionale Stalla Ciravolo (Next.js + SQLite integrato)",
     "meta": {
         "version": "PTDL_v2",
         "update_url": null
@@ -7,7 +7,7 @@
     "exported_at": "2026-11-10T00:00:00+00:00",
     "name": "Stalla Ciravolo",
     "author": "admin@example.com",
-    "description": "Gestionale della stalla per server RedM. Scarica il codice da GitHub, lo compila al primo avvio e lo aggiorna automaticamente a ogni riavvio (se AUTO_UPDATE = 1). Richiede un database MySQL/MariaDB creato dalla scheda Databases del server.",
+    "description": "Gestionale della stalla per server RedM. Autonomo: il database (SQLite) è un file dentro la cartella del server, non serve MySQL. Scarica il codice da GitHub, lo compila al primo avvio e lo aggiorna a ogni riavvio (se AUTO_UPDATE = 1).",
     "features": null,
     "docker_images": {
         "Node.js 22": "ghcr.io/parkervcp/yolks:nodejs_22"
@@ -79,13 +79,13 @@
             "field_type": "text"
         },
         {
-            "name": "URL database",
-            "description": "mysql://UTENTE:PASSWORD@HOST:3306/NOME_DB (dati dalla scheda Databases). Codifica i caratteri speciali della password (@ = %40, : = %3A, / = %2F, # = %23).",
+            "name": "Database (avanzato, opzionale)",
+            "description": "Lascia VUOTO: il database viene creato automaticamente in data/stalla.db dentro il server. Da compilare solo per usare un file diverso (file:./data/altro.db).",
             "env_variable": "DATABASE_URL",
             "default_value": "",
             "user_viewable": true,
             "user_editable": true,
-            "rules": "required|string",
+            "rules": "nullable|string",
             "field_type": "text"
         },
         {

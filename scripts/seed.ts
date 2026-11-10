@@ -13,6 +13,9 @@ import { DEFAULT_SETTINGS } from "../src/lib/settings";
 import type { ParsedListino } from "../src/lib/excel-import";
 
 async function main() {
+  // SQLite: modalità WAL = letture e scritture contemporanee senza blocchi (persistente nel file)
+  await prisma.$queryRawUnsafe("PRAGMA journal_mode = WAL");
+
   // Impostazioni di default (solo quelle mancanti)
   for (const [key, value] of Object.entries(DEFAULT_SETTINGS)) {
     await prisma.setting.upsert({ where: { key }, create: { key, value: JSON.stringify(value) }, update: {} });

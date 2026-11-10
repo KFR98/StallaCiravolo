@@ -4,14 +4,15 @@ Gestionale web per la stalla del server RedM: catalogo cavalli, listino, catture
 vendite (stalla e Governo), avanzamento età, mappa degli spawn, note/prenotazioni,
 statistiche dei dipendenti, stipendi settimanali, amministrazione e registro attività.
 
-- **Stack:** Next.js 15 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Prisma 6 · MySQL/MariaDB
+- **Stack:** Next.js 15 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Prisma 6 · SQLite
 - **Autenticazione:** sessioni salvate nel database (cookie httpOnly), password con Argon2id
 - **Permessi:** verificati sul server a ogni pagina, azione e API (`src/lib/permissions.ts`)
 
-> Perché MySQL e non PostgreSQL: Pterodactyl crea database **MySQL/MariaDB** direttamente
-> dalla scheda *Databases* del server, senza installare altro. Lo schema Prisma è
-> portabile: per usare PostgreSQL basta cambiare `provider` in `prisma/schema.prisma`
-> e rigenerare le migrazioni.
+> **Database integrato:** il database è un file SQLite (`data/stalla.db`) dentro la cartella del
+> server. Il gestionale è autonomo: non serve installare né configurare MySQL sulla macchina e
+> non tocca il database del pannello. SQLite è in modalità WAL (letture e scritture contemporanee)
+> e ogni operazione economica è in una transazione. Se un giorno servirà un database esterno basta
+> cambiare `provider` in `prisma/schema.prisma` e rigenerare le migrazioni.
 
 ---
 
@@ -65,26 +66,22 @@ Il gestionale gira come un normale "server" del pannello, con un **egg** dedicat
 ### 2.2 Crea il server
 1. Admin → **Servers → Create New**: scegli il nest e l'egg *Stalla Ciravolo*.
 2. Risorse consigliate: **RAM 1536 MB** (la prima compilazione ne usa ~1 GB, poi ne bastano ~300 MB),
-   disco 3 GB, 1 allocazione (porta), immagine *Node.js 22*.
+   disco 3 GB, 1 allocazione (porta), immagine *Node.js 22*. **Databases: 0** (non serve).
 3. Nelle variabili:
    - `Repository Git`: `https://github.com/KFR98/StallaCiravolo`
    - se il repository è **privato**: `Utente GitHub` + `Token GitHub` (token di sola lettura)
-   - lascia vuoto per ora `URL database`, ci torniamo al punto 2.3.
+   - `Database (avanzato, opzionale)`: **lascialo vuoto**
+   - `Password admin iniziale`: scegline una (oppure lasciala vuota: verrà generata e scritta in console).
 4. Crea il server: lo script di installazione scarica il codice.
 
-### 2.3 Crea il database
-1. Nel server → scheda **Databases** → *New Database* (es. nome `stalla`).
-2. Clicca sull'occhio per vedere la password e compila la variabile **URL database** (scheda *Startup*):
-   ```
-   mysql://UTENTE:PASSWORD@HOST:PORTA/NOME_DATABASE
-   ```
-   Se la password contiene caratteri speciali codificali: `@`→`%40`, `:`→`%3A`, `/`→`%2F`, `#`→`%23`, `?`→`%3F`.
-3. Imposta anche `Password admin iniziale` (oppure lasciala vuota: verrà generata e scritta in console).
+### 2.3 Database
+Non c'è nulla da fare: al primo avvio viene creato il file `data/stalla.db` dentro il server.
+Non usa MySQL e non tocca nulla della macchina o del pannello.
 
 ### 2.4 Primo avvio
 Premi **Start**. Al primo avvio vengono eseguiti in automatico:
 1. `npm ci` e compilazione (alcuni minuti);
-2. creazione delle tabelle (migrazioni Prisma);
+2. creazione del database `data/stalla.db` e delle tabelle (migrazioni Prisma);
 3. caricamento del catalogo dal listino (32 razze, 148 manti) e delle impostazioni predefinite;
 4. creazione dell'account admin;
 5. importazione delle foto presenti nella cartella `Cavalli/`.
@@ -94,7 +91,7 @@ Quando in console compare `Gestionale in ascolto` il sito è attivo sulla porta 
 ### 2.5 Aggiornamenti
 Con `Aggiornamento automatico = 1`, a ogni **Restart** il server esegue `git pull`
 e ricompila solo se il codice è cambiato. Le migrazioni del database vengono applicate da sole.
-I dati (`data/uploads`, `data/backups`) e il database non vengono toccati.
+I dati (`data/stalla.db`, `data/uploads`, `data/backups`) non vengono toccati.
 
 ### 2.6 Comandi da console
 | Comando | Effetto |
@@ -141,7 +138,7 @@ Niente porte da aprire; imposta comunque `APP_URL` e `COOKIE_SECURE=true`.
 
 ## 4. Installazione su un server normale / in locale
 
-Requisiti: Node.js ≥ 20.12, MySQL 8 o MariaDB ≥ 10.6.
+Requisiti: Node.js ≥ 20.12. Nessun database esterno.
 
 ```bash
 git clone https://github.com/KFR98/StallaCiravolo.git
@@ -149,7 +146,7 @@ git clone https://github.com/KFR98/StallaCiravolo.git
 ```bash
 cd StallaCiravolo && cp .env.example .env
 ```
-Modifica `.env` (almeno `DATABASE_URL`), poi:
+Modifica `.env` se serve (tutti i valori hanno un default), poi:
 ```bash
 npm ci
 ```
@@ -161,7 +158,8 @@ npm start
 ```
 `npm start` esegue migrazioni, inizializzazione e avvio (porta `PORT`, default 3000).
 
-Sviluppo: `npx prisma migrate deploy && npm run db:seed && npm run dev`.
+Sviluppo: imposta in `.env` `DATABASE_URL="file:/percorso/assoluto/data/stalla.db"`, poi
+`npx prisma migrate deploy && npm run db:seed && npm run dev`.
 
 ---
 
@@ -176,12 +174,12 @@ Sviluppo: `npx prisma migrate deploy && npm run db:seed && npm run dev`.
 - **Ripristino**: Admin → *Backup* → carica il file JSON e scrivi `RIPRISTINA`. Prima del ripristino
   viene salvata automaticamente una copia dello stato attuale; il ripristino è in un'unica transazione
   (se fallisce non cambia nulla).
-- **Backup nativo MySQL** (alternativa, dal nodo):
-  ```bash
-  mysqldump -h HOST -u UTENTE -p NOME_DB > stalla.sql
-  ```
-- **Immagini**: sono file in `data/uploads`. I *Backups* del pannello Pterodactyl salvano tutti i file
-  del server (codice, `data/uploads`, `data/backups`), ma **non** il database: per questo esistono i backup JSON.
+- **Backup del pannello**: i *Backups* di Pterodactyl salvano tutti i file del server, quindi anche
+  `data/stalla.db`, `data/uploads` (immagini) e `data/backups`. Il file del database copiato mentre il
+  gestionale è acceso può essere a metà di una scrittura: per un ripristino sicuro usa i backup JSON
+  di `data/backups` (sempre coerenti) oppure fai il backup del pannello a server spento.
+- **Copia manuale del database**: a server spento basta copiare `data/stalla.db` (e, se presenti,
+  `data/stalla.db-wal` / `data/stalla.db-shm`).
 - **Account admin perso**: `npm run admin:create -- nomeutente nuovapassword` (dalla console SFTP/shell).
 
 ---

@@ -78,21 +78,18 @@ export async function restoreBackup(b: BackupFile) {
   if (b?.app !== "stalla-ciravolo" || b.version !== 1 || !b.data) throw new Error("File di backup non valido.");
   await prisma.$transaction(
     async (tx) => {
-      await tx.$executeRawUnsafe("SET FOREIGN_KEY_CHECKS=0");
-      try {
-        await tx.session.deleteMany();
-        for (const m of [...ORDER].reverse()) {
-          await tx.$executeRawUnsafe(`DELETE FROM \`${TABLES[m]}\``);
+      // SQLite: i vincoli vengono verificati solo alla fine della transazione
+      await tx.$executeRawUnsafe("PRAGMA defer_foreign_keys = ON");
+      await tx.session.deleteMany();
+      for (const m of [...ORDER].reverse()) {
+        await tx.$executeRawUnsafe(`DELETE FROM "${TABLES[m]}"`);
+      }
+      for (const m of ORDER) {
+        const rows = (b.data[m] ?? []) as Record<string, unknown>[];
+        for (let i = 0; i < rows.length; i += 500) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (tx[m] as any).createMany({ data: rows.slice(i, i + 500).map(revive) });
         }
-        for (const m of ORDER) {
-          const rows = (b.data[m] ?? []) as Record<string, unknown>[];
-          for (let i = 0; i < rows.length; i += 500) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            await (tx[m] as any).createMany({ data: rows.slice(i, i + 500).map(revive) });
-          }
-        }
-      } finally {
-        await tx.$executeRawUnsafe("SET FOREIGN_KEY_CHECKS=1");
       }
     },
     { timeout: 300_000, maxWait: 20_000 },

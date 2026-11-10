@@ -34,9 +34,19 @@ function run(cmd, args, label) {
   }
 }
 
-if (!process.env.DATABASE_URL) {
-  console.error("[avvio] Manca DATABASE_URL (es. mysql://utente:password@host:3306/database)");
-  process.exit(1);
+// Database SQLite dentro la cartella del server (data/stalla.db), salvo diversa indicazione.
+// Un percorso relativo ("file:./data/x.db") viene risolto rispetto alla cartella del progetto.
+{
+  let url = (process.env.DATABASE_URL || "").trim();
+  if (!url) url = "file:./data/stalla.db";
+  if (url.startsWith("file:")) {
+    const p = url.slice(5);
+    const abs = path.isAbsolute(p) ? p : path.resolve(root, p);
+    mkdirSync(path.dirname(abs), { recursive: true });
+    url = "file:" + abs;
+  }
+  process.env.DATABASE_URL = url;
+  console.log("[avvio] Database: " + url.replace(/:\/\/([^:]+):[^@]*@/, "://$1:***@"));
 }
 
 run(bin("prisma"), ["migrate", "deploy"], "Migrazioni database");
