@@ -165,6 +165,18 @@ export async function handleShopNote(form: FormData) {
   });
 }
 
+export async function deleteShopNote(form: FormData) {
+  return run(async () => {
+    const user = await assertPermission("shop.manage");
+    const id = fd(form).int("id") ?? 0;
+    const n = await prisma.shopNote.findUnique({ where: { id } });
+    if (!n) throw new UserError("Proposta non trovata.");
+    await prisma.shopNote.delete({ where: { id } });
+    await audit(user, "ELIMINA_PROPOSTA", "Bottega", id, `Eliminata proposta #${id}`, n);
+    return { ok: true, message: "Proposta eliminata." };
+  });
+}
+
 // ───────── Rimborsi ─────────
 export async function createReimbursement(form: FormData) {
   return run(async () => {

@@ -10,7 +10,8 @@ import { money, dateOnly, dateTime, TZ } from "@/lib/format";
 import { PageHeader, Card, Empty, HorseThumb } from "@/components/ui";
 import { ActionForm } from "@/components/ActionForm";
 import { ReservationButton } from "./ReservationForm";
-import { setReservationStatus } from "./actions";
+import { setReservationStatus, deleteReservation } from "./actions";
+import { ActionButton } from "@/components/ActionForm";
 import { RES_STATUS } from "./status";
 
 export const metadata = { title: "Bacheca" };
@@ -90,6 +91,7 @@ export default async function ReservationsPage({ searchParams }: { searchParams:
                     </select>
                     <button className="btn btn-secondary btn-sm">OK</button>
                   </ActionForm>
+                  {canDelete && <ActionButton action={deleteReservation} fields={{ id: r.id }} label="Elimina" className="btn btn-ghost btn-sm" confirm="Eliminare questa nota? L'operazione resta nel registro attività." />}
                   <span className="ml-auto text-[12px] text-fg-3">{r.updatedBy?.displayName ?? r.createdBy.displayName} · {dateTime(r.updatedAt)}</span>
                 </div>
               </article>

@@ -43,24 +43,28 @@ export async function updateUser(form: FormData) {
     const id = f.int("id") ?? 0;
     const data = z
       .object({
+        username: z.string().trim().min(3, "Nome utente: almeno 3 caratteri").max(50).regex(/^[a-zA-Z0-9._-]+$/, "Nome utente: solo lettere, numeri, punto, trattino"),
         displayName: z.string().trim().min(2).max(100),
         role: z.enum(ROLES as [string, ...string[]]),
         active: z.boolean(),
         notes: z.string().max(2000).nullable(),
       })
-      .parse({ displayName: f.str("displayName"), role: f.str("role"), active: f.bool("active"), notes: f.opt("notes") });
+      .parse({ username: f.str("username"), displayName: f.str("displayName"), role: f.str("role"), active: f.bool("active"), notes: f.opt("notes") });
     const before = await prisma.user.findUnique({ where: { id } });
     if (!before) throw new UserError("Utente non trovato.");
-    if (before.id === actor.id && (data.role !== "ADMIN" || !data.active)) throw new UserError("Non puoi togliere a te stesso il ruolo admin o disattivarti.");
-    if (before.role === "ADMIN" && (data.role !== "ADMIN" || !data.active)) {
-      const admins = await prisma.user.count({ where: { role: "ADMIN", active: true } });
-      if (admins <= 1) throw new UserError("Deve restare almeno un amministratore attivo.");
+    // Un amministratore non si può disattivare: ne deve restare sempre almeno uno attivo per poter entrare
+    if (data.role === "ADMIN" && !data.active) throw new UserError("Un amministratore non può essere disattivato. Se serve, cambia prima il suo ruolo.");
+    if (before.id === actor.id && data.role !== "ADMIN") throw new UserError("Non puoi togliere a te stesso il ruolo di amministratore.");
+    if (before.role === "ADMIN" && data.role !== "ADMIN") {
+      const admins = await prisma.user.count({ where: { role: "ADMIN", active: true, NOT: { id } } });
+      if (admins < 1) throw new UserError("Deve restare almeno un amministratore attivo.");
     }
+    if (data.username !== before.username && (await prisma.user.findUnique({ where: { username: data.username } }))) throw new UserError("Nome utente già in uso.");
     await prisma.$transaction(async (tx) => {
       await tx.user.update({ where: { id }, data: { ...data, role: data.role as never } });
       if (!data.active) await tx.session.deleteMany({ where: { userId: id } });
-      await audit(actor, "MODIFICA_UTENTE", "Utente", id, `Modificato utente ${before.username}`, {
-        prima: { displayName: before.displayName, role: before.role, active: before.active },
+      await audit(actor, "MODIFICA_UTENTE", "Utente", id, `Modificato utente ${before.username}${data.username !== before.username ? ` → ${data.username}` : ""}`, {
+        prima: { username: before.username, displayName: before.displayName, role: before.role, active: before.active },
         dopo: data,
       }, tx);
     });
@@ -305,6 +309,19 @@ export async function saveStats(form: FormData) {
   });
 }
 
+/** Elimina una statistica e i suoi valori da tutti i manti. */
+export async function deleteStat(form: FormData) {
+  return run(async () => {
+    const actor = await assertPermission("catalog.manage");
+    const id = fd(form).int("id") ?? 0;
+    const d = await prisma.statDefinition.findUnique({ where: { id }, include: { _count: { select: { values: true } } } });
+    if (!d) throw new UserError("Statistica non trovata.");
+    await prisma.statDefinition.delete({ where: { id } });
+    await audit(actor, "ELIMINA_STATISTICA", "Statistiche", id, `Eliminata la statistica ${d.label} (${d._count.values} valori)`);
+    return { ok: true, message: `Statistica ${d.label} eliminata.` };
+  });
+}
+
 // ─────────────────────────── IMPOSTAZIONI ───────────────────────────
 
 export async function saveSettings(form: FormData) {
@@ -323,8 +340,10 @@ export async function saveSettings(form: FormData) {
         pctGov: z.number().min(0).max(100),
         pctItems: z.number().min(0).max(100),
         maxDiscountPercent: z.number().min(0).max(100),
-        pregnancyDays: z.number().min(0.1, "Giorni di gravidanza non validi").max(60),
-        backupDays: z.number().int().min(1).max(365),
+        pregnancyDays: z.number({ message: "Indica i giorni di gravidanza" }).min(0.1, "Giorni di gravidanza non validi").max(60),
+        backupDays: z.number({ message: "Indica per quanti giorni conservare i backup" }).int("I giorni di conservazione devono essere un numero intero").min(1).max(365),
+        backupAuto: z.boolean(),
+        backupEveryHours: z.number({ message: "Indica ogni quante ore fare il backup" }).int().min(1, "Minimo 1 ora").max(168, "Massimo 7 giorni (168 ore)"),
       })
       .refine((s) => s.bracketBMax > s.bracketAMax, { message: "La fascia 11-16 deve terminare dopo la fascia 5-10." })
       .parse({
@@ -340,6 +359,8 @@ export async function saveSettings(form: FormData) {
         maxDiscountPercent: f.num("maxDiscountPercent"),
         pregnancyDays: f.num("pregnancyDays"),
         backupDays: f.int("backupDays"),
+        backupAuto: f.bool("backupAuto"),
+        backupEveryHours: f.int("backupEveryHours"),
       }) satisfies Partial<Settings>;
     const prev = await getSettings();
     const now = new Date();

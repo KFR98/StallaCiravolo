@@ -64,10 +64,10 @@ export function AppShell({
 
   const userBox = (
     <div className="flex items-center gap-2 border-t border-white/10 px-3 pt-3">
-      <div className="min-w-0 flex-1">
+      <Link href="/profilo" className="min-w-0 flex-1 rounded-md px-1 py-0.5 hover:bg-white/5" title="Il mio profilo e storico">
         <div className="truncate text-[14.5px] font-semibold text-white">{user.displayName}</div>
-        <div className="text-[12.5px] text-neutral-400">{user.roleLabel}</div>
-      </div>
+        <div className="text-[12.5px] text-neutral-400">{user.roleLabel} · profilo</div>
+      </Link>
       <ThemeToggle className="!text-neutral-300 hover:!bg-white/10 hover:!text-white" />
       <form action={logout}>
         <button className="btn btn-ghost btn-icon !text-neutral-300 hover:!bg-white/10 hover:!text-white" aria-label="Esci" title="Esci">
@@ -118,7 +118,7 @@ export function AppShell({
       </div>
 
       <main className="pb-24 lg:pb-0 lg:pl-[248px]">
-        <div className="mx-auto max-w-[1360px] px-4 py-5 sm:px-6 sm:py-7">{children}</div>
+        <div className="mx-auto max-w-[1680px] px-4 py-5 sm:px-6 sm:py-7">{children}</div>
       </main>
 
       {/* Barra inferiore mobile: 4 voci principali */}

@@ -26,7 +26,7 @@ export const PERMISSIONS = {
   "map.add": ["ADMIN", "DIRETTORE", "GESTORE", "DIPENDENTE"],
   "map.manage": ["ADMIN", "DIRETTORE", "GESTORE"],
   "reservations.edit": ["ADMIN", "DIRETTORE", "GESTORE", "DIPENDENTE"],
-  "reservations.delete": ["ADMIN", "DIRETTORE"],
+  "reservations.delete": ["ADMIN", "DIRETTORE", "GESTORE"],
   "shop.view": ["ADMIN", "DIRETTORE", "GESTORE", "DIPENDENTE"],
   "shop.sell": ["ADMIN", "DIRETTORE", "GESTORE", "DIPENDENTE"],
   /** Modifica listino oggetti, materie prime, fornitori; gestione proposte e rimborsi */

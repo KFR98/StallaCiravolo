@@ -13,6 +13,7 @@ import { weekLabel } from "@/lib/weeks";
 import { PageHeader, Card, StatTile, Empty, HorseName } from "@/components/ui";
 import { SaleTypeBadge, PregnancyBadge } from "@/components/StatusBadge";
 import { SalesTrendChart } from "@/components/Charts";
+import { WeeklyChampion } from "@/components/WeeklyChampion";
 
 export default async function Dashboard({ searchParams }: { searchParams: Promise<{ negato?: string }> }) {
   const user = await requireUser();
@@ -65,6 +66,8 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
           <StatTile label="Incasso settimana" value={money(week.total)} tone="accent" />
         )}
       </div>
+
+      <div className="mt-5"><WeeklyChampion /></div>
 
       <div className="mt-5 grid gap-5 xl:grid-cols-[1.6fr_1fr]">
         <Card title={overview ? "Vendite · ultimi 14 giorni" : "Le mie vendite · 14 giorni"}><SalesTrendChart data={trend} /></Card>

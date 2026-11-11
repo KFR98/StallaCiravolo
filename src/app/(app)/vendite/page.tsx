@@ -7,14 +7,14 @@ import { prisma } from "@/lib/db";
 import { imageUrl } from "@/lib/catalog";
 import { money, dateTime, TZ } from "@/lib/format";
 import { formatAge } from "@/lib/age";
-import { PageHeader, Card, Empty, StatTile, Tabs, HorseName } from "@/components/ui";
+import { PageHeader, Card, Empty, StatTile, Tabs, HorseName, HorseThumb } from "@/components/ui";
 import { SaleTypeBadge } from "@/components/StatusBadge";
 import { SaleAdmin, ItemSaleAdmin } from "./SaleAdmin";
 import clsx from "clsx";
 
 export const metadata = { title: "Vendite" };
 
-type SP = { tab?: string; venditore?: string; da?: string; a?: string; q?: string; tipo?: string; min?: string; max?: string; annullate?: string; evidenzia?: string; pagina?: string };
+type SP = { tab?: string; vista?: string; venditore?: string; da?: string; a?: string; q?: string; tipo?: string; min?: string; max?: string; annullate?: string; evidenzia?: string; pagina?: string };
 const PAGE = 100;
 
 function dateRange(sp: SP) {
@@ -141,6 +141,48 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
         <StatTile label="Al blip" value={money(tot("GOVERNO"))} hint={`${cnt("GOVERNO")} vendite`} />
       </div>
       {filters}
+      <div className="mb-3 flex items-center gap-2">
+        <span className="text-[13px] font-semibold text-fg-3">Visualizza:</span>
+        <Link className="chip" aria-pressed={sp.vista !== "stallieri"} href={`/vendite?${keep({ vista: "" })}`}>Tabella</Link>
+        <Link className="chip" aria-pressed={sp.vista === "stallieri"} href={`/vendite?${keep({ vista: "stallieri" })}`}>Per stalliere</Link>
+      </div>
+      {sp.vista === "stallieri" ? (
+        sales.length === 0 ? <Card><Empty>Nessuna vendita trovata.</Empty></Card> : (
+          <div className="space-y-7">
+            {[...new Map(sales.map((x) => [x.sellerId, x.sellerName])).entries()].map(([sid, name]) => {
+              const mine = sales.filter((x) => x.sellerId === sid);
+              const total = mine.filter((x) => !x.voided).reduce((t, x) => t + Number(x.finalPrice), 0);
+              return (
+                <section key={sid}>
+                  <h2 className="mb-3 flex flex-wrap items-baseline gap-2">
+                    <span className="h-display text-[20px]">{name}</span>
+                    <span className="text-[13px] text-fg-3">{mine.length} vendite · {money(total)}</span>
+                  </h2>
+                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                    {mine.map((x) => (
+                      <Link key={x.id} href={`/stalla/${x.horseId}`} className={clsx("card flex gap-3 p-3 transition-colors hover:border-border-strong", x.voided && "opacity-50")}>
+                        <HorseThumb src={imageUrl(x.horse.coat.imagePath)} size={56} />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0"><div className="truncate font-semibold">{x.breedName}</div><div className="truncate text-[13px] text-fg-3">{x.coatName}</div></div>
+                            <b className="text-[15.5px] whitespace-nowrap">{money(x.finalPrice)}</b>
+                          </div>
+                          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[12.5px] text-fg-3">
+                            <SaleTypeBadge type={x.type} />
+                            {x.plate && <span className="font-mono">{x.plate}</span>}
+                            <span>{dateTime(x.soldAt)}</span>
+                            {x.voided && <span className="badge badge-accent">Annullata</span>}
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+        )
+      ) : (
       <Card pad={false}>
         {sales.length === 0 ? <Empty>Nessuna vendita trovata.</Empty> : (
           <div className="overflow-x-auto">
@@ -181,6 +223,7 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
           </div>
         )}
       </Card>
+      )}
     </>
   );
 }

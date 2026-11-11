@@ -6,12 +6,18 @@ import { money } from "@/lib/format";
 import { AdminTabs } from "../AdminTabs";
 import { PageHeader, Card, TableWrap } from "@/components/ui";
 import { BreedButton, StatsEditor } from "./CatalogForms";
+import { getStatMeta } from "@/lib/catalog";
 
 export const metadata = { title: "Gestione catalogo" };
 
 export default async function AdminCatalog({ searchParams }: { searchParams: Promise<{ razza?: string; q?: string; filtro?: string }> }) {
   const me = await requireUser("catalog.manage");
   const sp = await searchParams;
+  const [meta, statCounts, coatTotal] = await Promise.all([
+    getStatMeta(),
+    prisma.coatStat.groupBy({ by: ["statId"], where: { value: { not: null } }, _count: true }),
+    prisma.coat.count({ where: { archived: false } }),
+  ]);
   const [breeds, stats] = await Promise.all([
     prisma.breed.findMany({
       orderBy: [{ archived: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
@@ -40,7 +46,7 @@ export default async function AdminCatalog({ searchParams }: { searchParams: Pro
     <>
       <PageHeader title="Amministrazione" subtitle="Razze, manti, immagini, statistiche e prezzi." actions={<BreedButton label="+ Nuova razza" className="btn btn-primary" />} />
       <AdminTabs role={me.role} active="catalogo" />
-      <div className="mb-5 grid gap-5 xl:grid-cols-[1fr_380px]">
+      <div className="mb-5">
         <Card>
           <form className="grid gap-3 sm:grid-cols-[1.5fr_1.5fr_1.5fr_auto]">
             <input name="q" defaultValue={sp.q} className="input" placeholder="Cerca razza o manto…" />
@@ -53,7 +59,7 @@ export default async function AdminCatalog({ searchParams }: { searchParams: Pro
             <button className="btn btn-primary">Filtra</button>
           </form>
         </Card>
-        <Card title="Statistiche"><StatsEditor stats={stats.map((s) => ({ id: s.id, label: s.label, sortOrder: s.sortOrder }))} /></Card>
+
       </div>
       <div className="space-y-5">
         {shown.map((b) => (
@@ -95,6 +101,15 @@ export default async function AdminCatalog({ searchParams }: { searchParams: Pro
           </Card>
         ))}
       </div>
+      <details id="statistiche" className="card mt-6">
+        <summary className="card-pad cursor-pointer">
+          <span className="h-display text-[18px]">Statistiche dei cavalli</span>
+          <span className="ml-2 text-[13.5px] text-fg-3">nomi, ordine e valori massimi</span>
+        </summary>
+        <div className="card-pad !pt-0">
+          <StatsEditor stats={meta.map((m) => ({ id: m.id, label: m.label, max: m.max, filled: statCounts.find((c) => c.statId === m.id)?._count ?? 0, total: coatTotal }))} />
+        </div>
+      </details>
     </>
   );
 }

@@ -5,6 +5,8 @@ import { money, dateTime } from "@/lib/format";
 import { PageHeader, Card, Tabs, Empty } from "@/components/ui";
 import { ShopSell, ItemTable, SupplierTable, HandleButton, type ShopItemRow } from "./ShopClient";
 import { NoteForm, ReimbursementForm } from "./RequestForms";
+import { ActionButton } from "@/components/ActionForm";
+import { deleteShopNote } from "./actions";
 
 export const metadata = { title: "Bottega" };
 
@@ -100,6 +102,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
                     <div className="flex items-center gap-2">
                       <span className={`badge ${NOTE_STATUS[n.status][1]}`}>{NOTE_STATUS[n.status][0]}</span>
                       {manage && <HandleButton kind="nota" id={n.id} current={n.status} response={n.response} statuses={Object.entries(NOTE_STATUS).map(([k, v]) => [k, v[0]])} />}
+                      {manage && <ActionButton action={deleteShopNote} fields={{ id: n.id }} label="Elimina" className="btn btn-ghost btn-sm" confirm="Eliminare questa proposta?" />}
                     </div>
                   </li>
                 ))}

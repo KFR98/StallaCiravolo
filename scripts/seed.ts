@@ -41,6 +41,16 @@ async function main() {
     console.log(`Bottega: ${shop.items.length} articoli e ${shop.suppliers.length} fornitori importati.`);
   }
 
+  // Sicurezza: se esistono admin ma nessuno è attivo, si riattiva il più vecchio
+  const activeAdmins = await prisma.user.count({ where: { role: "ADMIN", active: true } });
+  if (activeAdmins === 0) {
+    const oldest = await prisma.user.findFirst({ where: { role: "ADMIN" }, orderBy: { id: "asc" } });
+    if (oldest) {
+      await prisma.user.update({ where: { id: oldest.id }, data: { active: true } });
+      console.log(`Nessun amministratore attivo: riattivato l'account ${oldest.username}.`);
+    }
+  }
+
   // Admin iniziale
   const admins = await prisma.user.count({ where: { role: "ADMIN" } });
   if (admins === 0) {

@@ -47,6 +47,7 @@ type Summary = Awaited<ReturnType<typeof userDataSummary>>;
 
 export function EditUserButton({ user, isMe }: { user: { id: number; username: string; displayName: string; role: string; active: boolean; notes: string | null }; isMe: boolean }) {
   const [open, setOpen] = useState<null | "edit" | "delete">(null);
+  const [role, setRole] = useState(user.role);
   const [summary, setSummary] = useState<Summary | null>(null);
   const openDelete = async () => {
     setOpen("delete");
@@ -60,10 +61,18 @@ export function EditUserButton({ user, isMe }: { user: { id: number; username: s
         <ActionForm action={updateUser} onSuccess={() => setOpen(null)} className="space-y-3">
           <input type="hidden" name="id" value={user.id} />
           <label className="block"><span className="field-label">Nome in gioco</span><input name="displayName" defaultValue={user.displayName} className="input" required /></label>
+          <label className="block"><span className="field-label">Nome utente per l&apos;accesso</span><input name="username" defaultValue={user.username} className="input" required pattern="[a-zA-Z0-9._\-]+" minLength={3} /></label>
           <label className="block"><span className="field-label">Ruolo</span>
-            <select name="role" className="input" defaultValue={user.role}>{ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}</select>
+            <select name="role" className="input" defaultValue={user.role} onChange={(e) => setRole(e.target.value)}>{ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}</select>
           </label>
-          <label className="flex items-center gap-2 text-[14px]"><input type="checkbox" name="active" defaultChecked={user.active} />Account attivo (se lo disattivi viene disconnesso subito)</label>
+          {role === "ADMIN" ? (
+            <>
+              <input type="hidden" name="active" value="on" />
+              <p className="text-[13px] text-fg-3">Gli amministratori restano sempre attivi, così c&apos;è sempre qualcuno che può entrare.</p>
+            </>
+          ) : (
+            <label className="flex items-center gap-2 text-[14px]"><input type="checkbox" name="active" defaultChecked={user.active} />Account attivo (se lo disattivi viene disconnesso subito)</label>
+          )}
           <label className="block"><span className="field-label">Note</span><textarea name="notes" defaultValue={user.notes ?? ""} className="input" /></label>
           <button className="btn btn-primary w-full">Salva</button>
         </ActionForm>

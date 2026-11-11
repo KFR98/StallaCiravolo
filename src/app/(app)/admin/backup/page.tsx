@@ -14,7 +14,7 @@ export default async function BackupPage() {
   const [list, s] = await Promise.all([listBackups(), getSettings()]);
   return (
     <>
-      <PageHeader title="Amministrazione" subtitle={`Copie di sicurezza del database: una all'avvio e poi ogni 24 ore. Vengono conservate per ${s.backupDays} giorni.`} />
+      <PageHeader title="Amministrazione" subtitle={s.backupAuto ? `Backup automatico attivo: ${s.backupEveryHours === 24 ? "una volta al giorno" : `ogni ${s.backupEveryHours} ore`}, conservati ${s.backupDays} giorni. Si cambia da Impostazioni.` : "Backup automatico disattivato: attivalo da Impostazioni, oppure crea i backup a mano."} />
       <AdminTabs role={me.role} active="backup" />
       <div className="grid gap-5 xl:grid-cols-[1.4fr_1fr]">
         <Card title="Backup disponibili" actions={<ActionButton action={makeBackup} label="Crea backup ora" className="btn btn-primary btn-sm" />}>

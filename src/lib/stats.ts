@@ -102,3 +102,24 @@ export function periods(now = new Date()) {
   const week = weekStartOf(now, TZ);
   return { today, tomorrow: dayStartOf(tomorrow, TZ), week, nextWeek: addWeeks(week, 1, TZ) };
 }
+
+/** Punteggio dello "stalliere della settimana": premia sia le vendite sia l'attività. */
+export const SCORE_RULES = { capture: 1, stableSale: 3, govSale: 1, itemSale: 1, per100: 1 };
+
+export function activityScore(e: EmployeeStats) {
+  return (
+    e.captures * SCORE_RULES.capture +
+    e.stableSales * SCORE_RULES.stableSale +
+    e.govSales * SCORE_RULES.govSale +
+    e.itemSales * SCORE_RULES.itemSale +
+    Math.floor((e.revenue + e.itemsRevenue) / 100) * SCORE_RULES.per100
+  );
+}
+
+/** Classifica della settimana (esclusi gli account senza attività). */
+export async function weeklyRanking(from: Date, to: Date) {
+  return (await employeeStats(from, to))
+    .map((e) => ({ ...e, score: activityScore(e) }))
+    .filter((e) => e.score > 0)
+    .sort((a, b) => b.score - a.score || b.revenue - a.revenue);
+}

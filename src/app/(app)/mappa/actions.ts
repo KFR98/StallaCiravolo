@@ -6,25 +6,43 @@ import { assertPermission } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { run, fd, UserError } from "@/lib/action";
 import { audit } from "@/lib/audit";
+import { NOTE_COLORS } from "./colors";
 
 const MAP_SIZE = { width: 2000, height: 1556 };
 
-const schema = z.object({
-  x: z.number().min(0).max(MAP_SIZE.width, "Posizione fuori mappa"),
-  y: z.number().min(0).max(MAP_SIZE.height, "Posizione fuori mappa"),
-  breedId: z.number({ message: "Seleziona la razza" }).int().positive("Seleziona la razza"),
-  coatId: z.number().int().positive().nullable(),
-  location: z.string().max(120).nullable(),
-  description: z.string().max(2000).nullable(),
-  notes: z.string().max(2000).nullable(),
-});
+
+const schema = z
+  .object({
+    kind: z.enum(["CAVALLO", "POSSIBILE", "NOTA"]),
+    title: z.string().trim().max(80).nullable(),
+    color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Colore non valido").nullable(),
+    x: z.number().min(0).max(MAP_SIZE.width, "Posizione fuori mappa"),
+    y: z.number().min(0).max(MAP_SIZE.height, "Posizione fuori mappa"),
+    breedId: z.number().int().positive().nullable(),
+    coatId: z.number().int().positive().nullable(),
+    location: z.string().max(120).nullable(),
+    description: z.string().max(2000).nullable(),
+    notes: z.string().max(2000).nullable(),
+  })
+  .refine((d) => d.kind !== "CAVALLO" || d.breedId, { message: "Per uno spawn di cavallo scegli razza e manto" })
+  .refine((d) => d.kind !== "NOTA" || d.title, { message: "Dai un titolo alla nota" })
+  .transform((d) => ({
+    ...d,
+    // le note non hanno cavallo; i cavalli non hanno colore personalizzato
+    breedId: d.kind === "NOTA" ? null : d.breedId,
+    coatId: d.kind === "NOTA" ? null : d.coatId,
+    color: d.kind === "NOTA" ? d.color ?? NOTE_COLORS[0] : null,
+  }));
 
 function read(form: FormData) {
   const f = fd(form);
   return schema.parse({
+    kind: f.str("kind") || "CAVALLO",
+    title: f.opt("title"),
+    color: f.opt("color"),
     x: f.num("x"),
     y: f.num("y"),
-    breedId: f.int("breedId") ?? undefined,
+    breedId: f.int("breedId"),
     coatId: f.int("coatId"),
     location: f.opt("location"),
     description: f.opt("description"),
@@ -32,8 +50,8 @@ function read(form: FormData) {
   });
 }
 
-async function checkCoat(breedId: number, coatId: number | null) {
-  if (!coatId) return;
+async function checkCoat(breedId: number | null, coatId: number | null) {
+  if (!coatId || !breedId) return;
   const ok = await prisma.coat.count({ where: { id: coatId, breedId } });
   if (!ok) throw new UserError("Il manto non appartiene alla razza scelta.");
 }
@@ -45,7 +63,7 @@ export async function createSpawn(form: FormData) {
     await checkCoat(data.breedId, data.coatId);
     const sp = await prisma.spawn.create({ data: { ...data, createdById: user.id } });
     await audit(user, "NUOVO_SPAWN", "Spawn", sp.id, `Aggiunto spawn #${sp.id}${data.location ? " a " + data.location : ""}`);
-    return { ok: true, message: "Spawn aggiunto alla mappa." };
+    return { ok: true, message: data.kind === "NOTA" ? "Nota aggiunta alla mappa." : data.kind === "POSSIBILE" ? "Possibile cavallo segnato sulla mappa." : "Spawn aggiunto alla mappa." };
   });
 }
 
@@ -74,7 +92,7 @@ export async function moveSpawn(id: number, x: number, y: number) {
     // Spostare i segnaposto è riservato a admin, direttore e gestore (modalità "Modifica")
     const user = await assertPermission("map.manage");
     if (!(await prisma.spawn.findUnique({ where: { id } }))) throw new UserError("Spawn non trovato.");
-    const p = schema.pick({ x: true, y: true }).parse({ x, y });
+    const p = z.object({ x: z.number().min(0).max(MAP_SIZE.width), y: z.number().min(0).max(MAP_SIZE.height) }).parse({ x, y });
     await prisma.spawn.update({ where: { id }, data: { ...p, updatedById: user.id } });
     await audit(user, "SPOSTA_SPAWN", "Spawn", id, `Spostato spawn #${id}`);
     return { ok: true, message: "Posizione aggiornata." };

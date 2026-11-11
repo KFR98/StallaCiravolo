@@ -3,7 +3,7 @@
  *  1. applica le migrazioni del database
  *  2. inizializza impostazioni/catalogo/admin se mancanti (idempotente)
  *  3. avvia il server Next.js sulla porta assegnata (SERVER_PORT o PORT)
- *  4. backup automatico all'avvio e ogni 24 ore
+ *  4. il backup automatico lo gestisce il gestionale (Impostazioni → Backup)
  *  5. comandi da console: backup, help, stop
  */
 import { spawn, spawnSync } from "node:child_process";
@@ -82,10 +82,7 @@ function backup(label = "automatico") {
   const p = spawn(bin("tsx"), ["scripts/backup.ts", label], { stdio: "inherit", env });
   p.on("error", (e) => console.error("[backup]", e.message));
 }
-if (process.env.BACKUP_AUTO !== "false") {
-  setTimeout(() => backup(), 15_000);
-  setInterval(() => backup(), 24 * 3600_000);
-}
+// Il backup automatico è gestito dal gestionale stesso (Admin → Impostazioni → Backup).
 
 const rl = readline.createInterface({ input: process.stdin });
 rl.on("line", (line) => {

@@ -332,3 +332,35 @@ input[type="radio"] {
 .spawn-label::before {
   display: none;
 }
+
+/* Controlli zoom della mappa in stile scuro */
+.leaflet-control-zoom {
+  border: 0 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+.leaflet-control-zoom a {
+  width: 40px !important;
+  height: 40px !important;
+  line-height: 38px !important;
+  background: rgba(11, 10, 9, 0.85) !important;
+  color: #fff !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  font-size: 20px !important;
+}
+.leaflet-control-zoom a:hover {
+  background: #0b0a09 !important;
+}
+.rdr-map-image {
+  image-rendering: auto;
+}
+
+/* Tabella densa (confronto cavalli) */
+.tbl-compact thead th {
+  padding: 0.55rem 0.5rem;
+}
+.tbl-compact tbody td {
+  padding: 0.45rem 0.5rem;
+}
+.tbl-compact tbody tr:hover td.sticky {
+  background: var(--surface-2);
+}

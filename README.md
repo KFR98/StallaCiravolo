@@ -27,7 +27,8 @@ registro attività. Tema scuro e chiaro in stile Red Dead Redemption 2.
 6. [Listino Excel e foto dei cavalli](#6-listino-excel-e-foto-dei-cavalli)
 7. [Regole di calcolo](#7-regole-di-calcolo)
 8. [Struttura del progetto](#8-struttura-del-progetto)
-9. [Test](#9-test)
+9. [Sicurezza](#9-sicurezza)
+10. [Test](#10-test)
 
 ---
 
@@ -45,11 +46,13 @@ registro attività. Tema scuro e chiaro in stile Red Dead Redemption 2.
 | Modificare dati operativi del cavallo / uscita dalla stalla | ✔ | ✔ | ✔ | – |
 | Correggere età, razza, manto, catturatore | ✔ | – | – | – |
 | Correggere / annullare vendite | ✔ | – | – | – |
-| Mappa: vedere, aggiungere spawn, tracciare percorsi | ✔ | ✔ | ✔ | ✔ (modifica i propri) |
+| Mappa: vedere, aggiungere cavalli, possibili cavalli e note, tracciare percorsi | ✔ | ✔ | ✔ | ✔ (modifica i propri) |
 | Mappa: tasto "Modifica" per spostare i segnaposto, eliminare | ✔ | ✔ | ✔ | – |
 | Bottega: vendere oggetti, chiedere rimborsi, proporre fornitori | ✔ | ✔ | ✔ | ✔ |
 | Bottega: modificare prezzi, materie prime, fornitori; gestire rimborsi e proposte | ✔ | ✔ | ✔ | – |
 | Bacheca (note e prenotazioni) | ✔ | ✔ | ✔ | ✔ |
+| Eliminare note della bacheca e proposte della bottega | ✔ | ✔ | ✔ | – |
+| Profilo personale con storico e totali | ✔ | ✔ | ✔ | ✔ |
 | Personale: statistiche | ✔ | ✔ | elenco | – |
 | Stipendi (paga, storico) | ✔ | ✔ | – | – |
 | Registro attività | ✔ | ✔ | – | – |
@@ -170,9 +173,9 @@ Sviluppo: imposta in `.env` `DATABASE_URL="file:/percorso/assoluto/data/stalla.d
 
 - **Migrazioni**: in `prisma/migrations`, applicate a ogni avvio (`prisma migrate deploy`).
   Per modificare lo schema in sviluppo: `npm run db:migrate:dev -- --name descrizione`.
-- **Backup automatico**: subito dopo l'avvio e poi ogni 24 ore, file JSON in `data/backups`.
-  I backup più vecchi di 14 giorni vengono eliminati (valore modificabile in *Impostazioni*).
-  Disattivabile con `BACKUP_AUTO=false`.
+- **Backup automatico**: gestito dal gestionale stesso, si configura in *Amministrazione → Impostazioni →
+  Backup automatico* (attivo/disattivo, frequenza da 6 ore a una settimana, giorni di conservazione,
+  default 14). Le modifiche valgono subito, senza riavviare. `BACKUP_AUTO=false` lo spegne comunque.
 - **Backup manuale**: Admin → *Backup* → "Crea backup ora" (scaricabile), comando console `backup`,
   oppure `npm run backup`.
 - **Ripristino**: Admin → *Backup* → carica il file JSON e scrivi `RIPRISTINA`. Prima del ripristino
@@ -210,6 +213,12 @@ prime e 13 fornitori (file `prisma/seed-data/bottega.json`). I valori tra parent
 e i prezzi non numerici (es. `5 Fenix`) sono conservati come nota del prezzo.
 
 ### Foto
+Le foto dei manti vengono dalla wiki di Red Dead (`reddead.fandom.com`), convertite in WEBP a 640 px.
+Al momento 123 manti su 148 hanno la foto. Mancano le razze mod (Foster, Groningen, Lusitano, Warlander,
+Nell II, Mangy), i manti con nome di personaggio (Bill, John, Micah, Lenny, Karen, Kieran, Sadie, War Vets),
+gli "Endless Summer" e due manti non presenti sulla wiki (Criollo Bay Roan Overo, Mustang Black Overo):
+l'admin può caricarle dalla scheda del manto.
+
 - Carica le foto nella cartella **`Cavalli/`** del repository con il nome in stile wiki
   `"<Manto> <Razza inglese>.webp"` (es. `Black Arabian.webp`, `Gold_Turkoman.PNG.webp`).
 - All'avvio (o con il comando `immagini`) vengono abbinate in automatico ai manti senza immagine.
@@ -259,6 +268,13 @@ Lo storico mostra per ogni pagamento quanto spettava e quanto è stato pagato. U
 Solo lui (o admin/direttore) può venderlo; può passarlo gratuitamente a un altro stalliere dalla scheda
 del cavallo. Il passaggio resta nello storico del cavallo.
 
+**Stalliere della settimana**: classifica settimanale (Ufficio e Personale) con punti =
+1 per cattura + 3 per vendita in stalla + 1 per vendita al blip + 1 per vendita di oggetti + 1 ogni $100 incassati.
+
+**Mappa**: tre tipi di punto: *cavallo* (ferro di cavallo colorato per razza), *possibile cavallo* ("?")
+e *nota* libera (segnaposto del colore scelto). Pulsante schermo intero; i segnaposto si spostano solo
+con il tasto *Modifica* (admin, direttore, gestore).
+
 **Gravidanza**: dalla scheda di una cavalla in stalla si segna "incinta" dopo l'accoppiamento.
 Compare l'etichetta arancione **INCINTA**; dopo 3 giorni (modificabile in *Impostazioni*) diventa
 **FAI PARTORIRE**. La data del parto è modificabile in ogni momento; vendere una cavalla incinta è
@@ -291,7 +307,22 @@ Tabelle principali: `User`, `Session`, `Breed`, `Coat`, `StatDefinition`, `CoatS
 `Spawn`, `Reservation`, `ShopItem`, `Supplier`, `ShopNote`, `Reimbursement`, `ItemSale`,
 `ItemSaleLine`, `PayrollEntry`, `Payment`, `Setting`, `AuditLog`.
 
-## 9. Test
+## 9. Sicurezza
+
+- Tutte le query passano da Prisma con parametri: il testo digitato (ricerche, filtri, URL) non viene mai
+  inserito nel codice SQL, quindi la SQL injection non è possibile. Le uniche istruzioni SQL scritte a mano
+  (ripristino backup) usano solo nomi di tabella fissi.
+- Gli ID nelle URL (es. `/stalla/12`) sono "parlanti" ma non danno accesso a nulla: ogni pagina, azione e API
+  controlla sul server sessione e permessi del ruolo. Un dipendente che apre `/stipendi` o `/admin` viene
+  rimandato all'ufficio; esportazioni e backup rispondono 401/403.
+- Password con Argon2id, cookie di sessione `httpOnly`/`SameSite`, sessioni invalidate quando un account
+  viene disattivato, blocco dopo 5 tentativi di accesso errati in 5 minuti.
+- Protezione CSRF dei moduli (Next.js), header di sicurezza e Content-Security-Policy che blocca script e
+  risorse esterne; il testo inserito dagli utenti (anche sulla mappa) viene sempre mostrato come testo.
+- Upload solo di immagini verificate dalla firma del file, nomi casuali, niente path traversal.
+- Consiglio: pubblica il sito solo in HTTPS (reverse proxy) e tieni aggiornato il codice con i riavvii.
+
+## 10. Test
 
 ```bash
 npm test

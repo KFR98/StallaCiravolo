@@ -7,6 +7,7 @@ import { money, dateTime, TZ } from "@/lib/format";
 import { weekStartOf, addWeeks, isoWeekKey, parseWeekKey, weekLabel } from "@/lib/weeks";
 import { PageHeader, Card, Empty } from "@/components/ui";
 import { EmployeeChart } from "@/components/Charts";
+import { WeeklyChampion } from "@/components/WeeklyChampion";
 import { StaffTabs } from "../StaffTabs";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -43,6 +44,7 @@ export default async function EmployeesPage({ searchParams }: { searchParams: Pr
     <>
       <PageHeader title="Personale" subtitle="Rendimento degli stallieri: catture, vendite e incassi." />
       <StaffTabs role={user.role} active="dipendenti" />
+      <div className="mb-5"><WeeklyChampion /></div>
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <Link className="chip" aria-pressed={!allTime} href={`/dipendenti?settimana=${wk(week)}`}>Per settimana</Link>
         <Link className="chip" aria-pressed={allTime} href="/dipendenti?periodo=sempre">Da sempre</Link>

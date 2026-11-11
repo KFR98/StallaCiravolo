@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Minus, Plus, Search, Star, Trash2 } from "lucide-react";
+import { Minus, Plus, Search, Star, Trash2, X } from "lucide-react";
 import clsx from "clsx";
 import { ActionForm, ActionButton } from "@/components/ActionForm";
 import { Modal } from "@/components/Modal";
@@ -53,7 +53,14 @@ export function ShopSell({ items }: { items: ShopItemRow[] }) {
         {list.length === 0 && <p className="text-fg-3">Nessun oggetto trovato.</p>}
       </div>
       <div className="card card-pad h-fit lg:sticky lg:top-6">
-        <h3 className="h-display mb-3 text-[18px]">Vendita</h3>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h3 className="h-display text-[18px]">Vendita</h3>
+          {lines.length > 0 && (
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setCart({})} aria-label="Svuota l'ordine">
+              <Trash2 size={15} /> Svuota
+            </button>
+          )}
+        </div>
         {lines.length === 0 ? <p className="text-fg-3">Tocca gli oggetti per aggiungerli.</p> : (
           <ul className="mb-3 divide-y divide-border">
             {lines.map(({ item, quantity }) => (
@@ -64,6 +71,7 @@ export function ShopSell({ items }: { items: ShopItemRow[] }) {
                   onChange={(e) => setCart((c) => ({ ...c, [item.id]: Math.max(0, parseInt(e.target.value || "0", 10) || 0) }))} />
                 <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label={`Aggiungi un ${item.name}`} onClick={() => add(item.id, 1)}><Plus size={15} /></button>
                 <b className="w-16 text-right tabular-nums">{money((item.price ?? 0) * quantity)}</b>
+                <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label={`Togli ${item.name} dall'ordine`} onClick={() => setCart((c) => ({ ...c, [item.id]: 0 }))}><X size={15} /></button>
               </li>
             ))}
           </ul>

@@ -320,8 +320,22 @@ model Sale {
 
 // ───────────────────────────── MAPPA SPAWN ─────────────────────────────
 
+enum SpawnKind {
+  /// Avvistamento certo di un cavallo (icona ferro di cavallo colorata per razza)
+  CAVALLO
+  /// Possibile cavallo da verificare (icona "?")
+  POSSIBILE
+  /// Nota libera sulla mappa (segnaposto colorato)
+  NOTA
+}
+
 model Spawn {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
+  kind        SpawnKind @default(CAVALLO)
+  /// Titolo della nota (per le note libere)
+  title       String?
+  /// Colore del segnaposto delle note (#rrggbb)
+  color       String?
   /// Coordinate in pixel sull'immagine della mappa
   x           Float
   y           Float

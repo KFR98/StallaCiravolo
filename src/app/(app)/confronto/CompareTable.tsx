@@ -81,23 +81,23 @@ export function CompareTable({ rows, meta, labels }: { rows: CatalogRow[]; meta:
         <span className="text-[13px] text-fg-3">{list.length} cavalli · clicca le intestazioni per ordinare</span>
       </div>
       <div className="card overflow-x-auto">
-        <table className="tbl">
+        <table className="tbl tbl-compact">
           <thead>
             <tr>
-              {head("breed", "Cavallo", "!pl-5")}
+              {head("breed", "Cavallo", "sticky left-0 z-10 bg-surface !pl-4")}
               {head("score", "Voto")}
               {meta.map((m, i) => head(`stat${i}`, m.label))}
               {head("price", labels.a)}
               <th className="num">{labels.b}</th>
               <th className="num">Blip</th>
-              {head("value", "Q/P", "num !pr-5")}
+              {head("value", "Q/P", "num !pr-4")}
             </tr>
           </thead>
           <tbody>
             {list.map((r) => (
               <tr key={r.id}>
-                <td className="!pl-5">
-                  <Link href={`/catalogo/${r.id}`} className="flex min-w-[200px] items-center gap-2.5 hover:text-accent-text">
+                <td className="sticky left-0 z-10 bg-surface !pl-4">
+                  <Link href={`/catalogo/${r.id}`} className="flex min-w-[180px] items-center gap-2.5 hover:text-accent-text">
                     <HorseThumb src={r.image} size={32} />
                     <span className="min-w-0"><b className="block truncate">{r.breed}</b><span className="block truncate text-[13px] text-fg-3">{r.coat}</span></span>
                   </Link>
@@ -105,16 +105,16 @@ export function CompareTable({ rows, meta, labels }: { rows: CatalogRow[]; meta:
                 <td className="num"><Rating score={r.score} /></td>
                 {r.stats.map((v, i) => (
                   <td key={i} className="num">
-                    <div className="ml-auto flex w-[76px] items-center gap-2">
+                    <div className="ml-auto flex w-[64px] items-center gap-1.5" title={`${meta[i].label}: ${v ?? "—"} su ${meta[i].max}`}>
                       <div className="statbar !h-1.5"><span style={{ width: `${v != null && meta[i].max ? (v / meta[i].max) * 100 : 0}%` }} /></div>
-                      <span className="w-6 text-[13px]">{v ?? "—"}</span>
+                      <span className="w-6 text-right text-[13px] tabular-nums">{v ?? "—"}</span>
                     </div>
                   </td>
                 ))}
                 <td className="num font-semibold">{money(r.salePriceA)}</td>
                 <td className="num">{money(r.salePriceB)}</td>
                 <td className="num text-fg-2">{money(r.governmentPrice)}</td>
-                <td className="num !pr-5">{r.value != null ? <span className={clsx("badge", r.value >= 80 ? "badge-ok" : "badge-neutral")}>{r.value}</span> : "—"}</td>
+                <td className="num !pr-4">{r.value != null ? <span className={clsx("badge", r.value >= 80 ? "badge-ok" : "badge-neutral")}>{r.value}</span> : "—"}</td>
               </tr>
             ))}
           </tbody>
