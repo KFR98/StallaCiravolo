@@ -5,7 +5,7 @@
 |---|---|---|
 | LISTINO | 32 razze, 148 manti, prezzi e 5 statistiche | **Fonte del catalogo** |
 | PRENOTAZIONI CAVALLI | prenotazioni + calcolatore età (4 giorni = 1 anno) | Sostituito dalla sezione *Note e prenotazioni* |
-| PREZZI | materiali, accessori, fornitori | Non importato |
+| PREZZI | oggetti in vendita, materie prime, fornitori | Importato nella sezione *Bottega* |
 | CRAFT | 12 immagini di ricette | Non importato |
 | 3, 4, 7…15 | fogli settimanali LORDO / NETTO (= 30%) | Sostituiti dalla sezione *Stipendi* |
 
@@ -40,3 +40,12 @@ LUSITANO (3), WARLANDER (2), NELL II (1), MANGY (1)**. I loro dati sono importat
 Statistiche: scala del file da 1 a 5 con mezzi punti. Il massimo di ogni barra è il valore
 più alto presente nel catalogo per quella statistica (es. VELOC. max 5, STAMINA max 3,5).
 Nessun valore mancante è stato inventato: i campi vuoti restano vuoti e modificabili.
+
+## Foglio PREZZI → Bottega
+- **Oggetti in vendita** (colonne E-F): 29 righe, gruppi "Cavalli" e "Carri" come indicati nel file (colonna D).
+  Nota: nel file il gruppo "Carri" comprende anche selle, bisacce, coperte ecc.; il gruppo è modificabile.
+- **Materie prime** (colonne B-C): 21 righe, gruppo "Stalla".
+- **Fornitori** (colonne H-K): 13 righe. L'asterisco nel nome è stato convertito nel contrassegno ★.
+  La prima riga (Manzanita, missiva CP419) non ha un nome di referente.
+- Prezzi del tipo `3 (1,15)`: il primo numero è il prezzo; il valore tra parentesi è conservato come nota
+  (il suo significato non è indicato nel file). `5 Fenix` / `1 Fenix` sono conservati come nota, senza prezzo numerico.

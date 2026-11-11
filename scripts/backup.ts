@@ -1,12 +1,14 @@
 /** Crea un backup JSON del database.  npm run backup [-- automatico] */
 import { writeBackup, pruneBackups, BACKUP_DIR } from "../src/lib/backup";
 import { prisma } from "../src/lib/db";
+import { getSettings } from "../src/lib/settings";
 
 async function main() {
   const label = process.argv[2] === "automatico" ? "automatico" : "manuale";
   const r = await writeBackup(label);
-  if (label === "automatico") await pruneBackups(Number(process.env.BACKUP_KEEP || 14));
-  console.log(`[backup] creato ${BACKUP_DIR}/${r.file} (${Math.round(r.size / 1024)} KB)`);
+  const days = (await getSettings()).backupDays;
+  const removed = await pruneBackups(days);
+  console.log(`[backup] creato ${BACKUP_DIR}/${r.file} (${Math.round(r.size / 1024)} KB)${removed ? ` · eliminati ${removed} backup più vecchi di ${days} giorni` : ""}`);
 }
 main()
   .catch((e) => {

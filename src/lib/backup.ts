@@ -11,8 +11,9 @@ import { prisma } from "./db";
 export const BACKUP_DIR = path.resolve(process.env.BACKUP_DIR || "./data/backups");
 
 const ORDER = [
-  "user", "breed", "coat", "statDefinition", "coatStat", "priceHistory", "horse", "sale",
-  "spawn", "reservation", "payrollEntry", "payment", "setting", "auditLog",
+  "user", "breed", "coat", "statDefinition", "coatStat", "priceHistory", "horse", "horseTransfer", "sale",
+  "spawn", "reservation", "payrollEntry", "payment", "shopItem", "supplier", "shopNote", "reimbursement",
+  "itemSale", "itemSaleLine", "setting", "auditLog",
 ] as const;
 type ModelName = (typeof ORDER)[number];
 
@@ -20,6 +21,8 @@ const TABLES: Record<ModelName, string> = {
   user: "User", breed: "Breed", coat: "Coat", statDefinition: "StatDefinition", coatStat: "CoatStat",
   priceHistory: "PriceHistory", horse: "Horse", sale: "Sale", spawn: "Spawn", reservation: "Reservation",
   payrollEntry: "PayrollEntry", payment: "Payment", setting: "Setting", auditLog: "AuditLog",
+  horseTransfer: "HorseTransfer", shopItem: "ShopItem", supplier: "Supplier", shopNote: "ShopNote",
+  reimbursement: "Reimbursement", itemSale: "ItemSale", itemSaleLine: "ItemSaleLine",
 };
 
 export type BackupFile = { app: "stalla-ciravolo"; version: 1; createdAt: string; data: Record<string, unknown[]> };
@@ -45,17 +48,32 @@ export async function writeBackup(label = "manuale"): Promise<{ file: string; si
 export async function listBackups() {
   try {
     const files = (await readdir(BACKUP_DIR)).filter((f) => /^backup-.*\.json$/.test(f));
-    const out = await Promise.all(files.map(async (f) => ({ file: f, ...(await stat(path.join(BACKUP_DIR, f))) })));
-    return out.map((f) => ({ file: f.file, size: f.size, mtime: f.mtime })).sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
-  } catch {
+    // Nota: le proprietà di fs.Stats non si possono copiare con lo spread (in Node 22 sono getter)
+    const out = await Promise.all(
+      files.map(async (f) => {
+        const st = await stat(path.join(BACKUP_DIR, f));
+        return { file: f, size: st.size, mtime: new Date(st.mtimeMs) };
+      }),
+    );
+    return out.sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code !== "ENOENT") console.error("[backup] lettura cartella non riuscita:", e);
     return [];
   }
 }
 
-/** Mantiene solo gli ultimi `keep` backup automatici. */
-export async function pruneBackups(keep: number) {
-  const list = (await listBackups()).filter((b) => b.file.endsWith("-automatico.json"));
-  for (const b of list.slice(keep)) await unlink(path.join(BACKUP_DIR, b.file)).catch(() => {});
+/** Elimina i backup più vecchi di `days` giorni (ne conserva comunque almeno uno). */
+export async function pruneBackups(days: number) {
+  const list = await listBackups();
+  const limit = Date.now() - Math.max(1, days) * 86400_000;
+  let removed = 0;
+  for (const b of list.slice(1)) {
+    if (b.mtime.getTime() < limit) {
+      await unlink(path.join(BACKUP_DIR, b.file)).catch(() => {});
+      removed++;
+    }
+  }
+  return removed;
 }
 
 export function backupPath(file: string) {
@@ -63,7 +81,7 @@ export function backupPath(file: string) {
   return path.join(BACKUP_DIR, file);
 }
 
-const DATE_KEYS = /(At|Date|weekStart|expiresAt)$/;
+const DATE_KEYS = /(At|Date|weekStart|expiresAt|Since)$/;
 
 function revive(row: Record<string, unknown>) {
   const out: Record<string, unknown> = {};

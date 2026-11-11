@@ -1,7 +1,7 @@
 import { requireUser } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
-import { getBreedOptions } from "@/lib/catalog";
+import { getBreedOptions, imageUrl } from "@/lib/catalog";
 import { dateTime } from "@/lib/format";
 import { PageHeader } from "@/components/ui";
 import { SpawnMapLoader } from "./SpawnMapLoader";
@@ -16,11 +16,11 @@ export default async function MapPage() {
   ]);
   return (
     <>
-      <PageHeader title="Mappa degli spawn" subtitle="Avvistamenti dei cavalli selvatici condivisi da tutta la stalla. Clicca su un segnaposto per i dettagli." />
+      <PageHeader title="Mappa degli spawn" subtitle="Avvistamenti condivisi da tutta la stalla. Seleziona più punti per tracciare un percorso." />
       <SpawnMapLoader
         spawns={spawns.map((s) => ({
           id: s.id, x: s.x, y: s.y, breedId: s.breedId, coatId: s.coatId,
-          breed: s.breed?.name ?? "Razza sconosciuta", coat: s.coat?.name ?? null,
+          breed: s.breed?.name ?? "Razza sconosciuta", coat: s.coat?.name ?? null, image: imageUrl(s.coat?.imagePath),
           location: s.location, description: s.description, notes: s.notes,
           author: s.createdBy.displayName, createdAt: dateTime(s.createdAt), mine: s.createdById === user.id,
         }))}

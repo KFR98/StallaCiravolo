@@ -1,8 +1,10 @@
 # Stalla Ciravolo – Gestionale
 
-Gestionale web per la stalla del server RedM: catalogo cavalli, listino, catture,
-vendite (stalla e Governo), avanzamento età, mappa degli spawn, note/prenotazioni,
-statistiche dei dipendenti, stipendi settimanali, amministrazione e registro attività.
+Gestionale web per la stalla del server RedM: catalogo cavalli, confronto e listino,
+catture, vendite (stalla e blip del Governo), passaggi tra stallieri, gravidanze,
+avanzamento età, mappa degli spawn con percorsi, bacheca, bottega (oggetti, materie prime,
+fornitori, rimborsi), statistiche dei dipendenti, stipendi settimanali, amministrazione e
+registro attività. Tema scuro e chiaro in stile Red Dead Redemption 2.
 
 - **Stack:** Next.js 15 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Prisma 6 · SQLite
 - **Autenticazione:** sessioni salvate nel database (cookie httpOnly), password con Argon2id
@@ -34,23 +36,24 @@ statistiche dei dipendenti, stipendi settimanali, amministrazione e registro att
 | Funzione | Admin | Direttore | Gestore | Dipendente |
 |---|:-:|:-:|:-:|:-:|
 | Ufficio (dashboard) | completa | completa | completa | risultati personali |
-| Catalogo, listino, confronto prezzi | ✔ | ✔ | ✔ | ✔ |
-| Registrare catture (deposito / vendita al Governo) | ✔ | ✔ | ✔ | ✔ |
-| Vendere cavalli in stalla (con sconto) | ✔ | ✔ | ✔ | ✔ |
+| Catalogo, confronto cavalli, listino | ✔ | ✔ | ✔ | ✔ |
+| Registrare catture (deposito / vendita al blip) | ✔ | ✔ | ✔ | ✔ |
+| Vendere, passare ad altri, gestire la gravidanza dei **propri** cavalli | ✔ | ✔ | ✔ | ✔ |
+| Le stesse operazioni sui cavalli **di altri** stallieri | ✔ | ✔ | – | – |
 | Cambiare il prezzo di listino, sconto senza limite | ✔ | ✔ | – | – |
 | Registro vendite | tutte | tutte | tutte | solo le proprie |
 | Modificare dati operativi del cavallo / uscita dalla stalla | ✔ | ✔ | ✔ | – |
 | Correggere età, razza, manto, catturatore | ✔ | – | – | – |
 | Correggere / annullare vendite | ✔ | – | – | – |
-| Mappa: vedere e aggiungere spawn | ✔ | ✔ | ✔ | ✔ (modifica i propri) |
-| Mappa: modificare/eliminare qualsiasi spawn | ✔ | ✔ | ✔ | – |
-| Note e prenotazioni (creare e modificare) | ✔ | ✔ | ✔ | ✔ |
-| Eliminare note | ✔ | ✔ | – | – |
-| Dipendenti | statistiche | statistiche | elenco | – |
-| Stipendi | ✔ | ✔ | – | – |
+| Mappa: vedere, aggiungere spawn, tracciare percorsi | ✔ | ✔ | ✔ | ✔ (modifica i propri) |
+| Mappa: tasto "Modifica" per spostare i segnaposto, eliminare | ✔ | ✔ | ✔ | – |
+| Bottega: vendere oggetti, chiedere rimborsi, proporre fornitori | ✔ | ✔ | ✔ | ✔ |
+| Bottega: modificare prezzi, materie prime, fornitori; gestire rimborsi e proposte | ✔ | ✔ | ✔ | – |
+| Bacheca (note e prenotazioni) | ✔ | ✔ | ✔ | ✔ |
+| Personale: statistiche | ✔ | ✔ | elenco | – |
+| Stipendi (paga, storico) | ✔ | ✔ | – | – |
 | Registro attività | ✔ | ✔ | – | – |
-| Esportazioni Excel/CSV | ✔ | ✔ | – | – |
-| Utenti e ruoli, catalogo, impostazioni, import, backup | ✔ | – | – | – |
+| Utenti (anche eliminazione completa), catalogo, impostazioni, import, backup | ✔ | – | – | – |
 
 ---
 
@@ -167,8 +170,9 @@ Sviluppo: imposta in `.env` `DATABASE_URL="file:/percorso/assoluto/data/stalla.d
 
 - **Migrazioni**: in `prisma/migrations`, applicate a ogni avvio (`prisma migrate deploy`).
   Per modificare lo schema in sviluppo: `npm run db:migrate:dev -- --name descrizione`.
-- **Backup automatico**: un minuto dopo l'avvio e poi ogni 24 ore, file JSON in `data/backups`
-  (ne vengono conservati `BACKUP_KEEP`). Disattivabile con `BACKUP_AUTO=false`.
+- **Backup automatico**: subito dopo l'avvio e poi ogni 24 ore, file JSON in `data/backups`.
+  I backup più vecchi di 14 giorni vengono eliminati (valore modificabile in *Impostazioni*).
+  Disattivabile con `BACKUP_AUTO=false`.
 - **Backup manuale**: Admin → *Backup* → "Crea backup ora" (scaricabile), comando console `backup`,
   oppure `npm run backup`.
 - **Ripristino**: Admin → *Backup* → carica il file JSON e scrivi `RIPRISTINA`. Prima del ripristino
@@ -199,6 +203,11 @@ Il riepilogo completo dell'analisi è in [`docs/ANALISI-EXCEL.md`](docs/ANALISI-
 Admin → *Importa listino Excel*: carica il file, controlla anteprima e anomalie, poi scegli
 "solo nuovi" oppure "aggiorna anche prezzi e statistiche". Nulla viene eliminato; ogni cambio di
 prezzo finisce nello storico prezzi del manto.
+
+### Bottega (foglio PREZZI)
+Il foglio PREZZI dell'Excel è importato nella sezione **Bottega**: 29 oggetti in vendita, 21 materie
+prime e 13 fornitori (file `prisma/seed-data/bottega.json`). I valori tra parentesi del file (es. `3 (1,15)`)
+e i prezzi non numerici (es. `5 Fenix`) sono conservati come nota del prezzo.
 
 ### Foto
 - Carica le foto nella cartella **`Cavalli/`** del repository con il nome in stile wiki
@@ -238,10 +247,22 @@ sconto e prezzo finale. Le vendite non si cancellano: l'admin può correggerle o
 Una vendita dalla stalla blocca il cavallo in modo atomico: se due dipendenti vendono lo stesso cavallo
 nello stesso istante, passa solo la prima vendita.
 
-**Stipendi**: `stipendio settimanale = percentuale × lordo vendite della settimana` (lunedì–domenica,
-fuso `TZ_STALLA`). Percentuale globale (default 30%) o personale per dipendente; si può scegliere se contare
-vendite in stalla e/o al Governo. Una settimana risulta pagata **solo** dopo la registrazione del pagamento;
-le settimane concluse non pagate compaiono come arretrati. Ogni pagamento o annullamento resta nello storico.
+**Stipendi**: per ogni settimana (lunedì–domenica, fuso `TZ_STALLA`)
+`stipendio = % stalla × vendite in stalla + % blip × vendite al blip + % oggetti × vendite di oggetti`.
+Le tre percentuali sono globali (default 30% / 30% / 0%) e possono essere personalizzate per ogni dipendente.
+Il pulsante **Paga** accanto al dipendente distribuisce l'importo sulle settimane arretrate dalla più vecchia:
+si può pagare di meno (resta un residuo, stato *Parziale*) o di più (la differenza è registrata come extra).
+Lo storico mostra per ogni pagamento quanto spettava e quanto è stato pagato. Una settimana risulta pagata
+**solo** dopo la registrazione; al primo pagamento i totali della settimana vengono "fotografati".
+
+**Proprietà dei cavalli**: ogni cavallo in stalla è *in carico* a uno stalliere (chi lo ha catturato).
+Solo lui (o admin/direttore) può venderlo; può passarlo gratuitamente a un altro stalliere dalla scheda
+del cavallo. Il passaggio resta nello storico del cavallo.
+
+**Gravidanza**: dalla scheda di una cavalla in stalla si segna "incinta" dopo l'accoppiamento.
+Compare l'etichetta arancione **INCINTA**; dopo 3 giorni (modificabile in *Impostazioni*) diventa
+**FAI PARTORIRE**. La data del parto è modificabile in ogni momento; vendere una cavalla incinta è
+possibile ma il gestionale chiede conferma con un avviso.
 
 ---
 
@@ -266,12 +287,14 @@ public/map/rdr2-map.jpg       immagine della mappa degli spawn
 ```
 
 Tabelle principali: `User`, `Session`, `Breed`, `Coat`, `StatDefinition`, `CoatStat`,
-`PriceHistory`, `Horse` (catture e inventario), `Sale`, `Spawn`, `Reservation`,
-`PayrollEntry`, `Payment`, `Setting`, `AuditLog`.
+`PriceHistory`, `Horse` (catture e inventario, proprietario, gravidanza), `HorseTransfer`, `Sale`,
+`Spawn`, `Reservation`, `ShopItem`, `Supplier`, `ShopNote`, `Reimbursement`, `ItemSale`,
+`ItemSaleLine`, `PayrollEntry`, `Payment`, `Setting`, `AuditLog`.
 
 ## 9. Test
 
 ```bash
 npm test
 ```
-Test della logica di età, fasce di prezzo, sconti, settimane (incluso il cambio d'ora) e abbinamento foto.
+Test della logica di età, fasce di prezzo, sconti, settimane (incluso il cambio d'ora), abbinamento foto,
+calcolo stipendi (pagamenti parziali, extra, percentuali separate) e gravidanza.

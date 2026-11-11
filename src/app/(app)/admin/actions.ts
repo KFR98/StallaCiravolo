@@ -86,6 +86,63 @@ export async function resetPassword(form: FormData) {
   });
 }
 
+/** Conteggio di tutti i dati collegati a un utente (anteprima prima dell'eliminazione). */
+export async function userDataSummary(userId: number) {
+  await assertPermission("users.delete");
+  const horseIds = (await prisma.horse.findMany({ where: { OR: [{ capturedById: userId }, { ownerId: userId }] }, select: { id: true } })).map((h) => h.id);
+  const [sales, salesOnHorses, itemSales, spawns, reservations, payroll, reimb, notes, logs] = await Promise.all([
+    prisma.sale.count({ where: { sellerId: userId } }),
+    prisma.sale.count({ where: { horseId: { in: horseIds }, NOT: { sellerId: userId } } }),
+    prisma.itemSale.count({ where: { sellerId: userId } }),
+    prisma.spawn.count({ where: { createdById: userId } }),
+    prisma.reservation.count({ where: { createdById: userId } }),
+    prisma.payrollEntry.count({ where: { userId } }),
+    prisma.reimbursement.count({ where: { userId } }),
+    prisma.shopNote.count({ where: { createdById: userId } }),
+    prisma.auditLog.count({ where: { userId } }),
+  ]);
+  return { horses: horseIds.length, sales, salesOnHorses, itemSales, spawns, reservations, payroll, reimb, notes, logs };
+}
+
+/** Elimina definitivamente un utente e TUTTO ciò che lo riguarda. */
+export async function deleteUserCompletely(form: FormData) {
+  return run(async () => {
+    const actor = await assertPermission("users.delete");
+    const f = fd(form);
+    const id = f.int("id") ?? 0;
+    const u = await prisma.user.findUnique({ where: { id } });
+    if (!u) throw new UserError("Utente non trovato.");
+    if (u.id === actor.id) throw new UserError("Non puoi eliminare il tuo account.");
+    if (f.str("conferma") !== u.username) throw new UserError(`Per confermare scrivi esattamente il nome utente: ${u.username}`);
+    if (u.role === "ADMIN" && (await prisma.user.count({ where: { role: "ADMIN", active: true, NOT: { id } } })) === 0) throw new UserError("Deve restare almeno un amministratore.");
+    const summary = await userDataSummary(id);
+    await prisma.$transaction(async (tx) => {
+      const horseIds = (await tx.horse.findMany({ where: { OR: [{ capturedById: id }, { ownerId: id }] }, select: { id: true } })).map((h) => h.id);
+      // Cavalli di altri venduti dall'utente: restano nello storico come usciti
+      await tx.horse.updateMany({ where: { id: { notIn: horseIds }, sales: { some: { sellerId: id } } }, data: { status: "RIMOSSO", exitReason: "Vendita eliminata insieme all'utente" } });
+      // Vendite dell'utente e vendite dei cavalli che riguardano l'utente
+      await tx.sale.deleteMany({ where: { OR: [{ sellerId: id }, { horseId: { in: horseIds } }] } });
+      await tx.horseTransfer.deleteMany({ where: { OR: [{ fromUserId: id }, { toUserId: id }, { byUserId: id }, { horseId: { in: horseIds } }] } });
+      await tx.horse.deleteMany({ where: { id: { in: horseIds } } });
+      await tx.itemSale.deleteMany({ where: { sellerId: id } });
+      await tx.spawn.deleteMany({ where: { createdById: id } });
+      await tx.spawn.updateMany({ where: { updatedById: id }, data: { updatedById: null } });
+      await tx.reservation.deleteMany({ where: { createdById: id } });
+      await tx.reservation.updateMany({ where: { assignedToId: id }, data: { assignedToId: null } });
+      await tx.reservation.updateMany({ where: { updatedById: id }, data: { updatedById: null } });
+      await tx.payment.deleteMany({ where: { userId: id } });
+      await tx.payrollEntry.deleteMany({ where: { userId: id } });
+      await tx.reimbursement.deleteMany({ where: { userId: id } });
+      await tx.shopNote.deleteMany({ where: { createdById: id } });
+      await tx.auditLog.deleteMany({ where: { userId: id } });
+      await tx.session.deleteMany({ where: { userId: id } });
+      await tx.user.delete({ where: { id } });
+      await audit(actor, "ELIMINA_UTENTE", "Utente", id, `Eliminato definitivamente l'utente ${u.username} (${u.displayName}) e tutti i suoi dati`, summary, tx);
+    }, { timeout: 60_000 });
+    return { ok: true, message: `Utente ${u.username} eliminato con tutti i suoi dati.` };
+  });
+}
+
 // ─────────────────────────── CATALOGO ───────────────────────────
 
 export async function saveBreed(form: FormData) {
@@ -262,13 +319,14 @@ export async function saveSettings(form: FormData) {
         bracketAMax: z.number().int().min(0).max(60),
         bracketBMax: z.number().int().min(0).max(80),
         defaultCaptureAge: z.number().min(0).max(60),
-        salaryPercent: z.number().min(0).max(100),
-        salaryIncludeGov: z.boolean(),
-        salaryIncludeStable: z.boolean(),
+        pctStable: z.number().min(0).max(100),
+        pctGov: z.number().min(0).max(100),
+        pctItems: z.number().min(0).max(100),
         maxDiscountPercent: z.number().min(0).max(100),
+        pregnancyDays: z.number().min(0.1, "Giorni di gravidanza non validi").max(60),
+        backupDays: z.number().int().min(1).max(365),
       })
-      .refine((s) => s.bracketBMax > s.bracketAMax, { message: "La fascia B deve terminare dopo la fascia A." })
-      .refine((s) => s.salaryIncludeGov || s.salaryIncludeStable, { message: "Lo stipendio deve considerare almeno un tipo di vendita." })
+      .refine((s) => s.bracketBMax > s.bracketAMax, { message: "La fascia 11-16 deve terminare dopo la fascia 5-10." })
       .parse({
         stableName: f.str("stableName"),
         daysPerYear: f.num("daysPerYear"),
@@ -276,10 +334,12 @@ export async function saveSettings(form: FormData) {
         bracketAMax: f.int("bracketAMax"),
         bracketBMax: f.int("bracketBMax"),
         defaultCaptureAge: f.num("defaultCaptureAge"),
-        salaryPercent: f.num("salaryPercent"),
-        salaryIncludeGov: f.bool("salaryIncludeGov"),
-        salaryIncludeStable: f.bool("salaryIncludeStable"),
+        pctStable: f.num("pctStable"),
+        pctGov: f.num("pctGov"),
+        pctItems: f.num("pctItems"),
         maxDiscountPercent: f.num("maxDiscountPercent"),
+        pregnancyDays: f.num("pregnancyDays"),
+        backupDays: f.int("backupDays"),
       }) satisfies Partial<Settings>;
     const prev = await getSettings();
     const now = new Date();

@@ -1,0 +1,510 @@
+{
+ "items": [
+  {
+   "kind": "VENDITA",
+   "name": "Zuccherini",
+   "group": "Cavalli",
+   "price": 0.4,
+   "priceNote": null,
+   "sortOrder": 3
+  },
+  {
+   "kind": "VENDITA",
+   "name": "Carote",
+   "group": "Cavalli",
+   "price": 0.35,
+   "priceNote": null,
+   "sortOrder": 4
+  },
+  {
+   "kind": "VENDITA",
+   "name": "Medicina cavallo",
+   "group": "Cavalli",
+   "price": 3.0,
+   "priceNote": "Valore tra parentesi nel file: 1,15",
+   "sortOrder": 5
+  },
+  {
+   "kind": "VENDITA",
+   "name": "Spazzola",
+   "group": "Cavalli",
+   "price": 5.0,
+   "priceNote": null,
+   "sortOrder": 6
+  },
+  {
+   "kind": "VENDITA",
+   "name": "Stimolante",
+   "group": "Cavalli",
+   "price": 6.0,
+   "priceNote": null,
+   "sortOrder": 7
+  },
+  {
+   "kind": "VENDITA",
+   "name": "Anabolizzante",
+   "group": "Cavalli",
+   "price": 4.0,
+   "priceNote": null,
+   "sortOrder": 8
+  },
+  {
+   "kind": "VENDITA",
+   "name": "Lanterne",
+   "group": "Cavalli",
+   "price": 30.0,
+   "priceNote": null,
+   "sortOrder": 9
+  },
+  {
+   "kind": "VENDITA",
+   "name": "Ferri Classici (4)",
+   "group": "Cavalli",
+   "price": 20.0,
+   "priceNote": null,
+   "sortOrder": 10
+  },
+  {
+   "kind": "VENDITA",
+   "name": "Ferro Classico (1)",
+   "group": "Cavalli",
+   "price": 6.0,
+   "priceNote": null,
+   "sortOrder": 11
+  },
+  {
+   "kind": "VENDITA",
+   "name": "Ferri Migliorati (4)",
+   "group": "Cavalli",
+   "price": 60.0,
+   "priceNote": null,
+   "sortOrder": 12
+  },
+  {
+   "kind": "VENDITA",
+   "name": "Ferro Migliorato (1)",
+   "group": "Cavalli",
+   "price": 20.0,
+   "priceNote": null,
+   "sortOrder": 13
+  },
+  {
+   "kind": "VENDITA",
+   "name": "kit primo soccorso",
+   "group": "Cavalli",
+   "price": null,
+   "priceNote": null,
+   "sortOrder": 14
+  },
+  {
+   "kind": "VENDITA",
+   "name": "Telaio",
+   "group": "Carri",
+   "price": 14.0,
+   "priceNote": null,
+   "sortOrder": 16
+  },
+  {
+   "kind": "VENDITA",
+   "name": "Cerchione",
+   "group": "Carri",
+   "price": 12.0,
+   "priceNote": null,
+   "sortOrder": 17
+  },
+  {
+   "kind": "VENDITA",
+   "name": "Ruota",
+   "group": "Carri",
+   "price": 25.0,
+   "priceNote": null,
+   "sortOrder": 18
+  },
+  {
+   "kind": "VENDITA",
+   "name": "Chiodi",
+   "group": "Carri",
+   "price": 0.2,
+   "priceNote": null,
+   "sortOrder": 19
+  },
+  {
+   "kind": "VENDITA",
+   "name": "Martello",
+   "group": "Carri",
+   "price": 8.0,
+   "priceNote": null,
+   "sortOrder": 20
+  },
+  {
+   "kind": "VENDITA",
+   "name": "Peli",
+   "group": "Carri",
+   "price": 6.0,
+   "priceNote": null,
+   "sortOrder": 21
+  },
+  {
+   "kind": "VENDITA",
+   "name": "Selle",
+   "group": "Carri",
+   "price": 6.0,
+   "priceNote": "Valore tra parentesi nel file: 1,76",
+   "sortOrder": 22
+  },
+  {
+   "kind": "VENDITA",
+   "name": "Coperta",
+   "group": "Carri",
+   "price": 2.0,
+   "priceNote": "Valore tra parentesi nel file: 0,84",
+   "sortOrder": 23
+  },
+  {
+   "kind": "VENDITA",
+   "name": "Corno",
+   "group": "Carri",
+   "price": 1.0,
+   "priceNote": "Valore tra parentesi nel file: 0,35",
+   "sortOrder": 24
+  },
+  {
+   "kind": "VENDITA",
+   "name": "Bisacce Grandi",
+   "group": "Carri",
+   "price": 10.0,
+   "priceNote": "Valore tra parentesi nel file: 4,9",
+   "sortOrder": 25
+  },
+  {
+   "kind": "VENDITA",
+   "name": "Bisacce Piccole",
+   "group": "Carri",
+   "price": 4.0,
+   "priceNote": "Valore tra parentesi nel file: 1,78",
+   "sortOrder": 26
+  },
+  {
+   "kind": "VENDITA",
+   "name": "Sacco a Pelo",
+   "group": "Carri",
+   "price": 4.0,
+   "priceNote": "Valore tra parentesi nel file: 1,98",
+   "sortOrder": 27
+  },
+  {
+   "kind": "VENDITA",
+   "name": "Staffe",
+   "group": "Carri",
+   "price": 3.0,
+   "priceNote": "Valore tra parentesi nel file: 1,79",
+   "sortOrder": 28
+  },
+  {
+   "kind": "VENDITA",
+   "name": "Criniera",
+   "group": "Carri",
+   "price": 1.0,
+   "priceNote": "Valore tra parentesi nel file: 0,47",
+   "sortOrder": 29
+  },
+  {
+   "kind": "VENDITA",
+   "name": "Coda",
+   "group": "Carri",
+   "price": 1.0,
+   "priceNote": "Valore tra parentesi nel file: 0,84",
+   "sortOrder": 30
+  },
+  {
+   "kind": "VENDITA",
+   "name": "KIT COMPLETO BG",
+   "group": "Carri",
+   "price": 25.0,
+   "priceNote": "Valore tra parentesi nel file: 28",
+   "sortOrder": 31
+  },
+  {
+   "kind": "VENDITA",
+   "name": "Maschera Cavallo",
+   "group": "Carri",
+   "price": 4.0,
+   "priceNote": "Valore tra parentesi nel file: 1,81",
+   "sortOrder": 34
+  },
+  {
+   "kind": "MATERIA_PRIMA",
+   "name": "Fibra",
+   "group": "Stalla",
+   "price": 0.06,
+   "priceNote": null,
+   "sortOrder": 3
+  },
+  {
+   "kind": "MATERIA_PRIMA",
+   "name": "Linfa",
+   "group": "Stalla",
+   "price": 0.07,
+   "priceNote": null,
+   "sortOrder": 4
+  },
+  {
+   "kind": "MATERIA_PRIMA",
+   "name": "Asse legno",
+   "group": "Stalla",
+   "price": 2.2,
+   "priceNote": null,
+   "sortOrder": 5
+  },
+  {
+   "kind": "MATERIA_PRIMA",
+   "name": "Asse legno pregiato",
+   "group": "Stalla",
+   "price": 2.7,
+   "priceNote": null,
+   "sortOrder": 6
+  },
+  {
+   "kind": "MATERIA_PRIMA",
+   "name": "Intrugli",
+   "group": "Stalla",
+   "price": 0.8,
+   "priceNote": null,
+   "sortOrder": 7
+  },
+  {
+   "kind": "MATERIA_PRIMA",
+   "name": "Medicina x Anabol.",
+   "group": "Stalla",
+   "price": null,
+   "priceNote": null,
+   "sortOrder": 8
+  },
+  {
+   "kind": "MATERIA_PRIMA",
+   "name": "Glicine",
+   "group": "Stalla",
+   "price": 0.08,
+   "priceNote": null,
+   "sortOrder": 9
+  },
+  {
+   "kind": "MATERIA_PRIMA",
+   "name": "Lingotto FERRO",
+   "group": "Stalla",
+   "price": 2.5,
+   "priceNote": null,
+   "sortOrder": 10
+  },
+  {
+   "kind": "MATERIA_PRIMA",
+   "name": "Lingotto ACC. TEMP.",
+   "group": "Stalla",
+   "price": 2.5,
+   "priceNote": null,
+   "sortOrder": 11
+  },
+  {
+   "kind": "MATERIA_PRIMA",
+   "name": "Lingotto ARGENTO",
+   "group": "Stalla",
+   "price": null,
+   "priceNote": "Prezzo nel file: 5 Fenix",
+   "sortOrder": 12
+  },
+  {
+   "kind": "MATERIA_PRIMA",
+   "name": "Lingotto RAME",
+   "group": "Stalla",
+   "price": null,
+   "priceNote": "Prezzo nel file: 1 Fenix",
+   "sortOrder": 13
+  },
+  {
+   "kind": "MATERIA_PRIMA",
+   "name": "Carbone",
+   "group": "Stalla",
+   "price": null,
+   "priceNote": null,
+   "sortOrder": 14
+  },
+  {
+   "kind": "MATERIA_PRIMA",
+   "name": "Chiodi",
+   "group": "Stalla",
+   "price": 0.2,
+   "priceNote": null,
+   "sortOrder": 15
+  },
+  {
+   "kind": "MATERIA_PRIMA",
+   "name": "Legno",
+   "group": "Stalla",
+   "price": null,
+   "priceNote": null,
+   "sortOrder": 16
+  },
+  {
+   "kind": "MATERIA_PRIMA",
+   "name": "Ferro",
+   "group": "Stalla",
+   "price": null,
+   "priceNote": null,
+   "sortOrder": 17
+  },
+  {
+   "kind": "MATERIA_PRIMA",
+   "name": "Acciaio",
+   "group": "Stalla",
+   "price": null,
+   "priceNote": null,
+   "sortOrder": 18
+  },
+  {
+   "kind": "MATERIA_PRIMA",
+   "name": "Pellicce",
+   "group": "Stalla",
+   "price": 0.7,
+   "priceNote": null,
+   "sortOrder": 19
+  },
+  {
+   "kind": "MATERIA_PRIMA",
+   "name": "Zuccherini",
+   "group": "Stalla",
+   "price": 0.25,
+   "priceNote": null,
+   "sortOrder": 20
+  },
+  {
+   "kind": "MATERIA_PRIMA",
+   "name": "Carote",
+   "group": "Stalla",
+   "price": 0.12,
+   "priceNote": null,
+   "sortOrder": 21
+  },
+  {
+   "kind": "MATERIA_PRIMA",
+   "name": "Lana",
+   "group": "Stalla",
+   "price": 0.7,
+   "priceNote": null,
+   "sortOrder": 22
+  },
+  {
+   "kind": "MATERIA_PRIMA",
+   "name": "Legno Pregiato",
+   "group": "Stalla",
+   "price": 0.7,
+   "priceNote": null,
+   "sortOrder": 23
+  }
+ ],
+ "suppliers": [
+  {
+   "name": "Manzanita",
+   "activity": "Manzanita",
+   "goods": null,
+   "missiva": "CP419",
+   "starred": false,
+   "notes": "Nome del referente non indicato nel file"
+  },
+  {
+   "name": "Artiglio di Lupo",
+   "activity": "Nativo Moicano",
+   "goods": "Intrugli, Archi, Frecce",
+   "missiva": "WZ886",
+   "starred": true,
+   "notes": null
+  },
+  {
+   "name": "Doc Clara Lockhart",
+   "activity": "Direttrice Clinica SD",
+   "goods": "Medicine per Ana, Intrugli, Bende etc",
+   "missiva": "EA911",
+   "starred": true,
+   "notes": null
+  },
+  {
+   "name": "Ethan Klein",
+   "activity": "Fabbro Valentine",
+   "goods": "Lingotti Accaio",
+   "missiva": "UN618",
+   "starred": false,
+   "notes": null
+  },
+  {
+   "name": "Elias Catter",
+   "activity": "Fabbro Rodhes",
+   "goods": "Lingotti Accaio",
+   "missiva": "UT448",
+   "starred": false,
+   "notes": null
+  },
+  {
+   "name": "Thomas Fletcher",
+   "activity": "Ranch Emerald",
+   "goods": "Prodotti Ranch",
+   "missiva": "RM753",
+   "starred": false,
+   "notes": null
+  },
+  {
+   "name": "Chris",
+   "activity": "Fabbro BW",
+   "goods": "Lingotti Ferro",
+   "missiva": "AG182",
+   "starred": true,
+   "notes": null
+  },
+  {
+   "name": "Chris Blake",
+   "activity": "Ranch Mattock",
+   "goods": "Prodotti Ranch",
+   "missiva": "FP874",
+   "starred": true,
+   "notes": null
+  },
+  {
+   "name": "Celine Rose",
+   "activity": "Ranch Mattock",
+   "goods": "Prodotti Ranch",
+   "missiva": "EY123",
+   "starred": true,
+   "notes": null
+  },
+  {
+   "name": "Frank Chesterlfield",
+   "activity": "Carpenteria BW",
+   "goods": "Carri",
+   "missiva": "IH140",
+   "starred": true,
+   "notes": null
+  },
+  {
+   "name": "Gerard",
+   "activity": "Falegnameria SD",
+   "goods": null,
+   "missiva": "BT702",
+   "starred": false,
+   "notes": null
+  },
+  {
+   "name": "Samuel Brown",
+   "activity": "Cacciatore",
+   "goods": "Pellicce",
+   "missiva": "CH446",
+   "starred": false,
+   "notes": null
+  },
+  {
+   "name": "Tony Chesterfield",
+   "activity": "Carpentiere BW",
+   "goods": "Carri",
+   "missiva": "UN936",
+   "starred": true,
+   "notes": null
+  }
+ ]
+}

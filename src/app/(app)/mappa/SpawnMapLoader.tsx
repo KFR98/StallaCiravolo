@@ -5,7 +5,7 @@ import type { SpawnMapProps } from "./SpawnMap";
 
 const SpawnMap = dynamic(() => import("./SpawnMap"), {
   ssr: false,
-  loading: () => <div className="panel flex h-[70dvh] items-center justify-center title-fell text-ink-soft">Apertura della mappa…</div>,
+  loading: () => <div className="card flex h-[70dvh] items-center justify-center text-fg-3">Apertura della mappa…</div>,
 });
 
 export function SpawnMapLoader(props: SpawnMapProps) {

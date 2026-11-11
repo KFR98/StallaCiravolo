@@ -6,7 +6,7 @@ import { prisma } from "@/lib/db";
 import { toXlsx, toCsv, type Col } from "@/lib/export";
 import { TZ, dateTime } from "@/lib/format";
 import { getSettings } from "@/lib/settings";
-import { horseAge, STATUS_LABEL, SEX_LABEL } from "@/lib/horses";
+import { horseAge, STATUS_LABEL, sexLabel } from "@/lib/horses";
 import { audit } from "@/lib/audit";
 
 const n = (v: unknown) => (v == null ? null : Number(v));
@@ -60,14 +60,14 @@ export async function GET(req: Request, { params }: { params: Promise<{ type: st
       { header: "Annullata", key: "voided", width: 10 },
     ];
     rows = sales.map((s) => ({
-      id: s.id, date: dateTime(s.soldAt), type: s.type, breed: s.breedName, coat: s.coatName, sex: SEX_LABEL[s.sex], plate: s.plate,
+      id: s.id, date: dateTime(s.soldAt), type: s.type, breed: s.breedName, coat: s.coatName, sex: sexLabel(s.sex), plate: s.plate,
       age: n(s.ageAtSale), bracket: s.priceBracket, list: n(s.listPrice),
       discount: s.discountValue ? (s.discountType === "PERCENTUALE" ? `${n(s.discountValue)}%` : `$${n(s.discountValue)}`) : "",
       final: n(s.finalPrice), seller: s.sellerName, buyer: s.buyerName, notes: s.notes, voided: s.voided ? "SI" : "",
     }));
   } else if (type === "cavalli") {
     const settings = await getSettings();
-    const horses = await prisma.horse.findMany({ include: { breed: true, coat: true, capturedBy: true }, orderBy: { capturedAt: "desc" } });
+    const horses = await prisma.horse.findMany({ include: { breed: true, coat: true, capturedBy: true, owner: true }, orderBy: { capturedAt: "desc" } });
     cols = [
       { header: "ID", key: "id", width: 7 }, { header: "Registrato", key: "date", width: 18 }, { header: "Stato", key: "status", width: 18 },
       { header: "Razza", key: "breed", width: 30 }, { header: "Manto", key: "coat", width: 22 }, { header: "Sesso", key: "sex", width: 10 },
@@ -75,8 +75,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ type: st
       { header: "Condizione", key: "cond", width: 14 }, { header: "Note", key: "notes", width: 30 },
     ];
     rows = horses.map((h) => ({
-      id: h.id, date: dateTime(h.capturedAt), status: STATUS_LABEL[h.status], breed: h.breed.name, coat: h.coat.name, sex: SEX_LABEL[h.sex],
-      plate: h.plate, age: h.status === "IN_STALLA" ? Math.round(horseAge(h, settings) * 100) / 100 : null, by: h.capturedBy.displayName,
+      id: h.id, date: dateTime(h.capturedAt), status: STATUS_LABEL[h.status], breed: h.breed.name, coat: h.coat.name, sex: sexLabel(h.sex),
+      plate: h.plate, age: h.status === "IN_STALLA" ? Math.round((horseAge(h, settings) ?? 0) * 100) / 100 : null, by: h.capturedBy.displayName, owner: h.owner.displayName, preg: h.pregnancyDueAt ? dateTime(h.pregnancyDueAt) : "",
       cond: h.condition, notes: h.notes,
     }));
   } else if (type === "pagamenti") {
@@ -84,9 +84,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ type: st
     const pays = await prisma.payment.findMany({ include: { user: true, recordedBy: true }, orderBy: { createdAt: "desc" } });
     cols = [
       { header: "Data", key: "date", width: 18 }, { header: "Dipendente", key: "user", width: 20 }, { header: "Settimana dal", key: "week", width: 14 },
-      { header: "Importo", key: "amount", money: true }, { header: "Azione", key: "action", width: 12 }, { header: "Registrato da", key: "by", width: 20 }, { header: "Note", key: "notes", width: 30 },
+      { header: "Spettava", key: "due", money: true }, { header: "Pagato", key: "amount", money: true }, { header: "Azione", key: "action", width: 12 }, { header: "Registrato da", key: "by", width: 20 }, { header: "Note", key: "notes", width: 30 },
     ];
-    rows = pays.map((p) => ({ date: dateTime(p.createdAt), user: p.user.displayName, week: dateTime(p.weekStart).slice(0, 10), amount: n(p.amount), action: p.action, by: p.recordedBy?.displayName, notes: p.notes }));
+    rows = pays.map((p) => ({ date: dateTime(p.createdAt), user: p.user.displayName, week: dateTime(p.weekStart).slice(0, 10), due: n(p.dueAmount), amount: n(p.amount), action: p.action, by: p.recordedBy?.displayName, notes: p.notes }));
   } else {
     return new Response("Tipo non valido", { status: 404 });
   }

@@ -1,125 +1,126 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import Link from "next/link";
-import { money } from "@/lib/format";
+import { useMemo, useState } from "react";
+import { Search, ArrowUpDown } from "lucide-react";
 import clsx from "clsx";
+import { HorseThumb } from "@/components/ui";
+import { Rating } from "@/components/StatBars";
+import { matchHorse } from "@/components/HorsePicker";
+import { money } from "@/lib/format";
+import type { CatalogRow, CatalogMeta } from "@/lib/catalog";
 
-export type CompareRow = {
-  id: number; breed: string; coat: string; image: string | null;
-  salePriceA: number | null; salePriceB: number | null; governmentPrice: number | null; govListPrice: number | null; statTotal: number;
-};
+type SortKey = "score" | "value" | "price" | "breed" | `stat${number}`;
 
-type PriceKey = "salePriceA" | "salePriceB" | "governmentPrice" | "govListPrice";
-type SortKey = "price_asc" | "price_desc" | "breed" | "coat" | "stats";
-
-export function CompareTable({ rows, labels, maxTotal }: { rows: CompareRow[]; labels: { a: string; b: string }; maxTotal: number }) {
-  const [breedQ, setBreedQ] = useState("");
-  const [coatQ, setCoatQ] = useState("");
-  const [priceKey, setPriceKey] = useState<PriceKey>("salePriceA");
-  const [sort, setSort] = useState<SortKey>("price_asc");
+export function CompareTable({ rows, meta, labels }: { rows: CatalogRow[]; meta: CatalogMeta; labels: { a: string; b: string } }) {
+  const [q, setQ] = useState("");
+  const [sort, setSort] = useState<SortKey>("score");
+  const [dir, setDir] = useState<1 | -1>(-1);
   const [min, setMin] = useState("");
   const [max, setMax] = useState("");
 
-  const view = useMemo(() => {
-    const bq = breedQ.trim().toLowerCase();
-    const cq = coatQ.trim().toLowerCase();
+  // Qualità/prezzo: voto per ogni $1000 del prezzo 5-10, normalizzato a 100 sul migliore
+  const withValue = useMemo(() => {
+    const raw = rows.map((r) => (r.score != null && r.salePriceA ? r.score / r.salePriceA : null));
+    const best = Math.max(...raw.filter((x): x is number => x != null), 0);
+    return rows.map((r, i) => ({ ...r, value: raw[i] != null && best ? Math.round((raw[i]! / best) * 100) : null }));
+  }, [rows]);
+
+  const list = useMemo(() => {
     const lo = min === "" ? -Infinity : Number(min);
     const hi = max === "" ? Infinity : Number(max);
-    const out = rows.filter((r) => {
-      if (bq && !r.breed.toLowerCase().includes(bq)) return false;
-      if (cq && !r.coat.toLowerCase().includes(cq)) return false;
-      const p = r[priceKey];
-      if ((min !== "" || max !== "") && (p == null || p < lo || p > hi)) return false;
-      return true;
+    const out = withValue.filter((r) => matchHorse(r, q) && (min === "" && max === "" ? true : r.salePriceA != null && r.salePriceA >= lo && r.salePriceA <= hi));
+    const val = (r: (typeof out)[number]): number | string | null =>
+      sort === "score" ? r.score : sort === "value" ? r.value : sort === "price" ? r.salePriceA : sort === "breed" ? `${r.breed} ${r.coat}` : r.stats[Number(sort.slice(4))];
+    return out.sort((a, b) => {
+      const x = val(a), y = val(b);
+      if (x == null && y == null) return 0;
+      if (x == null) return 1;
+      if (y == null) return -1;
+      return (typeof x === "string" ? x.localeCompare(String(y)) : x - (y as number)) * dir;
     });
-    const pv = (r: CompareRow) => r[priceKey] ?? Infinity;
-    out.sort((a, b) => {
-      switch (sort) {
-        case "price_asc": return pv(a) - pv(b) || a.breed.localeCompare(b.breed);
-        case "price_desc": return (b[priceKey] ?? -Infinity) - (a[priceKey] ?? -Infinity) || a.breed.localeCompare(b.breed);
-        case "breed": return a.breed.localeCompare(b.breed) || a.coat.localeCompare(b.coat);
-        case "coat": return a.coat.localeCompare(b.coat) || a.breed.localeCompare(b.breed);
-        case "stats": return b.statTotal - a.statTotal;
-      }
-    });
-    return out;
-  }, [rows, breedQ, coatQ, priceKey, sort, min, max]);
+  }, [withValue, q, min, max, sort, dir]);
 
-  const PRICE_LABEL: Record<PriceKey, string> = { salePriceA: `Vendita ${labels.a}`, salePriceB: `Vendita ${labels.b}`, governmentPrice: "Governo", govListPrice: "Listino Gov" };
-  const bands = [[0, 100], [100, 300], [300, 600], [600, 1000], [1000, 2000]];
+  const head = (key: SortKey, label: string, cls = "num") => (
+    <th className={cls}>
+      <button className={clsx("inline-flex items-center gap-1 uppercase", sort === key && "text-fg")} onClick={() => (sort === key ? setDir((d) => (d === 1 ? -1 : 1)) : (setSort(key), setDir(key === "breed" || key === "price" ? 1 : -1)))}>
+        {label}<ArrowUpDown size={12} aria-hidden="true" />
+      </button>
+    </th>
+  );
+
+  const best = [...withValue].filter((r) => r.score != null).sort((a, b) => b.score! - a.score!).slice(0, 3);
+  const deals = [...withValue].filter((r) => r.value != null).sort((a, b) => b.value! - a.value!).slice(0, 3);
 
   return (
     <>
-      <div className="panel panel-pad mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <input className="input" placeholder="Cerca razza" value={breedQ} onChange={(e) => setBreedQ(e.target.value)} />
-        <input className="input" placeholder="Cerca manto" value={coatQ} onChange={(e) => setCoatQ(e.target.value)} />
-        <select className="input" value={priceKey} onChange={(e) => setPriceKey(e.target.value as PriceKey)}>
-          {Object.entries(PRICE_LABEL).map(([k, v]) => <option key={k} value={k}>Prezzo: {v}</option>)}
-        </select>
-        <select className="input" value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
-          <option value="price_asc">Dal più economico</option>
-          <option value="price_desc">Dal più costoso</option>
-          <option value="breed">Alfabetico per razza</option>
-          <option value="coat">Alfabetico per manto</option>
-          <option value="stats">Statistiche migliori</option>
-        </select>
-        <div className="flex gap-2">
-          <input className="input" type="number" placeholder="Min $" value={min} onChange={(e) => setMin(e.target.value)} />
-          <input className="input" type="number" placeholder="Max $" value={max} onChange={(e) => setMax(e.target.value)} />
-        </div>
-        <div className="flex flex-wrap items-center gap-2 sm:col-span-2 lg:col-span-5">
-          <span className="label">Fasce rapide:</span>
-          {bands.map(([a, b]) => (
-            <button key={a} type="button" onClick={() => { setMin(String(a)); setMax(String(b)); }} className={clsx("btn btn-sm", min === String(a) && max === String(b) ? "btn-gold" : "btn-ghost")}>
-              ${a}–{b}
-            </button>
-          ))}
-          <button type="button" onClick={() => { setMin("1000"); setMax(""); }} className="btn btn-sm btn-ghost">oltre $1000</button>
-          <button type="button" onClick={() => { setMin(""); setMax(""); setBreedQ(""); setCoatQ(""); }} className="btn btn-sm btn-ghost">Azzera</button>
-          <span className="ml-auto text-ink-soft italic">{view.length} risultati</span>
-        </div>
+      <div className="mb-5 grid gap-4 md:grid-cols-2">
+        {[["I migliori", best, (r: (typeof best)[number]) => <Rating score={r.score} />], ["Miglior qualità/prezzo", deals, (r: (typeof best)[number]) => <span className="badge badge-ok">Q/P {r.value}</span>]].map(([title, items, badge]) => (
+          <div key={title as string} className="card card-pad">
+            <h3 className="eyebrow mb-2">{title as string}</h3>
+            <ul className="space-y-2">
+              {(items as typeof best).map((r) => (
+                <li key={r.id} className="flex items-center gap-2.5">
+                  <HorseThumb src={r.image} size={32} />
+                  <Link href={`/catalogo/${r.id}`} className="min-w-0 flex-1 truncate hover:text-accent-text"><b>{r.breed}</b> <span className="text-fg-3">· {r.coat}</span></Link>
+                  {(badge as (r: (typeof best)[number]) => React.ReactNode)(r)}
+                  <b className="w-16 text-right tabular-nums">{money(r.salePriceA)}</b>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </div>
-      <div className="panel panel-pad">
-        <div className="-mx-4 overflow-x-auto px-4 sm:-mx-5 sm:px-5">
-          <table className="ledger">
-            <thead>
-              <tr>
-                <th></th><th>Razza</th><th>Manto</th>
-                <th className={clsx("num", priceKey === "salePriceA" && "!text-blood")}>{labels.a}</th>
-                <th className={clsx("num", priceKey === "salePriceB" && "!text-blood")}>{labels.b}</th>
-                <th className={clsx("num", priceKey === "governmentPrice" && "!text-blood")}>Governo</th>
-                <th className={clsx("num", priceKey === "govListPrice" && "!text-blood")}>Listino Gov</th>
-                <th className="num">Stat.</th>
-              </tr>
-            </thead>
-            <tbody>
-              {view.map((r) => (
-                <tr key={r.id}>
-                  <td className="w-14">
-                    {r.image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={r.image} alt="" className="h-9 w-12 rounded-[2px] object-cover" loading="lazy" />
-                    ) : <div className="h-9 w-12 bg-[#cdb180]/50" />}
-                  </td>
-                  <td className="title-fell text-leather">{r.breed}</td>
-                  <td><Link href={`/catalogo/${r.id}`} className="hover:underline">{r.coat}</Link></td>
-                  <td className={clsx("num", priceKey === "salePriceA" && "font-bold")}>{money(r.salePriceA)}</td>
-                  <td className={clsx("num", priceKey === "salePriceB" && "font-bold")}>{money(r.salePriceB)}</td>
-                  <td className={clsx("num text-blood", priceKey === "governmentPrice" && "font-bold")}>{money(r.governmentPrice)}</td>
-                  <td className={clsx("num", priceKey === "govListPrice" && "font-bold")}>{money(r.govListPrice)}</td>
-                  <td className="num">
-                    <div className="ml-auto flex w-24 items-center gap-2">
-                      <div className="statbar !h-[7px]"><span style={{ width: `${maxTotal ? (r.statTotal / maxTotal) * 100 : 0}%` }} /></div>
-                      <span className="text-[13px]">{r.statTotal}</span>
+      <div className="card mb-4 flex flex-wrap items-center gap-2 p-3">
+        <div className="relative min-w-[220px] flex-1">
+          <Search size={17} className="absolute top-1/2 left-3 -translate-y-1/2 text-fg-3" aria-hidden="true" />
+          <input className="input !pl-9" placeholder="Cerca razza o manto…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Cerca" />
+        </div>
+        <input className="input !w-28" type="number" placeholder="Min $" value={min} onChange={(e) => setMin(e.target.value)} aria-label="Prezzo minimo" />
+        <input className="input !w-28" type="number" placeholder="Max $" value={max} onChange={(e) => setMax(e.target.value)} aria-label="Prezzo massimo" />
+        <span className="text-[13px] text-fg-3">{list.length} cavalli · clicca le intestazioni per ordinare</span>
+      </div>
+      <div className="card overflow-x-auto">
+        <table className="tbl">
+          <thead>
+            <tr>
+              {head("breed", "Cavallo", "!pl-5")}
+              {head("score", "Voto")}
+              {meta.map((m, i) => head(`stat${i}`, m.label))}
+              {head("price", labels.a)}
+              <th className="num">{labels.b}</th>
+              <th className="num">Blip</th>
+              {head("value", "Q/P", "num !pr-5")}
+            </tr>
+          </thead>
+          <tbody>
+            {list.map((r) => (
+              <tr key={r.id}>
+                <td className="!pl-5">
+                  <Link href={`/catalogo/${r.id}`} className="flex min-w-[200px] items-center gap-2.5 hover:text-accent-text">
+                    <HorseThumb src={r.image} size={32} />
+                    <span className="min-w-0"><b className="block truncate">{r.breed}</b><span className="block truncate text-[13px] text-fg-3">{r.coat}</span></span>
+                  </Link>
+                </td>
+                <td className="num"><Rating score={r.score} /></td>
+                {r.stats.map((v, i) => (
+                  <td key={i} className="num">
+                    <div className="ml-auto flex w-[76px] items-center gap-2">
+                      <div className="statbar !h-1.5"><span style={{ width: `${v != null && meta[i].max ? (v / meta[i].max) * 100 : 0}%` }} /></div>
+                      <span className="w-6 text-[13px]">{v ?? "—"}</span>
                     </div>
                   </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                ))}
+                <td className="num font-semibold">{money(r.salePriceA)}</td>
+                <td className="num">{money(r.salePriceB)}</td>
+                <td className="num text-fg-2">{money(r.governmentPrice)}</td>
+                <td className="num !pr-5">{r.value != null ? <span className={clsx("badge", r.value >= 80 ? "badge-ok" : "badge-neutral")}>{r.value}</span> : "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
+      <p className="mt-3 text-[13px] text-fg-3">Voto = media delle statistiche rispetto al miglior cavallo (0-10). Q/P = voto in rapporto al prezzo {labels.a}: 100 è il miglior affare del catalogo.</p>
     </>
   );
 }

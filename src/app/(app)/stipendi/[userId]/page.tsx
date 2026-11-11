@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
@@ -7,76 +8,82 @@ import { payrollOverview } from "@/lib/payroll";
 import { money, dateTime, dateOnly, TZ } from "@/lib/format";
 import { weekLabel } from "@/lib/weeks";
 import { ROLE_LABELS } from "@/lib/permissions";
-import { PageHeader, Panel, StatTile, TableWrap } from "@/components/ui";
-import { WeekActions, PayArrearsButton, PercentForm } from "../PayrollControls";
-import clsx from "clsx";
+import { PageHeader, Card, StatTile, TableWrap } from "@/components/ui";
+import { PayButton, WeekMenu, PercentForm } from "../PayrollControls";
 
 export const metadata = { title: "Stipendi dipendente" };
 
+const STATUS = { DA_PAGARE: ["Da pagare", "badge-warn"], PARZIALE: ["Parziale", "badge-warn"], PAGATO: ["Pagato", "badge-ok"] } as const;
+
 export default async function UserPayrollPage({ params }: { params: Promise<{ userId: string }> }) {
   await requireUser("payroll.manage");
-  const { userId } = await params;
-  const id = Number(userId) || 0;
-  const [ov] = await payrollOverview({ userId: id, includeInactive: true });
+  const id = Number((await params).userId) || 0;
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) notFound();
-  const s = await getSettings();
-  const payments = await prisma.payment.findMany({ where: { userId: id }, orderBy: { createdAt: "desc" }, include: { recordedBy: true } });
+  const [[ov], s, payments] = await Promise.all([
+    payrollOverview({ userId: id }),
+    getSettings(),
+    prisma.payment.findMany({ where: { userId: id }, orderBy: { createdAt: "desc" }, include: { recordedBy: true } }),
+  ]);
   const weeks = ov?.weeks ?? [];
   return (
     <>
-      <PageHeader
-        title={user.displayName}
-        subtitle={`${ROLE_LABELS[user.role]} · stipendio ${ov?.percent ?? s.salaryPercent}% delle vendite`}
-        actions={<Link href="/stipendi" className="btn btn-ghost !bg-paper/80">← Registro stipendi</Link>}
-      />
+      <Link href="/stipendi" className="btn btn-ghost btn-sm mb-3 -ml-2"><ArrowLeft size={16} /> Stipendi</Link>
+      <PageHeader title={user.displayName} subtitle={ROLE_LABELS[user.role]} actions={ov && <PayButton userId={id} name={user.displayName} due={ov.due} weeks={ov.arrears.map((w) => weekLabel(w.weekStart, TZ).split(" – ")[0])} currentDue={ov.current?.residual ?? 0} className="btn btn-primary" />} />
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatTile label="Da pagare" value={money(ov?.due ?? 0)} hint={`${ov?.arrears.length ?? 0} settimane`} />
-        <StatTile label="Ultimo pagamento" value={ov?.lastPaidAt ? dateOnly(ov.lastPaidAt) : "Mai"} hint={ov?.lastPaidWeek ? `fino a sett. ${weekLabel(ov.lastPaidWeek, TZ)}` : undefined} />
-        <StatTile label="Settimana in corso" value={money(ov?.current?.amount ?? 0)} hint={`${ov?.current?.salesCount ?? 0} vendite`} />
+        <StatTile label="Gli spetta" value={money(ov?.due ?? 0)} hint={`${ov?.arrears.length ?? 0} settimane`} tone="accent" />
+        <StatTile label="Ultimo pagamento" value={ov?.lastPaidAt ? dateOnly(ov.lastPaidAt) : "Mai"} />
+        <StatTile label="Settimana in corso" value={money(ov?.current?.due ?? 0)} hint={`${ov?.current?.totals.count ?? 0} vendite`} />
         <StatTile label="Totale pagato" value={money(ov?.paidTotal ?? 0)} />
       </div>
-      <div className="grid gap-5 xl:grid-cols-[1.6fr_1fr]">
-        <Panel title="Settimane" actions={ov ? <PayArrearsButton userId={id} name={user.displayName} count={ov.arrears.length} total={ov.due} /> : undefined}>
-          <TableWrap>
-            <table className="ledger">
-              <thead><tr><th>Settimana</th><th className="num">Vendite</th><th className="num">Totale</th><th className="num">%</th><th className="num">Stipendio</th><th>Stato</th><th /></tr></thead>
+      <div className="grid gap-5 xl:grid-cols-[1.7fr_1fr]">
+        <Card title="Settimane" pad={false}>
+          <div className="overflow-x-auto">
+            <table className="tbl">
+              <thead><tr><th className="!pl-5">Settimana</th><th className="num">Stalla</th><th className="num">Blip</th><th className="num">Oggetti</th><th className="num">Spetta</th><th className="num">Pagato</th><th>Stato</th><th className="!pr-5" /></tr></thead>
               <tbody>
                 {weeks.map((w) => (
                   <tr key={w.key}>
-                    <td className="whitespace-nowrap">{weekLabel(w.weekStart, TZ)}{w.inProgress && <span className="ml-1 text-[13px] italic text-ink-soft">(in corso)</span>}{w.notes && <div className="text-[13px] text-ink-soft">{w.notes}</div>}</td>
-                    <td className="num">{w.salesCount}</td>
-                    <td className="num">{money(w.salesTotal)}</td>
-                    <td className="num">{w.percent}%</td>
-                    <td className="num font-bold">{money(w.amount)}{w.overridden && <span className="text-blood">*</span>}</td>
-                    <td><span className={clsx("badge", w.status === "PAGATO" ? "badge-green" : w.amount > 0 ? "badge-red" : "badge-ink")}>{w.status === "PAGATO" ? `Pagato ${dateOnly(w.paidAt)}` : w.amount > 0 ? "Da pagare" : "—"}</span></td>
-                    <td><WeekActions userId={id} name={user.displayName} week={w.key} label={weekLabel(w.weekStart, TZ)} amount={w.amount} computed={w.computed} status={w.status} entryId={w.entryId} notes={w.notes} overridden={w.overridden} /></td>
+                    <td className="!pl-5 whitespace-nowrap">{weekLabel(w.weekStart, TZ)}{w.inProgress && <span className="badge badge-info ml-1">in corso</span>}{w.notes && <div className="text-[12.5px] text-fg-3">{w.notes}</div>}</td>
+                    <td className="num">{money(w.totals.stable)}</td>
+                    <td className="num">{money(w.totals.gov)}</td>
+                    <td className="num">{money(w.totals.items)}</td>
+                    <td className="num font-semibold">{money(w.due)}{w.overridden && <span className="text-accent-text" title="Dovuto modificato a mano">*</span>}</td>
+                    <td className="num">{money(w.paid)}{w.extra > 0 && <div className="text-[12px] text-ok">+{money(w.extra)} extra</div>}{w.status === "PARZIALE" && <div className="text-[12px] text-warn">manca {money(w.residual)}</div>}</td>
+                    <td><span className={`badge ${w.due <= 0 && w.paid <= 0 ? "badge-neutral" : STATUS[w.status][1]}`}>{w.due <= 0 && w.paid <= 0 ? "—" : STATUS[w.status][0]}</span></td>
+                    <td className="!pr-5 text-right"><WeekMenu userId={id} week={w.key} label={weekLabel(w.weekStart, TZ)} due={w.due} residual={w.residual} computed={w.computed} overridden={w.overridden} notes={w.notes} entryId={w.entryId} paid={w.paid} /></td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </TableWrap>
-        </Panel>
+          </div>
+        </Card>
         <div className="space-y-5">
-          <Panel title="Percentuale stipendio">
-            <PercentForm userId={id} percent={ov?.percent ?? s.salaryPercent} custom={user.salaryPercent != null} globalPercent={s.salaryPercent} />
-            <p className="mt-2 text-[13px] text-ink-soft italic">Lascia vuoto per usare la percentuale globale ({s.salaryPercent}%). Le settimane già pagate non cambiano.</p>
-          </Panel>
-          <Panel title="Storico pagamenti">
-            {payments.length === 0 ? <p className="italic text-ink-soft">Nessun pagamento.</p> : (
-              <ul className="space-y-2">
-                {payments.map((p) => (
-                  <li key={p.id} className="border-b border-dashed border-[#bfa476] pb-2 text-[15px]">
-                    <div className="flex justify-between gap-2"><span>{weekLabel(p.weekStart, TZ)}</span><b>{money(p.amount)}</b></div>
-                    <div className="text-[13.5px] text-ink-soft">
-                      <span className={clsx("badge mr-1", p.action === "PAGATO" ? "badge-green" : "badge-red")}>{p.action === "PAGATO" ? "Pagato" : "Annullato"}</span>
-                      {dateTime(p.createdAt)} · {p.recordedBy?.displayName ?? "—"}{p.notes ? ` · ${p.notes}` : ""}
-                    </div>
-                  </li>
-                ))}
-              </ul>
+          <Card title="Percentuali personali">
+            <PercentForm
+              userId={id}
+              values={{ stable: user.pctStable?.toString() ?? "", gov: user.pctGov?.toString() ?? "", items: user.pctItems?.toString() ?? "" }}
+              globals={{ stable: s.pctStable, gov: s.pctGov, items: s.pctItems }}
+            />
+          </Card>
+          <Card title="Storico pagamenti">
+            {payments.length === 0 ? <p className="text-fg-3">Nessun pagamento.</p> : (
+              <TableWrap>
+                <table className="tbl">
+                  <thead><tr><th>Data</th><th className="num">Spettava</th><th className="num">Pagato</th></tr></thead>
+                  <tbody>
+                    {payments.map((p) => (
+                      <tr key={p.id} className={p.action === "ANNULLATO" ? "opacity-60" : ""}>
+                        <td className="text-[13.5px]">{dateTime(p.createdAt)}<div className="text-fg-3">{p.recordedBy?.displayName}{p.notes ? ` · ${p.notes}` : ""}</div></td>
+                        <td className="num">{p.action === "ANNULLATO" ? "—" : money(p.dueAmount)}</td>
+                        <td className="num font-semibold">{p.action === "ANNULLATO" ? <span className="badge badge-accent">annullato</span> : money(p.amount)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TableWrap>
             )}
-          </Panel>
+          </Card>
         </div>
       </div>
     </>

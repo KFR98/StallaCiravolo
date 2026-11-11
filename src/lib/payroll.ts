@@ -5,23 +5,38 @@ import { TZ } from "./format";
 import { weekStartOf, addWeeks, isoWeekKey } from "./weeks";
 import { round2 } from "./pricing";
 
-export async function userSalaryPercent(userId: number, s?: Settings) {
-  const settings = s ?? (await getSettings());
-  const u = await prisma.user.findUnique({ where: { id: userId }, select: { salaryPercent: true } });
-  return u?.salaryPercent != null ? Number(u.salaryPercent) : settings.salaryPercent;
+export type Percents = { stable: number; gov: number; items: number };
+
+export function userPercents(u: { pctStable: unknown; pctGov: unknown; pctItems: unknown }, s: Settings): Percents & { custom: boolean } {
+  return {
+    stable: u.pctStable != null ? Number(u.pctStable) : s.pctStable,
+    gov: u.pctGov != null ? Number(u.pctGov) : s.pctGov,
+    items: u.pctItems != null ? Number(u.pctItems) : s.pctItems,
+    custom: u.pctStable != null || u.pctGov != null || u.pctItems != null,
+  };
 }
+
+export const computeSalary = (t: { stable: number; gov: number; items: number }, p: Percents) =>
+  round2((t.stable * p.stable + t.gov * p.gov + t.items * p.items) / 100);
+
+export type WeekTotals = { stable: number; gov: number; items: number; count: number };
 
 export type PayrollWeek = {
   key: string;
   weekStart: Date;
   inProgress: boolean;
-  salesCount: number;
-  salesTotal: number;
-  percent: number;
+  totals: WeekTotals;
+  percents: Percents;
   computed: number;
-  amount: number;
+  /** Quanto spetta (calcolo o importo modificato) */
+  due: number;
   overridden: boolean;
-  status: "DA_PAGARE" | "PAGATO";
+  paid: number;
+  /** Quanto manca da pagare (0 se saldato) */
+  residual: number;
+  /** Quanto pagato in più del dovuto (incentivo) */
+  extra: number;
+  status: "DA_PAGARE" | "PARZIALE" | "PAGATO";
   paidAt: Date | null;
   paidBy: string | null;
   notes: string | null;
@@ -33,12 +48,10 @@ export type PayrollUser = {
   name: string;
   role: Role;
   active: boolean;
-  percent: number;
-  customPercent: boolean;
+  percents: Percents & { custom: boolean };
   weeks: PayrollWeek[]; // dalla più recente
   lastPaidAt: Date | null;
-  lastPaidWeek: Date | null;
-  arrears: PayrollWeek[]; // settimane concluse non pagate con importo > 0
+  arrears: PayrollWeek[]; // settimane concluse con residuo > 0 (dalla più vecchia)
   due: number;
   current: PayrollWeek | null;
   paidTotal: number;
@@ -46,146 +59,93 @@ export type PayrollUser = {
 
 type Entry = PayrollEntry & { paidBy: { displayName: string } | null };
 
-function buildWeek(
-  key: string,
-  weekStart: Date,
-  inProgress: boolean,
-  live: { count: number; total: number },
-  percent: number,
-  entry: Entry | undefined,
-): PayrollWeek {
-  if (entry && entry.status === "PAGATO") {
-    const computed = Number(entry.computedAmount ?? 0);
-    return {
-      key, weekStart, inProgress,
-      salesCount: entry.salesCount ?? live.count,
-      salesTotal: Number(entry.salesTotal ?? live.total),
-      percent: Number(entry.percent ?? percent),
-      computed,
-      amount: Number(entry.paidAmount ?? entry.amountOverride ?? computed),
-      overridden: entry.amountOverride != null,
-      status: "PAGATO",
-      paidAt: entry.paidAt,
-      paidBy: entry.paidBy?.displayName ?? null,
-      notes: entry.notes,
-      entryId: entry.id,
-    };
-  }
-  const computed = round2((live.total * percent) / 100);
+export function buildWeek(key: string, weekStart: Date, inProgress: boolean, live: WeekTotals, pct: Percents, entry: Entry | undefined): PayrollWeek {
+  const paid = entry ? Number(entry.paidAmount) : 0;
+  // Dopo il primo pagamento i totali restano "fotografati"
+  const snap = entry && entry.computedAmount != null && paid > 0;
+  const totals = snap ? { stable: Number(entry.stableTotal ?? 0), gov: Number(entry.govTotal ?? 0), items: Number(entry.itemsTotal ?? 0), count: live.count } : live;
+  const percents = snap ? { stable: Number(entry.pctStable ?? pct.stable), gov: Number(entry.pctGov ?? pct.gov), items: Number(entry.pctItems ?? pct.items) } : pct;
+  const computed = snap ? Number(entry.computedAmount) : computeSalary(totals, percents);
   const override = entry?.amountOverride != null ? Number(entry.amountOverride) : null;
+  const due = override ?? computed;
+  const residual = round2(Math.max(0, due - paid));
+  const extra = round2(Math.max(0, paid - due));
+  const status = paid <= 0 ? "DA_PAGARE" : residual > 0.004 ? "PARZIALE" : "PAGATO";
   return {
-    key, weekStart, inProgress,
-    salesCount: live.count,
-    salesTotal: round2(live.total),
-    percent,
-    computed,
-    amount: override ?? computed,
-    overridden: override != null,
-    status: "DA_PAGARE",
-    paidAt: null,
-    paidBy: null,
-    notes: entry?.notes ?? null,
-    entryId: entry?.id ?? null,
+    key, weekStart, inProgress, totals, percents, computed, due, overridden: override != null, paid, residual, extra, status,
+    paidAt: entry?.paidAt ?? null, paidBy: entry?.paidBy?.displayName ?? null, notes: entry?.notes ?? null, entryId: entry?.id ?? null,
   };
 }
 
+/** Totali settimanali per utente (vendite stalla, blip, oggetti), escluse le vendite annullate. */
+async function weeklyTotals(userIds: number[]) {
+  const [sales, items] = await Promise.all([
+    prisma.sale.findMany({ where: { voided: false, sellerId: { in: userIds } }, select: { sellerId: true, soldAt: true, finalPrice: true, type: true } }),
+    prisma.itemSale.findMany({ where: { voided: false, sellerId: { in: userIds } }, select: { sellerId: true, soldAt: true, total: true } }),
+  ]);
+  const map = new Map<string, WeekTotals & { weekStart: Date }>();
+  const add = (uid: number, d: Date, k: "stable" | "gov" | "items", v: number) => {
+    const w = weekStartOf(d, TZ);
+    const key = `${uid}|${isoWeekKey(w, TZ)}`;
+    const t = map.get(key) ?? { stable: 0, gov: 0, items: 0, count: 0, weekStart: w };
+    t[k] += v;
+    t.count++;
+    map.set(key, t);
+  };
+  for (const s of sales) add(s.sellerId, s.soldAt, s.type === "GOVERNO" ? "gov" : "stable", Number(s.finalPrice));
+  for (const s of items) add(s.sellerId, s.soldAt, "items", Number(s.total));
+  return map;
+}
+
 /**
- * Registro stipendi calcolato:
- * - le settimane PAGATE usano la fotografia salvata al momento del pagamento;
- * - le altre sono calcolate dalle vendite (salvo importo modificato a mano).
- * Una settimana non diventa mai "pagata" da sola: serve la registrazione del pagamento.
+ * Registro stipendi. Una settimana risulta pagata solo dopo la registrazione di un pagamento;
+ * le settimane concluse con un residuo da pagare sono "arretrati".
  */
 export async function payrollOverview(opts: { userId?: number; includeInactive?: boolean } = {}): Promise<PayrollUser[]> {
   const s = await getSettings();
-  const types: ("STALLA" | "GOVERNO")[] = [];
-  if (s.salaryIncludeStable) types.push("STALLA");
-  if (s.salaryIncludeGov) types.push("GOVERNO");
-
-  const users = await prisma.user.findMany({
-    where: { ...(opts.userId ? { id: opts.userId } : {}) },
-    orderBy: { displayName: "asc" },
-  });
+  const users = await prisma.user.findMany({ where: opts.userId ? { id: opts.userId } : {}, orderBy: { displayName: "asc" } });
   const ids = users.map((u) => u.id);
-  const [sales, entries] = await Promise.all([
-    prisma.sale.findMany({
-      where: { voided: false, sellerId: { in: ids }, type: { in: types } },
-      select: { sellerId: true, soldAt: true, finalPrice: true },
-    }),
+  const [totals, entries] = await Promise.all([
+    weeklyTotals(ids),
     prisma.payrollEntry.findMany({ where: { userId: { in: ids } }, include: { paidBy: { select: { displayName: true } } } }),
   ]);
-
-  const now = new Date();
-  const currentWeek = weekStartOf(now, TZ);
+  const currentWeek = weekStartOf(new Date(), TZ);
   const currentKey = isoWeekKey(currentWeek, TZ);
   const out: PayrollUser[] = [];
 
   for (const u of users) {
-    const mySales = sales.filter((x) => x.sellerId === u.id);
     const myEntries = entries.filter((e) => e.userId === u.id);
-    if (!u.active && !opts.includeInactive && !mySales.length && !myEntries.length) continue;
-    if (u.role === "ADMIN" && !mySales.length && !myEntries.length) continue;
-    const percent = u.salaryPercent != null ? Number(u.salaryPercent) : s.salaryPercent;
-
-    const byWeek = new Map<string, { count: number; total: number }>();
+    const myTotals = [...totals.entries()].filter(([k]) => k.startsWith(u.id + "|"));
+    if (!opts.userId && !u.active && !opts.includeInactive && !myTotals.length && !myEntries.length) continue;
+    if (!opts.userId && u.role === "ADMIN" && !myTotals.length && !myEntries.length) continue;
+    const pct = userPercents(u, s);
     let first = weekStartOf(u.createdAt, TZ);
-    for (const sale of mySales) {
-      const w = weekStartOf(sale.soldAt, TZ);
-      if (w < first) first = w;
-      const k = isoWeekKey(w, TZ);
-      const b = byWeek.get(k) ?? { count: 0, total: 0 };
-      b.count++;
-      b.total += Number(sale.finalPrice);
-      byWeek.set(k, b);
-    }
-    const entryByKey = new Map<string, Entry>();
-    for (const e of myEntries) {
-      entryByKey.set(isoWeekKey(e.weekStart, TZ), e);
-      if (e.weekStart < first) first = e.weekStart;
-    }
-
+    for (const [, t] of myTotals) if (t.weekStart < first) first = t.weekStart;
+    for (const e of myEntries) if (e.weekStart < first) first = e.weekStart;
+    const entryByKey = new Map(myEntries.map((e) => [isoWeekKey(e.weekStart, TZ), e]));
     const weeks: PayrollWeek[] = [];
     let w = currentWeek;
     let guard = 0;
     while (w >= first && guard++ < 520) {
       const key = isoWeekKey(w, TZ);
-      weeks.push(buildWeek(key, w, key === currentKey, byWeek.get(key) ?? { count: 0, total: 0 }, percent, entryByKey.get(key)));
+      const t = totals.get(`${u.id}|${key}`) ?? { stable: 0, gov: 0, items: 0, count: 0 };
+      weeks.push(buildWeek(key, w, key === currentKey, t, pct, entryByKey.get(key)));
       w = addWeeks(w, -1, TZ);
     }
-    const paid = weeks.filter((x) => x.status === "PAGATO");
-    const lastPaid = paid.reduce<PayrollWeek | null>((m, x) => (!m || (x.paidAt && m.paidAt && x.paidAt > m.paidAt) ? x : m), null);
-    const lastPaidWeek = paid.reduce<Date | null>((m, x) => (!m || x.weekStart > m ? x.weekStart : m), null);
-    const arrears = weeks.filter((x) => !x.inProgress && x.status === "DA_PAGARE" && x.amount > 0);
+    const arrears = weeks.filter((x) => !x.inProgress && x.residual > 0).reverse();
+    const lastPaidAt = weeks.reduce<Date | null>((m, x) => (x.paidAt && (!m || x.paidAt > m) ? x.paidAt : m), null);
     out.push({
-      userId: u.id,
-      name: u.displayName,
-      role: u.role,
-      active: u.active,
-      percent,
-      customPercent: u.salaryPercent != null,
-      weeks,
-      lastPaidAt: lastPaid?.paidAt ?? null,
-      lastPaidWeek,
-      arrears,
-      due: round2(arrears.reduce((t, x) => t + x.amount, 0)),
+      userId: u.id, name: u.displayName, role: u.role, active: u.active, percents: pct, weeks, lastPaidAt, arrears,
+      due: round2(arrears.reduce((t, x) => t + x.residual, 0)),
       current: weeks.find((x) => x.inProgress) ?? null,
-      paidTotal: round2(paid.reduce((t, x) => t + x.amount, 0)),
+      paidTotal: round2(weeks.reduce((t, x) => t + x.paid, 0)),
     });
   }
   return out;
 }
 
-/** Dati live di una settimana per un dipendente (usati quando si registra il pagamento). */
-export async function liveWeek(userId: number, weekStart: Date) {
-  const s = await getSettings();
-  const types: ("STALLA" | "GOVERNO")[] = [];
-  if (s.salaryIncludeStable) types.push("STALLA");
-  if (s.salaryIncludeGov) types.push("GOVERNO");
-  const agg = await prisma.sale.aggregate({
-    where: { voided: false, sellerId: userId, type: { in: types }, soldAt: { gte: weekStart, lt: addWeeks(weekStart, 1, TZ) } },
-    _count: true,
-    _sum: { finalPrice: true },
-  });
-  const percent = await userSalaryPercent(userId, s);
-  const total = Number(agg._sum.finalPrice ?? 0);
-  return { count: agg._count, total: round2(total), percent, computed: round2((total * percent) / 100) };
+/** Stima dello stipendio della settimana in corso per un utente (dashboard). */
+export async function currentWeekEstimate(userId: number) {
+  const [ov] = await payrollOverview({ userId });
+  return ov?.current ?? null;
 }

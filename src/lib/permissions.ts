@@ -12,6 +12,8 @@ export const PERMISSIONS = {
   "horses.view": ["ADMIN", "DIRETTORE", "GESTORE", "DIPENDENTE"],
   "horses.capture": ["ADMIN", "DIRETTORE", "GESTORE", "DIPENDENTE"],
   "horses.sell": ["ADMIN", "DIRETTORE", "GESTORE", "DIPENDENTE"],
+  /** Vendere/trasferire/gestire anche i cavalli in carico ad altri stallieri */
+  "horses.manageAll": ["ADMIN", "DIRETTORE"],
   /** Modifica dati operativi (note, condizione, targa, uscita dalla stalla) */
   "horses.edit": ["ADMIN", "DIRETTORE", "GESTORE"],
   /** Correzione età, razza/manto, catturatore */
@@ -25,11 +27,16 @@ export const PERMISSIONS = {
   "map.manage": ["ADMIN", "DIRETTORE", "GESTORE"],
   "reservations.edit": ["ADMIN", "DIRETTORE", "GESTORE", "DIPENDENTE"],
   "reservations.delete": ["ADMIN", "DIRETTORE"],
+  "shop.view": ["ADMIN", "DIRETTORE", "GESTORE", "DIPENDENTE"],
+  "shop.sell": ["ADMIN", "DIRETTORE", "GESTORE", "DIPENDENTE"],
+  /** Modifica listino oggetti, materie prime, fornitori; gestione proposte e rimborsi */
+  "shop.manage": ["ADMIN", "DIRETTORE", "GESTORE"],
   "employees.list": ["ADMIN", "DIRETTORE", "GESTORE"],
   "employees.stats": ["ADMIN", "DIRETTORE"],
   "payroll.manage": ["ADMIN", "DIRETTORE"],
   "audit.view": ["ADMIN", "DIRETTORE"],
   "users.manage": ["ADMIN"],
+  "users.delete": ["ADMIN"],
   "settings.manage": ["ADMIN"],
   "data.import": ["ADMIN"],
   "data.export": ["ADMIN", "DIRETTORE"],

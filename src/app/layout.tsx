@@ -9,25 +9,30 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#2e1c10",
   width: "device-width",
   initialScale: 1,
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#0b0a09" },
+    { media: "(prefers-color-scheme: light)", color: "#f4f0e8" },
+  ],
 };
+
+// Applica il tema prima del primo disegno (niente lampeggio)
+const themeScript = `(function(){try{var t=localStorage.getItem('tema');var d=t?t==='scuro':window.matchMedia('(prefers-color-scheme: dark)').matches;if(d)document.documentElement.classList.add('dark');}catch(e){}})();`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="it">
+    <html lang="it" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="min-h-dvh">
         {children}
         <Toaster
           position="top-center"
-          toastOptions={{
-            classNames: {
-              toast: "!bg-paper !text-ink !border !border-[#b89a66] !rounded-[3px] !font-serif !text-[15px]",
-              error: "!border-blood !text-blood",
-              success: "!border-sage",
-            },
-          }}
+          richColors
+          closeButton
+          toastOptions={{ classNames: { toast: "!font-sans !text-[14.5px] !rounded-lg" } }}
         />
       </body>
     </html>

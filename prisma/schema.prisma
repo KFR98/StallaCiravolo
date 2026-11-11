@@ -27,8 +27,10 @@ model User {
   passwordHash  String
   role          Role      @default(DIPENDENTE)
   active        Boolean   @default(true)
-  /// Percentuale stipendio personalizzata (null = usa quella globale)
-  salaryPercent Decimal?
+  /// Percentuali stipendio personali (null = usa quelle globali)
+  pctStable     Decimal?
+  pctGov        Decimal?
+  pctItems      Decimal?
   notes         String?
   lastLoginAt   DateTime?
   createdAt     DateTime  @default(now())
@@ -49,6 +51,16 @@ model User {
   paymentsRecorded  Payment[]        @relation("PaymentRecordedBy")
   priceChanges      PriceHistory[]
   auditLogs         AuditLog[]
+  ownedHorses       Horse[]          @relation("HorseOwner")
+  transfersFrom     HorseTransfer[]  @relation("TransferFrom")
+  transfersTo       HorseTransfer[]  @relation("TransferTo")
+  transfersMade     HorseTransfer[]  @relation("TransferBy")
+  itemSales         ItemSale[]       @relation("ItemSaleSeller")
+  itemSalesVoided   ItemSale[]       @relation("ItemSaleVoidedBy")
+  shopNotes         ShopNote[]       @relation("ShopNoteBy")
+  shopNotesHandled  ShopNote[]       @relation("ShopNoteHandledBy")
+  reimbursements    Reimbursement[]  @relation("ReimbUser")
+  reimbHandled      Reimbursement[]  @relation("ReimbHandledBy")
 }
 
 model Session {
@@ -184,19 +196,28 @@ model Horse {
   breed     Breed       @relation(fields: [breedId], references: [id], onDelete: Restrict)
   coatId    Int
   coat      Coat        @relation(fields: [coatId], references: [id], onDelete: Restrict)
-  sex       Sex
-  plate     String
+  /// Facoltativi per le vendite immediate al blip del Governo
+  sex       Sex?
+  plate     String?
   status    HorseStatus
   /// Condizione del cavallo (es. Sano, Ferito...)
   condition String?
   notes     String?
 
   /// Età maturata fino a ageCheckpointAt (anni, con decimali)
-  ageBase         Decimal
+  ageBase         Decimal?
   /// Da questo istante l'età continua ad avanzare automaticamente
   ageCheckpointAt DateTime
   /// Età dichiarata alla cattura (storico, non cambia)
-  initialAge      Decimal
+  initialAge      Decimal?
+
+  /// Stalliere che ha in carico il cavallo (l'unico che può venderlo). Cambia con i trasferimenti.
+  ownerId Int
+  owner   User @relation("HorseOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+
+  /// Gravidanza: data dell'accoppiamento e data prevista per il parto (modificabile)
+  pregnantSince  DateTime?
+  pregnancyDueAt DateTime?
 
   capturedById Int
   capturedBy   User     @relation("HorseCapturedBy", fields: [capturedById], references: [id], onDelete: Restrict)
@@ -213,12 +234,31 @@ model Horse {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  sales Sale[]
+  sales     Sale[]
+  transfers HorseTransfer[]
 
   @@index([status])
+  @@index([ownerId])
   @@index([capturedById])
   @@index([capturedAt])
   @@index([plate])
+}
+
+/// Passaggio gratuito di un cavallo da uno stalliere a un altro
+model HorseTransfer {
+  id         Int      @id @default(autoincrement())
+  horseId    Int
+  horse      Horse    @relation(fields: [horseId], references: [id], onDelete: Cascade)
+  fromUserId Int
+  fromUser   User     @relation("TransferFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUserId   Int
+  toUser     User     @relation("TransferTo", fields: [toUserId], references: [id], onDelete: Cascade)
+  byUserId   Int
+  byUser     User     @relation("TransferBy", fields: [byUserId], references: [id], onDelete: Cascade)
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  @@index([horseId])
 }
 
 // ───────────────────────────── VENDITE ─────────────────────────────
@@ -243,9 +283,9 @@ model Sale {
   // Fotografia anagrafica
   breedName String
   coatName  String
-  sex       Sex
-  plate     String
-  ageAtSale Decimal
+  sex       Sex?
+  plate     String?
+  ageAtSale Decimal?
 
   // Fotografia economica
   /// Fascia di prezzo applicata (es. "5-10", "11-16", "Libero", "Governo")
@@ -341,6 +381,7 @@ model Reservation {
 
 enum PayrollStatus {
   DA_PAGARE
+  PARZIALE
   PAGATO
 }
 
@@ -350,18 +391,22 @@ enum PayrollStatus {
 model PayrollEntry {
   id             Int           @id @default(autoincrement())
   userId         Int
-  user           User          @relation("PayrollUser", fields: [userId], references: [id], onDelete: Restrict)
+  user           User          @relation("PayrollUser", fields: [userId], references: [id], onDelete: Cascade)
   /// Lunedì 00:00 (fuso orario della stalla) della settimana
   weekStart      DateTime
   status         PayrollStatus @default(DA_PAGARE)
-  /// Fotografia al momento del pagamento
-  salesCount     Int?
-  salesTotal     Decimal?
-  percent        Decimal?
+  /// Fotografia dei totali al primo pagamento
+  stableTotal    Decimal?
+  govTotal       Decimal?
+  itemsTotal     Decimal?
+  pctStable      Decimal?
+  pctGov         Decimal?
+  pctItems       Decimal?
   computedAmount Decimal?
-  /// Importo modificato manualmente (sostituisce il calcolo)
+  /// Importo dovuto modificato manualmente (sostituisce il calcolo)
   amountOverride Decimal?
-  paidAmount     Decimal?
+  /// Totale effettivamente pagato (somma dei pagamenti, può superare il dovuto come incentivo)
+  paidAmount     Decimal       @default(0)
   paidAt         DateTime?
   paidById       Int?
   paidBy         User?         @relation("PayrollPaidBy", fields: [paidById], references: [id], onDelete: SetNull)
@@ -383,10 +428,13 @@ enum PaymentAction {
 model Payment {
   id             Int           @id @default(autoincrement())
   payrollEntryId Int
-  payrollEntry   PayrollEntry  @relation(fields: [payrollEntryId], references: [id], onDelete: Restrict)
+  payrollEntry   PayrollEntry  @relation(fields: [payrollEntryId], references: [id], onDelete: Cascade)
   userId         Int
-  user           User          @relation("PaymentUser", fields: [userId], references: [id], onDelete: Restrict)
+  user           User          @relation("PaymentUser", fields: [userId], references: [id], onDelete: Cascade)
   weekStart      DateTime
+  /// Quanto spettava al momento del pagamento
+  dueAmount      Decimal       @default(0)
+  /// Quanto è stato pagato con questa operazione
   amount         Decimal
   action         PaymentAction
   recordedById   Int?
@@ -395,6 +443,141 @@ model Payment {
   createdAt      DateTime      @default(now())
 
   @@index([userId, createdAt])
+}
+
+// ───────────────────────────── BOTTEGA (oggetti, materie prime, fornitori) ─────────────────────────────
+
+enum ShopItemKind {
+  /// Oggetto venduto dalla stalla
+  VENDITA
+  /// Materia prima / oggetto acquistato dalla stalla
+  MATERIA_PRIMA
+}
+
+model ShopItem {
+  id        Int          @id @default(autoincrement())
+  kind      ShopItemKind
+  name      String
+  /// Gruppo (es. Cavalli, Carri, Stalla)
+  group     String?
+  price     Decimal?
+  /// Valore tra parentesi nel file o note sul prezzo (es. "5 Fenix")
+  priceNote String?
+  notes     String?
+  sortOrder Int          @default(0)
+  archived  Boolean      @default(false)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  saleLines ItemSaleLine[]
+}
+
+model Supplier {
+  id          Int      @id @default(autoincrement())
+  name        String
+  activity    String?
+  goods       String?
+  missiva     String?
+  /// Contrassegnato con * nel file originale
+  starred     Boolean  @default(false)
+  notes       String?
+  archived    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  reimbursements Reimbursement[]
+}
+
+enum ShopNoteType {
+  NUOVO_FORNITORE
+  MODIFICA_PROPOSTA
+  NOTA
+}
+
+enum ShopNoteStatus {
+  APERTA
+  ACCOLTA
+  RESPINTA
+}
+
+/// Proposte e note degli utenti sulla bottega (gestite da admin/direttore/gestore)
+model ShopNote {
+  id          Int            @id @default(autoincrement())
+  type        ShopNoteType
+  text        String
+  status      ShopNoteStatus @default(APERTA)
+  response    String?
+  createdById Int
+  createdBy   User           @relation("ShopNoteBy", fields: [createdById], references: [id], onDelete: Cascade)
+  handledById Int?
+  handledBy   User?          @relation("ShopNoteHandledBy", fields: [handledById], references: [id], onDelete: SetNull)
+  handledAt   DateTime?
+  createdAt   DateTime       @default(now())
+}
+
+enum ReimbursementStatus {
+  RICHIESTO
+  APPROVATO
+  PAGATO
+  RESPINTO
+}
+
+/// Rimborso dovuto a un utente per merce acquistata di tasca propria
+model Reimbursement {
+  id           Int                 @id @default(autoincrement())
+  userId       Int
+  user         User                @relation("ReimbUser", fields: [userId], references: [id], onDelete: Cascade)
+  supplierId   Int?
+  supplier     Supplier?           @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  supplierName String?
+  description  String
+  amount       Decimal
+  status       ReimbursementStatus @default(RICHIESTO)
+  response     String?
+  handledById  Int?
+  handledBy    User?               @relation("ReimbHandledBy", fields: [handledById], references: [id], onDelete: SetNull)
+  handledAt    DateTime?
+  paidAt       DateTime?
+  createdAt    DateTime            @default(now())
+
+  @@index([userId])
+  @@index([status])
+}
+
+/// Vendita di oggetti della bottega (fotografia di nomi e prezzi)
+model ItemSale {
+  id         Int       @id @default(autoincrement())
+  sellerId   Int
+  seller     User      @relation("ItemSaleSeller", fields: [sellerId], references: [id], onDelete: Cascade)
+  sellerName String
+  buyerName  String?
+  total      Decimal
+  notes      String?
+  soldAt     DateTime  @default(now())
+  requestId  String?   @unique
+  voided     Boolean   @default(false)
+  voidedAt   DateTime?
+  voidedById Int?
+  voidedBy   User?     @relation("ItemSaleVoidedBy", fields: [voidedById], references: [id], onDelete: SetNull)
+  voidReason String?
+  createdAt  DateTime  @default(now())
+
+  lines ItemSaleLine[]
+
+  @@index([soldAt])
+  @@index([sellerId, soldAt])
+}
+
+model ItemSaleLine {
+  id         Int       @id @default(autoincrement())
+  saleId     Int
+  sale       ItemSale  @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  itemId     Int?
+  item       ShopItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  itemName   String
+  quantity   Int
+  unitPrice  Decimal
+  lineTotal  Decimal
 }
 
 // ───────────────────────────── IMPOSTAZIONI E AUDIT ─────────────────────────────

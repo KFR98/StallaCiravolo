@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { imageUrl } from "@/lib/catalog";
-import { PageHeader, Panel } from "@/components/ui";
+import { PageHeader, Card } from "@/components/ui";
 import { CoatForm } from "./CoatForm";
 
 export const metadata = { title: "Modifica manto" };
@@ -25,9 +25,9 @@ export default async function EditCoatPage({ params, searchParams }: { params: P
       <PageHeader
         title={isNew ? "Nuovo manto" : `${coat!.breed.name} – ${coat!.name}`}
         subtitle="Tutti i campi sono modificabili. Lascia vuoto un valore se non è noto: non verrà inventato."
-        actions={<Link href="/admin/catalogo" className="btn btn-ghost !bg-paper/80">← Catalogo</Link>}
+        actions={<Link href="/admin/catalogo" className="btn btn-ghost ">← Catalogo</Link>}
       />
-      <Panel>
+      <Card>
         <CoatForm
           breeds={breeds}
           stats={stats.map((s) => ({ id: s.id, label: s.label }))}
@@ -42,7 +42,7 @@ export default async function EditCoatPage({ params, searchParams }: { params: P
               : { breedId: Number(sp.razza) || undefined }
           }
         />
-      </Panel>
+      </Card>
     </>
   );
 }

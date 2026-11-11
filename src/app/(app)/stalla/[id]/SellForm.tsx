@@ -1,63 +1,54 @@
 "use client";
 
 import { useState } from "react";
+import { AlertTriangle } from "lucide-react";
 import { ActionForm } from "@/components/ActionForm";
 import { sellHorse } from "../actions";
-import { applyDiscount } from "@/lib/pricing";
+import { applyDiscount, type Bracket } from "@/lib/pricing";
 import { money } from "@/lib/format";
-import type { Bracket } from "@/lib/pricing";
 
 export function SellForm(props: {
-  horseId: number;
-  version: number;
-  bracket: Bracket;
-  bracketText: string;
-  listPrice: number | null;
-  canOverride: boolean;
-  maxDiscount: number;
-  minSaleAge: number;
+  horseId: number; version: number; bracket: Bracket; bracketText: string; listPrice: number | null;
+  canOverride: boolean; maxDiscount: number; minSaleAge: number; pregnant: boolean;
 }) {
   const needsManual = props.bracket === "LIBERO" || (props.listPrice == null && props.bracket !== "TROPPO_GIOVANE");
-  const [manual, setManual] = useState<string>("");
+  const [manual, setManual] = useState("");
   const [dType, setDType] = useState<"" | "PERCENTUALE" | "IMPORTO">("");
-  const [dValue, setDValue] = useState<string>("");
+  const [dValue, setDValue] = useState("");
 
   if (props.bracket === "TROPPO_GIOVANE") {
-    return (
-      <p className="italic text-blood">
-        Il cavallo non ha ancora {props.minSaleAge} anni: non può essere venduto. Puoi venderlo quando raggiunge l&apos;età minima.
-      </p>
-    );
+    return <p className="text-fg-2">Il cavallo non ha ancora {props.minSaleAge} anni: potrà essere venduto quando raggiunge l&apos;età minima.</p>;
   }
-
   const base = manual !== "" ? Number(manual.replace(",", ".")) : props.listPrice ?? 0;
   const final = applyDiscount(Number.isFinite(base) ? base : 0, dType || null, dValue ? Number(dValue.replace(",", ".")) : null);
 
   return (
     <ActionForm
       action={sellHorse}
-      confirm={() => `Confermi la vendita per ${money(final)}?`}
+      confirm={() => (props.pregnant ? `ATTENZIONE: la cavalla è INCINTA.\nÈ meglio non venderla prima del parto. Vuoi venderla comunque per ${money(final)}?` : `Confermi la vendita per ${money(final)}?`)}
       className="space-y-3"
     >
       <input type="hidden" name="horseId" value={props.horseId} />
       <input type="hidden" name="version" value={props.version} />
-      <div className="flex justify-between text-[15.5px]">
-        <span className="text-ink-soft">Fascia</span>
-        <span>{props.bracketText}</span>
-      </div>
-      <div className="flex justify-between text-[15.5px]">
-        <span className="text-ink-soft">Prezzo di listino</span>
-        <b>{props.listPrice != null ? money(props.listPrice) : "Libero"}</b>
+      {props.pregnant && (
+        <div className="flex gap-2 rounded-lg bg-warn-soft p-3 text-[14px] text-warn" role="alert">
+          <AlertTriangle size={18} className="mt-0.5 shrink-0" />
+          <span>La cavalla è incinta: è sconsigliato venderla prima del parto.</span>
+        </div>
+      )}
+      <div className="flex items-baseline justify-between">
+        <span className="text-fg-3">{props.bracketText}</span>
+        <b className="text-[17px]">{props.listPrice != null ? money(props.listPrice) : "Prezzo libero"}</b>
       </div>
       {(needsManual || props.canOverride) && (
         <label className="block">
-          <span className="label mb-1 block">{needsManual ? "Prezzo deciso dallo stalliere *" : "Prezzo diverso dal listino (facoltativo)"}</span>
+          <span className="field-label">{needsManual ? "Prezzo deciso dallo stalliere *" : "Prezzo diverso dal listino"}</span>
           <input name="manualPrice" type="number" step="0.01" min="0" className="input" required={needsManual} value={manual} onChange={(e) => setManual(e.target.value)} placeholder={props.listPrice != null ? String(props.listPrice) : ""} />
         </label>
       )}
-      <div className="grid grid-cols-[1fr_1fr] gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <label className="block">
-          <span className="label mb-1 block">Sconto</span>
+          <span className="field-label">Sconto</span>
           <select name="discountType" className="input" value={dType} onChange={(e) => setDType(e.target.value as typeof dType)}>
             <option value="">Nessuno</option>
             <option value="PERCENTUALE">Percentuale %</option>
@@ -65,24 +56,17 @@ export function SellForm(props: {
           </select>
         </label>
         <label className="block">
-          <span className="label mb-1 block">Valore</span>
+          <span className="field-label">Valore</span>
           <input name="discountValue" type="number" step="0.01" min="0" className="input" disabled={!dType} value={dValue} onChange={(e) => setDValue(e.target.value)} />
         </label>
       </div>
-      {!props.canOverride && props.maxDiscount < 100 && <p className="text-[13px] text-ink-soft italic">Sconto massimo: {props.maxDiscount}%</p>}
-      <label className="block">
-        <span className="label mb-1 block">Acquirente</span>
-        <input name="buyerName" className="input" maxLength={120} placeholder="Nome del cliente (facoltativo)" />
-      </label>
-      <label className="block">
-        <span className="label mb-1 block">Note</span>
-        <textarea name="notes" className="input min-h-[60px]" maxLength={2000} />
-      </label>
-      <div className="flex items-center justify-between rounded-[3px] border border-gold/60 bg-gold-bright/15 px-3 py-2">
-        <span className="title-fell tracking-[0.08em] uppercase">Prezzo scontato finale</span>
+      <label className="block"><span className="field-label">Acquirente</span><input name="buyerName" className="input" maxLength={120} placeholder="Facoltativo" /></label>
+      <label className="block"><span className="field-label">Note</span><input name="notes" className="input" maxLength={2000} placeholder="Facoltative" /></label>
+      <div className="flex items-center justify-between rounded-lg bg-surface-3 px-3 py-2.5">
+        <span className="font-semibold">Prezzo scontato finale</span>
         <span className="text-[22px] font-bold tabular-nums">{money(final)}</span>
       </div>
-      <button className="btn btn-danger w-full py-3 text-[17px]">Vendi cavallo</button>
+      <button className="btn btn-primary w-full">Vendi cavallo</button>
     </ActionForm>
   );
 }

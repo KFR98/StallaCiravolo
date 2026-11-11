@@ -139,16 +139,6 @@
             "field_type": "text"
         },
         {
-            "name": "Backup da conservare",
-            "description": "Numero di backup automatici giornalieri del database da tenere in data/backups.",
-            "env_variable": "BACKUP_KEEP",
-            "default_value": "14",
-            "user_viewable": true,
-            "user_editable": true,
-            "rules": "required|integer|min:1|max:365",
-            "field_type": "text"
-        },
-        {
             "name": "Domini consentiti (opzionale)",
             "description": "Solo se i moduli danno errore dietro al proxy: dominio pubblico, es. stalla.tuodominio.it",
             "env_variable": "ALLOWED_ORIGINS",

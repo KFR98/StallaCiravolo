@@ -83,7 +83,7 @@ function backup(label = "automatico") {
   p.on("error", (e) => console.error("[backup]", e.message));
 }
 if (process.env.BACKUP_AUTO !== "false") {
-  setTimeout(() => backup(), 60_000);
+  setTimeout(() => backup(), 15_000);
   setInterval(() => backup(), 24 * 3600_000);
 }
 

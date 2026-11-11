@@ -1,49 +1,80 @@
 "use server";
 
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { assertPermission } from "@/lib/auth";
 import { run, fd, UserError } from "@/lib/action";
 import { audit } from "@/lib/audit";
 import { TZ } from "@/lib/format";
 import { parseWeekKey, weekLabel } from "@/lib/weeks";
-import { liveWeek, payrollOverview } from "@/lib/payroll";
-import type { Prisma } from "@prisma/client";
+import { payrollOverview, type PayrollWeek } from "@/lib/payroll";
+import { round2 } from "@/lib/pricing";
 
-async function payOne(
-  tx: Prisma.TransactionClient,
-  actor: { id: number; username: string },
-  userId: number,
-  weekStart: Date,
-  amountOverride: number | null,
-  notes: string | null,
-) {
-  const live = await liveWeek(userId, weekStart);
-  const existing = await tx.payrollEntry.findUnique({ where: { userId_weekStart: { userId, weekStart } } });
-  if (existing?.status === "PAGATO") throw new UserError(`La settimana ${weekLabel(weekStart, TZ)} risulta già pagata.`);
-  const override = amountOverride ?? (existing?.amountOverride != null ? Number(existing.amountOverride) : null);
-  const amount = override ?? live.computed;
-  const data = {
-    status: "PAGATO" as const,
-    salesCount: live.count,
-    salesTotal: live.total,
-    percent: live.percent,
-    computedAmount: live.computed,
-    amountOverride: override,
-    paidAmount: amount,
-    paidAt: new Date(),
-    paidById: actor.id,
-    notes: notes ?? existing?.notes ?? null,
+type Actor = { id: number; username: string };
+
+/** Registra un pagamento su una settimana (fotografando i totali al primo pagamento). */
+async function payOnWeek(tx: Prisma.TransactionClient, actor: Actor, userId: number, w: PayrollWeek, amount: number, notes: string | null) {
+  const existing = await tx.payrollEntry.findUnique({ where: { userId_weekStart: { userId, weekStart: w.weekStart } } });
+  const paid = round2(Number(existing?.paidAmount ?? 0) + amount);
+  const snap = {
+    stableTotal: w.totals.stable, govTotal: w.totals.gov, itemsTotal: w.totals.items,
+    pctStable: w.percents.stable, pctGov: w.percents.gov, pctItems: w.percents.items, computedAmount: w.computed,
   };
+  const status = paid + 0.004 >= w.due ? "PAGATO" : "PARZIALE";
+  const data = { ...(Number(existing?.paidAmount ?? 0) > 0 ? {} : snap), paidAmount: paid, status, paidAt: new Date(), paidById: actor.id, ...(notes ? { notes } : {}) } as const;
   const entry = existing
     ? await tx.payrollEntry.update({ where: { id: existing.id }, data })
-    : await tx.payrollEntry.create({ data: { userId, weekStart, ...data } });
+    : await tx.payrollEntry.create({ data: { userId, weekStart: w.weekStart, ...snap, ...data } });
   await tx.payment.create({
-    data: { payrollEntryId: entry.id, userId, weekStart, amount, action: "PAGATO", recordedById: actor.id, notes },
+    data: { payrollEntryId: entry.id, userId, weekStart: w.weekStart, dueAmount: w.residual, amount, action: "PAGATO", recordedById: actor.id, notes },
   });
-  return { entry, amount };
+  return entry;
 }
 
+/**
+ * "Paga" dalla lista utenti: l'importo viene distribuito sulle settimane arretrate dalla più vecchia.
+ * Se è inferiore al dovuto resta un residuo; se è superiore la differenza è registrata come extra
+ * sull'ultima settimana.
+ */
+export async function payUser(form: FormData) {
+  return run(async () => {
+    const actor = await assertPermission("payroll.manage");
+    const f = fd(form);
+    const userId = f.int("userId") ?? 0;
+    const amount = z.number({ message: "Inserisci l'importo" }).positive("L'importo deve essere maggiore di zero").parse(f.num("amount"));
+    const notes = f.opt("notes");
+    const [ov] = await payrollOverview({ userId });
+    if (!ov) throw new UserError("Dipendente non trovato.");
+    let targets = ov.arrears;
+    if (!targets.length) {
+      const lastClosed = ov.weeks.find((w) => !w.inProgress) ?? ov.current;
+      if (!lastClosed) throw new UserError("Nessuna settimana a cui assegnare il pagamento.");
+      targets = [lastClosed];
+    }
+    const dueTotal = round2(targets.reduce((t, w) => t + w.residual, 0));
+    await prisma.$transaction(async (tx) => {
+      let left = round2(amount);
+      for (let i = 0; i < targets.length && left > 0; i++) {
+        const w = targets[i];
+        const isLast = i === targets.length - 1;
+        const part = isLast ? left : Math.min(left, w.residual);
+        if (part <= 0) continue;
+        await payOnWeek(tx, actor, userId, w, round2(part), notes);
+        left = round2(left - part);
+      }
+      await audit(actor, "STIPENDIO_PAGATO", "Stipendio", userId, `Pagati $${amount} a ${ov.name} (dovuti $${dueTotal})`, { settimane: targets.map((t) => t.key), dovuto: dueTotal, pagato: amount }, tx);
+    }, { timeout: 30_000 });
+    const diff = round2(amount - dueTotal);
+    const inCorso = targets.length === 1 && targets[0].inProgress ? " (settimana in corso)" : "";
+    return {
+      ok: true,
+      message: diff > 0.004 ? `Pagati $${amount} a ${ov.name}${inCorso}: +$${diff} in più del dovuto.` : diff < -0.004 ? `Pagati $${amount} a ${ov.name}${inCorso}: restano $${-diff} da saldare.` : `Pagati $${amount} a ${ov.name}${inCorso}: saldato.`,
+    };
+  });
+}
+
+/** Pagamento di una singola settimana (importo libero). */
 export async function payWeek(form: FormData) {
   return run(async () => {
     const actor = await assertPermission("payroll.manage");
@@ -51,42 +82,20 @@ export async function payWeek(form: FormData) {
     const userId = f.int("userId") ?? 0;
     const weekStart = parseWeekKey(f.str("week"), TZ);
     if (!weekStart) throw new UserError("Settimana non valida.");
-    const amount = f.num("amount");
-    if (amount != null && (Number.isNaN(amount) || amount < 0)) throw new UserError("Importo non valido.");
+    const amount = z.number({ message: "Inserisci l'importo" }).positive("L'importo deve essere maggiore di zero").parse(f.num("amount"));
     const notes = f.opt("notes");
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new UserError("Dipendente non trovato.");
-    const r = await prisma.$transaction(async (tx) => {
-      const r = await payOne(tx, actor, userId, weekStart, amount, notes);
-      await audit(actor, "STIPENDIO_PAGATO", "Stipendio", r.entry.id, `Pagato stipendio a ${user.displayName} (${weekLabel(weekStart, TZ)}): $${r.amount}`, undefined, tx);
-      return r;
+    const [ov] = await payrollOverview({ userId });
+    const w = ov?.weeks.find((x) => x.weekStart.getTime() === weekStart.getTime());
+    if (!ov || !w) throw new UserError("Settimana non trovata.");
+    await prisma.$transaction(async (tx) => {
+      const e = await payOnWeek(tx, actor, userId, w, round2(amount), notes);
+      await audit(actor, "STIPENDIO_PAGATO", "Stipendio", e.id, `Pagati $${amount} a ${ov.name} per ${weekLabel(weekStart, TZ)} (dovuti $${w.residual})`, undefined, tx);
     });
-    return { ok: true, message: `Stipendio registrato come PAGATO: $${r.amount}.` };
+    return { ok: true, message: `Registrato pagamento di $${amount}.` };
   });
 }
 
-/** Paga in un'unica operazione tutte le settimane arretrate di un dipendente. */
-export async function payArrears(form: FormData) {
-  return run(async () => {
-    const actor = await assertPermission("payroll.manage");
-    const f = fd(form);
-    const userId = f.int("userId") ?? 0;
-    const notes = f.opt("notes");
-    const [ov] = await payrollOverview({ userId, includeInactive: true });
-    if (!ov || ov.arrears.length === 0) throw new UserError("Nessuna settimana arretrata da pagare.");
-    const total = await prisma.$transaction(async (tx) => {
-      let total = 0;
-      for (const w of ov.arrears) {
-        const r = await payOne(tx, actor, userId, w.weekStart, null, notes);
-        total += r.amount;
-      }
-      await audit(actor, "STIPENDIO_PAGATO", "Stipendio", userId, `Pagate ${ov.arrears.length} settimane arretrate a ${ov.name}: $${total}`, { settimane: ov.arrears.map((w) => w.key) }, tx);
-      return total;
-    }, { timeout: 30_000 });
-    return { ok: true, message: `Pagate ${ov.arrears.length} settimane: totale $${Math.round(total * 100) / 100}.` };
-  });
-}
-
+/** Annulla i pagamenti di una settimana (restano nello storico come annullati). */
 export async function unpayWeek(form: FormData) {
   return run(async () => {
     const actor = await assertPermission("payroll.manage");
@@ -95,21 +104,21 @@ export async function unpayWeek(form: FormData) {
     const notes = z.string().trim().min(3, "Indica il motivo").max(500).parse(f.str("notes"));
     await prisma.$transaction(async (tx) => {
       const e = await tx.payrollEntry.findUnique({ where: { id: entryId }, include: { user: true } });
-      if (!e || e.status !== "PAGATO") throw new UserError("La settimana non risulta pagata.");
+      if (!e || Number(e.paidAmount) <= 0) throw new UserError("La settimana non risulta pagata.");
       await tx.payrollEntry.update({
         where: { id: entryId },
-        data: { status: "DA_PAGARE", paidAt: null, paidById: null, paidAmount: null, salesCount: null, salesTotal: null, computedAmount: null, percent: null },
+        data: { status: "DA_PAGARE", paidAmount: 0, paidAt: null, paidById: null, stableTotal: null, govTotal: null, itemsTotal: null, pctStable: null, pctGov: null, pctItems: null, computedAmount: null },
       });
       await tx.payment.create({
-        data: { payrollEntryId: e.id, userId: e.userId, weekStart: e.weekStart, amount: e.paidAmount ?? 0, action: "ANNULLATO", recordedById: actor.id, notes },
+        data: { payrollEntryId: e.id, userId: e.userId, weekStart: e.weekStart, dueAmount: 0, amount: e.paidAmount, action: "ANNULLATO", recordedById: actor.id, notes },
       });
-      await audit(actor, "STIPENDIO_NON_PAGATO", "Stipendio", e.id, `Stipendio di ${e.user.displayName} (${weekLabel(e.weekStart, TZ)}) segnato come NON PAGATO: ${notes}`, undefined, tx);
+      await audit(actor, "STIPENDIO_NON_PAGATO", "Stipendio", e.id, `Pagamento di ${e.user.displayName} (${weekLabel(e.weekStart, TZ)}) annullato: ${notes}`, undefined, tx);
     });
-    return { ok: true, message: "Settimana riportata a NON PAGATO (il pagamento resta nello storico)." };
+    return { ok: true, message: "Pagamento annullato (resta nello storico)." };
   });
 }
 
-/** Modifica importo/note di una settimana non ancora pagata (o solo note se pagata). */
+/** Modifica il dovuto e le note di una settimana. */
 export async function editWeek(form: FormData) {
   return run(async () => {
     const actor = await assertPermission("payroll.manage");
@@ -122,37 +131,36 @@ export async function editWeek(form: FormData) {
     const notes = f.opt("notes");
     await prisma.$transaction(async (tx) => {
       const existing = await tx.payrollEntry.findUnique({ where: { userId_weekStart: { userId, weekStart } } });
-      if (existing?.status === "PAGATO") {
-        await tx.payrollEntry.update({ where: { id: existing.id }, data: { notes } });
-      } else if (existing) {
-        await tx.payrollEntry.update({ where: { id: existing.id }, data: { amountOverride: amount, notes } });
-      } else {
-        await tx.payrollEntry.create({ data: { userId, weekStart, amountOverride: amount, notes } });
-      }
+      if (existing) await tx.payrollEntry.update({ where: { id: existing.id }, data: { amountOverride: amount, notes } });
+      else await tx.payrollEntry.create({ data: { userId, weekStart, amountOverride: amount, notes } });
       await audit(actor, "STIPENDIO_MODIFICATO", "Stipendio", existing?.id ?? null, `Modificata settimana ${weekLabel(weekStart, TZ)} (utente #${userId})`, {
-        prima: { importo: existing?.amountOverride != null ? Number(existing.amountOverride) : null, note: existing?.notes },
-        dopo: { importo: existing?.status === "PAGATO" ? "invariato (già pagato)" : amount, note: notes },
+        prima: { dovuto: existing?.amountOverride != null ? Number(existing.amountOverride) : "calcolato", note: existing?.notes },
+        dopo: { dovuto: amount ?? "calcolato", note: notes },
       }, tx);
     });
     return { ok: true, message: "Registrazione aggiornata." };
   });
 }
 
-/** Percentuale stipendio personalizzata (vuoto = usa quella globale). */
-export async function setUserPercent(form: FormData) {
+/** Percentuali personali (vuoto = globali). */
+export async function setUserPercents(form: FormData) {
   return run(async () => {
     const actor = await assertPermission("payroll.manage");
     const f = fd(form);
     const userId = f.int("userId") ?? 0;
-    const pct = f.num("percent");
-    if (pct != null && (Number.isNaN(pct) || pct < 0 || pct > 100)) throw new UserError("La percentuale deve essere tra 0 e 100.");
+    const read = (k: string) => {
+      const v = f.num(k);
+      if (v != null && (Number.isNaN(v) || v < 0 || v > 100)) throw new UserError("Le percentuali devono essere tra 0 e 100.");
+      return v;
+    };
+    const data = { pctStable: read("pctStable"), pctGov: read("pctGov"), pctItems: read("pctItems") };
     const before = await prisma.user.findUnique({ where: { id: userId } });
     if (!before) throw new UserError("Dipendente non trovato.");
-    await prisma.user.update({ where: { id: userId }, data: { salaryPercent: pct } });
-    await audit(actor, "PERCENTUALE_STIPENDIO", "Utente", userId, `Percentuale stipendio di ${before.displayName}: ${pct == null ? "globale" : pct + "%"}`, {
-      prima: before.salaryPercent == null ? null : Number(before.salaryPercent),
-      dopo: pct,
+    await prisma.user.update({ where: { id: userId }, data });
+    await audit(actor, "PERCENTUALI_STIPENDIO", "Utente", userId, `Percentuali stipendio di ${before.displayName} aggiornate`, {
+      prima: { stalla: before.pctStable?.toString() ?? "globale", blip: before.pctGov?.toString() ?? "globale", oggetti: before.pctItems?.toString() ?? "globale" },
+      dopo: { stalla: data.pctStable ?? "globale", blip: data.pctGov ?? "globale", oggetti: data.pctItems ?? "globale" },
     });
-    return { ok: true, message: "Percentuale aggiornata. Vale per le settimane non ancora pagate." };
+    return { ok: true, message: "Percentuali aggiornate. Valgono per le settimane non ancora pagate." };
   });
 }

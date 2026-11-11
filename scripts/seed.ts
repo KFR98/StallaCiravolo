@@ -29,6 +29,18 @@ async function main() {
     console.log(`Catalogo: ${r.breedsCreated} razze e ${r.coatsCreated} manti creati, ${r.coatsSkipped} già presenti.`);
   }
 
+  // Bottega (foglio PREZZI): solo se ancora vuota
+  const shopFile = path.join(__dirname, "..", "prisma", "seed-data", "bottega.json");
+  if (existsSync(shopFile) && (await prisma.shopItem.count()) === 0 && (await prisma.supplier.count()) === 0) {
+    const shop = JSON.parse(readFileSync(shopFile, "utf8")) as {
+      items: { kind: "VENDITA" | "MATERIA_PRIMA"; name: string; group: string | null; price: number | null; priceNote: string | null; sortOrder: number }[];
+      suppliers: { name: string; activity: string | null; goods: string | null; missiva: string | null; starred: boolean; notes: string | null }[];
+    };
+    await prisma.shopItem.createMany({ data: shop.items });
+    await prisma.supplier.createMany({ data: shop.suppliers });
+    console.log(`Bottega: ${shop.items.length} articoli e ${shop.suppliers.length} fornitori importati.`);
+  }
+
   // Admin iniziale
   const admins = await prisma.user.count({ where: { role: "ADMIN" } });
   if (admins === 0) {

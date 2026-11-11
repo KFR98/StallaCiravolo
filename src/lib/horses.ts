@@ -8,12 +8,13 @@ type HorseLike = {
   coat: { salePriceA: unknown; salePriceB: unknown; governmentPrice: unknown };
 };
 
-export function horseAge(h: HorseLike, s: Settings, now = new Date()) {
+export function horseAge(h: { ageBase: unknown; ageCheckpointAt: Date }, s: Settings, now = new Date()) {
+  if (h.ageBase == null) return null;
   return currentAge(Number(h.ageBase), h.ageCheckpointAt, s.daysPerYear, now);
 }
 
 export function horsePricing(h: HorseLike, s: Settings, now = new Date()) {
-  const age = horseAge(h, s, now);
+  const age = horseAge(h, s, now) ?? 0;
   const bracket: Bracket = priceBracket(age, s);
   const prices = {
     salePriceA: h.coat.salePriceA == null ? null : Number(h.coat.salePriceA),
@@ -23,13 +24,20 @@ export function horsePricing(h: HorseLike, s: Settings, now = new Date()) {
   return { age, bracket, listPrice: listPriceFor(bracket, prices), prices };
 }
 
+/** Stato della gravidanza: null, "INCINTA" (prima della data prevista) o "PARTO" (data raggiunta). */
+export function pregnancyState(h: { pregnantSince: Date | null; pregnancyDueAt: Date | null }, now = new Date()) {
+  if (!h.pregnantSince || !h.pregnancyDueAt) return null;
+  return h.pregnancyDueAt.getTime() <= now.getTime() ? ("PARTO" as const) : ("INCINTA" as const);
+}
+
 export const STATUS_LABEL = {
   IN_STALLA: "In stalla",
   VENDUTO: "Venduto",
-  VENDUTO_GOVERNO: "Venduto al Governo",
+  VENDUTO_GOVERNO: "Venduto al blip",
   RIMOSSO: "Uscito",
 } as const;
 
 export const SEX_LABEL = { MASCHIO: "Maschio", FEMMINA: "Femmina" } as const;
+export const sexLabel = (s: "MASCHIO" | "FEMMINA" | null | undefined) => (s ? SEX_LABEL[s] : "—");
 
 export const CONDITIONS = ["Sano", "Ferito", "Malato", "In addestramento", "Riservato"];

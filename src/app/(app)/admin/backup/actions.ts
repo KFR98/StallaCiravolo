@@ -3,12 +3,14 @@
 import { assertPermission } from "@/lib/auth";
 import { run, UserError } from "@/lib/action";
 import { audit } from "@/lib/audit";
-import { writeBackup, restoreBackup, type BackupFile } from "@/lib/backup";
+import { writeBackup, restoreBackup, pruneBackups, type BackupFile } from "@/lib/backup";
+import { getSettings } from "@/lib/settings";
 
 export async function makeBackup() {
   return run(async () => {
     const user = await assertPermission("data.backup");
     const r = await writeBackup("manuale");
+    await pruneBackups((await getSettings()).backupDays);
     await audit(user, "BACKUP", "Backup", null, `Creato backup ${r.file}`);
     return { ok: true, message: `Backup creato: ${r.file}` };
   });

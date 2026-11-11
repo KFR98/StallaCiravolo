@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ActionForm } from "@/components/ActionForm";
 import { Modal } from "@/components/Modal";
-import { createUser, updateUser, resetPassword } from "../actions";
+import { createUser, updateUser, resetPassword, deleteUserCompletely, userDataSummary } from "../actions";
 import { ROLE_LABELS, ROLES } from "@/lib/permissions";
 
 const genPw = () => {
@@ -13,12 +13,12 @@ const genPw = () => {
   return Array.from(a, (n) => c[n % c.length]).join("");
 };
 
-function PasswordField({ name = "password" }: { name?: string }) {
+function PasswordField() {
   const [v, setV] = useState("");
   return (
     <div className="flex gap-2">
-      <input name={name} className="input font-mono" value={v} onChange={(e) => setV(e.target.value)} required minLength={8} autoComplete="new-password" />
-      <button type="button" className="btn btn-ghost btn-sm whitespace-nowrap" onClick={() => setV(genPw())}>Genera</button>
+      <input name="password" className="input font-mono" value={v} onChange={(e) => setV(e.target.value)} required minLength={8} autoComplete="new-password" />
+      <button type="button" className="btn btn-secondary" onClick={() => setV(genPw())}>Genera</button>
     </div>
   );
 }
@@ -27,16 +27,15 @@ export function NewUserButton() {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button className="btn btn-gold" onClick={() => setOpen(true)}>+ Nuovo account</button>
+      <button className="btn btn-primary" onClick={() => setOpen(true)}>+ Nuovo account</button>
       <Modal open={open} onClose={() => setOpen(false)} title="Nuovo account">
         <ActionForm action={createUser} onSuccess={() => setOpen(false)} className="space-y-3">
-          <label className="block"><span className="label mb-1 block">Nome in gioco</span><input name="displayName" className="input" required /></label>
-          <label className="block"><span className="label mb-1 block">Nome utente (per l&apos;accesso)</span><input name="username" className="input" required pattern="[a-zA-Z0-9._-]+" minLength={3} /></label>
-          <label className="block"><span className="label mb-1 block">Ruolo</span>
+          <label className="block"><span className="field-label">Nome in gioco</span><input name="displayName" className="input" required /></label>
+          <label className="block"><span className="field-label">Nome utente (per l&apos;accesso)</span><input name="username" className="input" required pattern="[a-zA-Z0-9._\-]+" minLength={3} /></label>
+          <label className="block"><span className="field-label">Ruolo</span>
             <select name="role" className="input" defaultValue="DIPENDENTE">{ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}</select>
           </label>
-          <label className="block"><span className="label mb-1 block">Password iniziale (min. 8 caratteri)</span><PasswordField /></label>
-          <p className="text-[13px] text-ink-soft italic">Comunica la password al dipendente in modo privato.</p>
+          <label className="block"><span className="field-label">Password iniziale (min. 8 caratteri)</span><PasswordField /></label>
           <button className="btn btn-primary w-full">Crea account</button>
         </ActionForm>
       </Modal>
@@ -44,28 +43,62 @@ export function NewUserButton() {
   );
 }
 
-export function EditUserButton({ user }: { user: { id: number; username: string; displayName: string; role: string; active: boolean; notes: string | null } }) {
-  const [open, setOpen] = useState(false);
+type Summary = Awaited<ReturnType<typeof userDataSummary>>;
+
+export function EditUserButton({ user, isMe }: { user: { id: number; username: string; displayName: string; role: string; active: boolean; notes: string | null }; isMe: boolean }) {
+  const [open, setOpen] = useState<null | "edit" | "delete">(null);
+  const [summary, setSummary] = useState<Summary | null>(null);
+  const openDelete = async () => {
+    setOpen("delete");
+    setSummary(null);
+    setSummary(await userDataSummary(user.id));
+  };
   return (
     <>
-      <button className="btn btn-primary btn-sm" onClick={() => setOpen(true)}>Modifica</button>
-      <Modal open={open} onClose={() => setOpen(false)} title={`Account @${user.username}`}>
-        <ActionForm action={updateUser} onSuccess={() => setOpen(false)} className="space-y-3">
+      <button className="btn btn-secondary btn-sm" onClick={() => setOpen("edit")}>Modifica</button>
+      <Modal open={open === "edit"} onClose={() => setOpen(null)} title={`@${user.username}`}>
+        <ActionForm action={updateUser} onSuccess={() => setOpen(null)} className="space-y-3">
           <input type="hidden" name="id" value={user.id} />
-          <label className="block"><span className="label mb-1 block">Nome in gioco</span><input name="displayName" defaultValue={user.displayName} className="input" required /></label>
-          <label className="block"><span className="label mb-1 block">Ruolo</span>
+          <label className="block"><span className="field-label">Nome in gioco</span><input name="displayName" defaultValue={user.displayName} className="input" required /></label>
+          <label className="block"><span className="field-label">Ruolo</span>
             <select name="role" className="input" defaultValue={user.role}>{ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}</select>
           </label>
-          <label className="flex items-center gap-2"><input type="checkbox" name="active" defaultChecked={user.active} className="size-4 accent-[#5a3a22]" />Account attivo (se disattivato, l&apos;utente viene disconnesso subito)</label>
-          <label className="block"><span className="label mb-1 block">Note</span><textarea name="notes" defaultValue={user.notes ?? ""} className="input" /></label>
+          <label className="flex items-center gap-2 text-[14px]"><input type="checkbox" name="active" defaultChecked={user.active} />Account attivo (se lo disattivi viene disconnesso subito)</label>
+          <label className="block"><span className="field-label">Note</span><textarea name="notes" defaultValue={user.notes ?? ""} className="input" /></label>
           <button className="btn btn-primary w-full">Salva</button>
         </ActionForm>
-        <div className="mt-5 border-t border-dashed border-[#bfa476] pt-4">
-          <ActionForm action={resetPassword} confirm="Reimpostare la password? L'utente verrà disconnesso." onSuccess={() => setOpen(false)} className="space-y-2">
+        <ActionForm action={resetPassword} confirm="Reimpostare la password? L'utente verrà disconnesso." onSuccess={() => setOpen(null)} className="mt-5 space-y-2 border-t border-border pt-4">
+          <input type="hidden" name="id" value={user.id} />
+          <span className="field-label">Nuova password</span>
+          <PasswordField />
+          <button className="btn btn-secondary btn-sm">Reimposta password</button>
+        </ActionForm>
+        {!isMe && (
+          <div className="mt-5 border-t border-border pt-4">
+            <button className="btn btn-ghost btn-sm !text-accent-text" onClick={openDelete}>Elimina utente e tutti i suoi dati…</button>
+          </div>
+        )}
+      </Modal>
+      <Modal open={open === "delete"} onClose={() => setOpen(null)} title={`Elimina ${user.displayName}`}>
+        <div className="space-y-3">
+          <p className="rounded-lg bg-accent-soft p-3 text-[14px] text-accent-text">Operazione definitiva: vengono eliminati l&apos;account e <b>tutto</b> ciò che lo riguarda. Fai prima un backup se potrebbe servire.</p>
+          {summary ? (
+            <ul className="grid grid-cols-2 gap-x-4 gap-y-1 text-[14px]">
+              <li>Cavalli catturati/in carico: <b>{summary.horses}</b></li>
+              <li>Vendite cavalli: <b>{summary.sales}</b></li>
+              <li>Vendite di altri sui suoi cavalli: <b>{summary.salesOnHorses}</b></li>
+              <li>Vendite oggetti: <b>{summary.itemSales}</b></li>
+              <li>Spawn: <b>{summary.spawns}</b></li>
+              <li>Note in bacheca: <b>{summary.reservations}</b></li>
+              <li>Settimane stipendio: <b>{summary.payroll}</b></li>
+              <li>Rimborsi e proposte: <b>{summary.reimb + summary.notes}</b></li>
+              <li>Voci nel registro: <b>{summary.logs}</b></li>
+            </ul>
+          ) : <p className="text-fg-3">Conteggio dei dati…</p>}
+          <ActionForm action={deleteUserCompletely} onSuccess={() => setOpen(null)} className="space-y-3">
             <input type="hidden" name="id" value={user.id} />
-            <span className="label block">Reimposta password</span>
-            <PasswordField />
-            <button className="btn btn-danger btn-sm">Reimposta</button>
+            <label className="block"><span className="field-label">Per confermare scrivi <b className="font-mono">{user.username}</b></span><input name="conferma" className="input" required autoComplete="off" /></label>
+            <button className="btn btn-primary w-full">Elimina definitivamente</button>
           </ActionForm>
         </div>
       </Modal>

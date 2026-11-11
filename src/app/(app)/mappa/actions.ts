@@ -71,7 +71,9 @@ export async function updateSpawn(form: FormData) {
 
 export async function moveSpawn(id: number, x: number, y: number) {
   return run(async () => {
-    const { user } = await editable(id);
+    // Spostare i segnaposto è riservato a admin, direttore e gestore (modalità "Modifica")
+    const user = await assertPermission("map.manage");
+    if (!(await prisma.spawn.findUnique({ where: { id } }))) throw new UserError("Spawn non trovato.");
     const p = schema.pick({ x: true, y: true }).parse({ x, y });
     await prisma.spawn.update({ where: { id }, data: { ...p, updatedById: user.id } });
     await audit(user, "SPOSTA_SPAWN", "Spawn", id, `Spostato spawn #${id}`);

@@ -48,3 +48,46 @@ export async function getBreedOptions() {
 }
 
 export type BreedOption = Awaited<ReturnType<typeof getBreedOptions>>[number];
+
+/** Voto 0-10: media delle statistiche rapportate al massimo del catalogo. */
+export function coatScore(meta: StatMeta, values: { statId: number; value: unknown }[]): number | null {
+  const byId = new Map(values.map((v) => [v.statId, v.value == null ? null : Number(v.value)]));
+  const parts = meta.filter((m) => m.max > 0 && byId.get(m.id) != null).map((m) => (byId.get(m.id)! / m.max) * 10);
+  if (!parts.length) return null;
+  return Math.round((parts.reduce((a, b) => a + b, 0) / parts.length) * 10) / 10;
+}
+
+/** Dati del catalogo per le pagine client (ricerca e filtri in tempo reale). */
+export async function getCatalogRows() {
+  const meta = await getStatMeta();
+  const coats = await prisma.coat.findMany({
+    where: { archived: false, breed: { archived: false } },
+    include: { breed: true, stats: true },
+    orderBy: [{ breed: { sortOrder: "asc" } }, { breed: { name: "asc" } }, { sortOrder: "asc" }, { name: "asc" }],
+  });
+  const n = (v: unknown) => (v == null ? null : Number(v));
+  const rows = coats.map((c) => {
+    const byId = new Map(c.stats.map((s) => [s.statId, n(s.value)]));
+    return {
+      id: c.id,
+      breedId: c.breedId,
+      breed: c.breed.name,
+      breedCustom: c.breed.isCustom,
+      coat: c.name,
+      image: imageUrl(c.imagePath),
+      salePriceA: n(c.salePriceA),
+      salePriceB: n(c.salePriceB),
+      governmentPrice: n(c.governmentPrice),
+      govListPrice: n(c.govListPrice),
+      basePriceA: n(c.basePriceA),
+      basePriceB: n(c.basePriceB),
+      trainingPrice: n(c.trainingPrice),
+      stats: meta.map((m) => byId.get(m.id) ?? null),
+      score: coatScore(meta, c.stats),
+    };
+  });
+  return { meta: meta.map((m) => ({ label: m.label, max: m.max })), rows };
+}
+
+export type CatalogRow = Awaited<ReturnType<typeof getCatalogRows>>["rows"][number];
+export type CatalogMeta = { label: string; max: number }[];

@@ -58,26 +58,32 @@ export type EmployeeStats = {
   revenue: number;
   govRevenue: number;
   stableRevenue: number;
+  itemsRevenue: number;
+  itemSales: number;
 };
 
 /** Statistiche per dipendente in un intervallo (undefined = da sempre). */
 export async function employeeStats(from?: Date, to?: Date): Promise<EmployeeStats[]> {
   const range = from && to ? { gte: from, lt: to } : undefined;
-  const [users, caps, deps, sales] = await Promise.all([
+  const [users, caps, deps, sales, items] = await Promise.all([
     prisma.user.findMany({ orderBy: { displayName: "asc" } }),
     prisma.horse.groupBy({ by: ["capturedById"], where: range ? { capturedAt: range } : {}, _count: true }),
     prisma.horse.groupBy({ by: ["capturedById"], where: { depositedAt: range ?? { not: null } }, _count: true }),
     prisma.sale.groupBy({ by: ["sellerId", "type"], where: { voided: false, ...(range ? { soldAt: range } : {}) }, _count: true, _sum: { finalPrice: true } }),
+    prisma.itemSale.groupBy({ by: ["sellerId"], where: { voided: false, ...(range ? { soldAt: range } : {}) }, _count: true, _sum: { total: true } }),
   ]);
   return users.map((u) => {
     const s = sales.filter((x) => x.sellerId === u.id);
     const g = s.find((x) => x.type === "GOVERNO");
     const st = s.find((x) => x.type === "STALLA");
+    const it = items.find((x) => x.sellerId === u.id);
     return {
       userId: u.id,
       name: u.displayName,
       role: u.role,
       active: u.active,
+      itemsRevenue: Number(it?._sum.total ?? 0),
+      itemSales: it?._count ?? 0,
       captures: caps.find((c) => c.capturedById === u.id)?._count ?? 0,
       deposits: deps.find((c) => c.capturedById === u.id)?._count ?? 0,
       sales: (g?._count ?? 0) + (st?._count ?? 0),

@@ -1,151 +1,112 @@
 import Link from "next/link";
-import type { Prisma } from "@prisma/client";
+import { Suspense } from "react";
 import { requireUser } from "@/lib/auth";
+import { can } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
-import { imageUrl } from "@/lib/catalog";
-import { horsePricing, SEX_LABEL } from "@/lib/horses";
-import { bracketLabel } from "@/lib/pricing";
+import { imageUrl, getBreedOptions } from "@/lib/catalog";
+import { horsePricing, sexLabel } from "@/lib/horses";
 import { formatAge } from "@/lib/age";
 import { money, dateTime } from "@/lib/format";
-import { PageHeader, Panel, Empty, TableWrap } from "@/components/ui";
-import clsx from "clsx";
+import { PageHeader, Card, Empty, TableWrap, Tabs, HorseName } from "@/components/ui";
 import { StatusBadge } from "@/components/StatusBadge";
+import { StableBoard, type BoardHorse } from "./StableBoard";
+import { CaptureButton } from "./CaptureDialog";
 
-export const metadata = { title: "Cavalli in stalla" };
+export const metadata = { title: "Stalla" };
 
-type SP = { q?: string; razza?: string; sesso?: string; vista?: string; vendibili?: string };
-
-export default async function StablePage({ searchParams }: { searchParams: Promise<SP> }) {
-  await requireUser("horses.view");
+export default async function StablePage({ searchParams }: { searchParams: Promise<{ vista?: string; q?: string }> }) {
+  const user = await requireUser("horses.view");
   const sp = await searchParams;
   const s = await getSettings();
   const storico = sp.vista === "storico";
-  const where: Prisma.HorseWhereInput = storico ? {} : { status: "IN_STALLA" };
-  if (sp.razza) where.breedId = Number(sp.razza);
-  if (sp.sesso === "MASCHIO" || sp.sesso === "FEMMINA") where.sex = sp.sesso;
-  if (sp.q) {
-    where.OR = [
-      { plate: { contains: sp.q } },
-      { breed: { name: { contains: sp.q } } },
-      { coat: { name: { contains: sp.q } } },
-      { notes: { contains: sp.q } },
-    ];
-  }
-  const [horses, breeds] = await Promise.all([
-    prisma.horse.findMany({
-      where,
-      include: { breed: true, coat: true, capturedBy: { select: { displayName: true } } },
-      orderBy: { capturedAt: "desc" },
-      take: storico ? 300 : 500,
-    }),
-    prisma.breed.findMany({ where: { archived: false }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }], select: { id: true, name: true } }),
+  const [inStable, breeds] = await Promise.all([
+    prisma.horse.count({ where: { status: "IN_STALLA" } }),
+    can(user.role, "horses.capture") ? getBreedOptions() : Promise.resolve([]),
   ]);
-  const now = new Date();
-  let rows = horses.map((h) => ({ h, p: horsePricing(h, s, now) }));
-  if (sp.vendibili === "1") rows = rows.filter((r) => r.p.bracket !== "TROPPO_GIOVANE");
+  const tabs = (
+    <Tabs active={storico ? "storico" : "stalla"} items={[
+      { key: "stalla", href: "/stalla", label: "In stalla", count: inStable },
+      { key: "storico", href: "/stalla?vista=storico", label: "Storico catture" },
+    ]} />
+  );
+  const header = (
+    <PageHeader
+      title="Stalla"
+      subtitle={`L'età avanza di 1 anno ogni ${s.daysPerYear} giorni reali. Ogni cavallo può essere venduto solo dallo stalliere che lo ha in carico.`}
+      actions={can(user.role, "horses.capture") ? <Suspense><CaptureButton breeds={breeds} defaultAge={s.defaultCaptureAge} /></Suspense> : undefined}
+    />
+  );
 
+  if (storico) {
+    const q = sp.q?.trim();
+    const horses = await prisma.horse.findMany({
+      where: q ? { OR: [{ plate: { contains: q } }, { breed: { name: { contains: q } } }, { coat: { name: { contains: q } } }] } : {},
+      include: { breed: true, coat: true, capturedBy: { select: { displayName: true } }, owner: { select: { displayName: true } } },
+      orderBy: { capturedAt: "desc" },
+      take: 300,
+    });
+    return (
+      <>
+        {header}
+        {tabs}
+        <Card>
+          <form className="mb-4 flex gap-2">
+            <input type="hidden" name="vista" value="storico" />
+            <input name="q" defaultValue={q} className="input" placeholder="Cerca targa, razza o manto…" />
+            <button className="btn btn-secondary">Cerca</button>
+          </form>
+          {horses.length === 0 ? <Empty>Nessun cavallo registrato.</Empty> : (
+            <TableWrap>
+              <table className="tbl">
+                <thead><tr><th>Cavallo</th><th>Targa</th><th>Sesso</th><th>Registrato</th><th>Catturato da</th><th>In carico</th><th>Stato</th></tr></thead>
+                <tbody>
+                  {horses.map((h) => (
+                    <tr key={h.id}>
+                      <td><HorseName image={imageUrl(h.coat.imagePath)} breed={h.breed.name} coat={h.coat.name} href={`/stalla/${h.id}`} /></td>
+                      <td className="font-mono">{h.plate ?? "—"}</td>
+                      <td>{sexLabel(h.sex)}</td>
+                      <td className="whitespace-nowrap">{dateTime(h.capturedAt)}</td>
+                      <td>{h.capturedBy.displayName}</td>
+                      <td>{h.owner.displayName}</td>
+                      <td><StatusBadge status={h.status} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableWrap>
+          )}
+        </Card>
+      </>
+    );
+  }
+
+  const horses = await prisma.horse.findMany({
+    where: { status: "IN_STALLA" },
+    include: { breed: true, coat: true, capturedBy: { select: { displayName: true } }, owner: { select: { displayName: true } } },
+    orderBy: { capturedAt: "desc" },
+  });
+  const now = new Date();
+  const board: BoardHorse[] = horses.map((h) => {
+    const p = horsePricing(h, s, now);
+    return {
+      id: h.id, breed: h.breed.name, coat: h.coat.name, image: imageUrl(h.coat.imagePath), plate: h.plate ?? "—", sex: sexLabel(h.sex),
+      ageText: formatAge(p.age), sellable: p.bracket !== "TROPPO_GIOVANE",
+      price: p.listPrice != null ? money(p.listPrice) : p.bracket === "LIBERO" ? "Prezzo libero" : "—",
+      ownerId: h.ownerId, owner: h.owner.displayName, capturedBy: h.capturedBy.displayName,
+      dueAt: h.pregnancyDueAt?.toISOString() ?? null, condition: h.condition, mine: h.ownerId === user.id,
+    };
+  });
   return (
     <>
-      <PageHeader
-        title={storico ? "Storico catture" : "Cavalli in stalla"}
-        subtitle={storico ? "Tutti i cavalli registrati, compresi venduti e usciti." : `${rows.length} cavalli presenti. L'età avanza di 1 anno ogni ${s.daysPerYear} giorni reali.`}
-        actions={
-          <>
-            <Link href={storico ? "/stalla" : "/stalla?vista=storico"} className="btn btn-ghost !bg-paper/80">
-              {storico ? "Cavalli in stalla" : "Storico catture"}
-            </Link>
-            <Link href="/stalla/nuovo" className="btn btn-gold">+ Registra cattura</Link>
-          </>
-        }
-      />
-      <Panel className="mb-5">
-        <form className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[2fr_1.5fr_1fr_auto_auto]">
-          {storico && <input type="hidden" name="vista" value="storico" />}
-          <input name="q" defaultValue={sp.q} className="input" placeholder="Cerca targa, razza, manto, note…" />
-          <select name="razza" defaultValue={sp.razza ?? ""} className="input">
-            <option value="">Tutte le razze</option>
-            {breeds.map((b) => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
-          </select>
-          <select name="sesso" defaultValue={sp.sesso ?? ""} className="input">
-            <option value="">Entrambi i sessi</option>
-            <option value="MASCHIO">Maschi</option>
-            <option value="FEMMINA">Femmine</option>
-          </select>
-          {!storico && (
-            <label className="flex items-center gap-2 whitespace-nowrap">
-              <input type="checkbox" name="vendibili" value="1" defaultChecked={sp.vendibili === "1"} className="size-4 accent-[#5a3a22]" />
-              Solo vendibili
-            </label>
-          )}
-          <button className="btn btn-primary">Filtra</button>
-        </form>
-      </Panel>
-
-      {rows.length === 0 ? (
-        <Panel><Empty>Nessun cavallo trovato.</Empty></Panel>
-      ) : storico ? (
-        <Panel pad>
-          <TableWrap>
-            <table className="ledger">
-              <thead>
-                <tr><th>Data</th><th>Razza / Manto</th><th>Sesso</th><th>Targa</th><th>Catturato da</th><th>Età</th><th>Stato</th></tr>
-              </thead>
-              <tbody>
-                {rows.map(({ h, p }) => (
-                  <tr key={h.id}>
-                    <td className="whitespace-nowrap">{dateTime(h.capturedAt)}</td>
-                    <td><Link className="underline decoration-dotted" href={`/stalla/${h.id}`}>{h.breed.name}</Link> <span className="italic text-ink-soft">– {h.coat.name}</span></td>
-                    <td>{SEX_LABEL[h.sex]}</td>
-                    <td className="font-semibold">{h.plate}</td>
-                    <td>{h.capturedBy.displayName}</td>
-                    <td className="num">{h.status === "IN_STALLA" ? formatAge(p.age) : "—"}</td>
-                    <td><StatusBadge status={h.status} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </TableWrap>
-        </Panel>
+      {header}
+      {tabs}
+      {board.length === 0 ? (
+        <Card><Empty>La stalla è vuota. Registra la prima cattura.</Empty></Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {rows.map(({ h, p }) => (
-            <Link key={h.id} href={`/stalla/${h.id}`} className="panel group overflow-hidden rise transition hover:-translate-y-0.5">
-              <div className="flex">
-                <div className="w-[38%] shrink-0 bg-[#cdb180]/50">
-                  {h.coat.imagePath ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={imageUrl(h.coat.imagePath)!} alt="" className="h-full max-h-[150px] w-full object-cover" loading="lazy" />
-                  ) : (
-                    <div className="flex h-full min-h-[120px] items-center justify-center text-4xl text-ink-soft/40">♞</div>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1 p-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="title-fell truncate text-[16px] text-leather">{h.breed.name}</div>
-                      <div className="truncate italic">{h.coat.name}</div>
-                    </div>
-                    <span className="badge badge-ink shrink-0">{h.plate}</span>
-                  </div>
-                  <div className="mt-2 text-[14.5px] leading-snug">
-                    <div>{SEX_LABEL[h.sex]} · <b>{formatAge(p.age)}</b></div>
-                    <div className="text-ink-soft">Fascia: {bracketLabel(p.bracket, s)}</div>
-                  </div>
-                  <div className="mt-2 flex items-center justify-between">
-                    <span className={clsx("badge", p.bracket === "TROPPO_GIOVANE" ? "badge-red" : "badge-green")}>
-                      {p.bracket === "TROPPO_GIOVANE" ? "Non vendibile" : "Vendibile"}
-                    </span>
-                    <span className="font-semibold">{p.listPrice != null ? money(p.listPrice) : p.bracket === "LIBERO" ? "Prezzo libero" : "—"}</span>
-                  </div>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
+        <StableBoard horses={board} meId={user.id} />
       )}
+      <p className="mt-6 text-[13px] text-fg-3">Cerca un cavallo già venduto? <Link href="/stalla?vista=storico" className="underline">Apri lo storico catture</Link>.</p>
     </>
   );
 }
