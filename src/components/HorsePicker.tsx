@@ -97,8 +97,8 @@ export function HorsePicker({
     const onDoc = (e: MouseEvent) => {
       if (!boxRef.current?.contains(e.target as Node)) setOpen(false);
     };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
+    document.addEventListener("mousedown", onDoc, true); // fase di cattura: funziona anche dentro le finestre
+    return () => document.removeEventListener("mousedown", onDoc, true);
   }, []);
 
   const choose = (o: HorseOption | null) => {
@@ -162,7 +162,10 @@ export function HorsePicker({
                 e.preventDefault();
                 choose(results[active]);
               }
-            } else if (e.key === "Escape") {
+            } else if (e.key === "Escape" && open) {
+              // chiude solo l'elenco, non la finestra che lo contiene
+              e.preventDefault();
+              e.stopPropagation();
               setOpen(false);
             }
           }}

@@ -112,33 +112,54 @@ Puoi anche creare una **Schedule** nel pannello (es. ogni notte) con azione *Sen
 
 ## 3. Dominio dedicato (FQDN) e HTTPS
 
-Il gestionale ascolta sulla porta dell'allocazione (es. `IP_NODO:25570`). Per raggiungerlo su
-`https://stalla.tuodominio.it`, diverso dal dominio del pannello, metti un **reverse proxy** davanti.
+Il gestionale ascolta sulla porta dell'allocazione (es. `IP:25572`). Per aprirlo come
+`https://stalla.tuodominio.it`, senza porta e con il lucchetto, serve un **reverse proxy**: nginx riceve
+le richieste sulla 443 e le passa al container. Funziona anche se sulla stessa macchina e sulla stessa
+porta 443 c'è già il pannello Pterodactyl: nginx distingue i due siti dal **nome** di dominio.
 
-### Opzione A – Nginx sulla macchina del nodo (consigliata)
-1. DNS: record **A** `stalla.tuodominio.it` → IP del nodo.
-2. Copia `deploy/nginx/stalla.conf` in `/etc/nginx/sites-available/stalla.conf`, sostituisci
-   dominio, `IP_NODO` e `PORTA`, poi:
+> **Non usare il "Web Redirect" del provider DNS.** Il redirect manda il browser a `IP:porta`, quindi nella
+> barra degli indirizzi compare l'IP e il certificato non può funzionare. Serve un normale record **A**.
+
+### 3.1 DNS (esempio con Dynu, dominio gratuito)
+1. Pannello Dynu → **DDNS Services** → clicca il tuo hostname (es. `mionome.freeddns.org`).
+2. Elimina l'eventuale record *Web Redirect* creato per la stalla.
+3. **DNS Records** → *Add*: tipo **A**, nome **stalla**, indirizzo = **lo stesso IP** del pannello.
+   Risultato: `stalla.mionome.freeddns.org` punta alla tua macchina.
+   (In alternativa crea un secondo hostname DDNS gratuito, es. `stallaciravolo.freeddns.org`, con lo stesso IP.)
+4. Verifica dopo qualche minuto: `ping stalla.mionome.freeddns.org` deve rispondere con il tuo IP.
+
+### 3.2 Nginx sulla macchina del pannello
+1. Copia `deploy/nginx/stalla.conf` in `/etc/nginx/sites-available/stalla.conf`, poi sostituisci il dominio
+   e la porta (25572). Per `proxy_pass` usa l'IP dell'allocazione indicato nei commenti del file.
+2. Attiva il sito e ricarica nginx:
    ```bash
-   sudo ln -s /etc/nginx/sites-available/stalla.conf /etc/nginx/sites-enabled/
-   ```
-   ```bash
-   sudo certbot certonly --nginx -d stalla.tuodominio.it
+   sudo ln -s /etc/nginx/sites-available/stalla.conf /etc/nginx/sites-enabled/stalla.conf
    ```
    ```bash
    sudo nginx -t && sudo systemctl reload nginx
    ```
-   Se il pannello Pterodactyl usa già nginx sulla stessa macchina va benissimo: è solo un altro `server {}`.
-3. Nel server Pterodactyl imposta `Indirizzo pubblico = https://stalla.tuodominio.it` poi riavvia (i cookie diventano sicuri in automatico quando il sito è aperto in HTTPS).
-4. Facoltativo: con il firewall consenti la porta dell'allocazione solo da `127.0.0.1`/IP del proxy,
-   così il sito è raggiungibile solo tramite il dominio in HTTPS.
+   Ora `http://stalla.mionome.freeddns.org` (senza porta) apre già il gestionale.
+3. Certificato con certbot (la porta **80** deve essere raggiungibile da internet):
+   ```bash
+   sudo certbot --nginx -d stalla.mionome.freeddns.org
+   ```
+   Certbot aggiunge da solo la parte HTTPS e il reindirizzamento da http a https. Il certificato del
+   pannello non viene toccato. Il rinnovo è automatico (lo stesso timer di certbot che usi già).
+4. Nel server della stalla su Pterodactyl → *Startup* → `Indirizzo pubblico` =
+   `https://stalla.mionome.freeddns.org`, poi riavvia. I cookie diventano sicuri da soli in HTTPS.
 
-### Opzione B – Cloudflare Tunnel
-Crea un tunnel che punta a `http://IP_NODO:PORTA` con hostname `stalla.tuodominio.it`.
-Niente porte da aprire; imposta comunque `APP_URL`.
+### 3.3 Facoltativo: chiudere l'accesso diretto `IP:25572`
+Docker apre le porte scavalcando `ufw`, quindi il firewall da solo non basta. Il modo pulito:
+nel pannello admin → *Nodes* → il nodo → *Allocation* crea l'allocazione `127.0.0.1` porta `25572`,
+assegnala al server della stalla al posto di quella pubblica e usa `proxy_pass http://127.0.0.1:25572`.
+Da quel momento il gestionale è raggiungibile solo dal dominio in HTTPS.
+
+### Alternativa – Cloudflare Tunnel
+Se un giorno sposti il dominio su Cloudflare: crea un tunnel verso `http://127.0.0.1:25572` con hostname
+`stalla.tuodominio.it`. Niente porte da aprire e certificato incluso.
 
 > Se dietro al proxy i moduli rispondono "Errore imprevisto" o non salvano, imposta la
-> variabile `Domini consentiti` = `stalla.tuodominio.it` (controllo anti-CSRF dei moduli).
+> variabile `Domini consentiti` = `stalla.mionome.freeddns.org` (controllo anti-CSRF dei moduli).
 
 ---
 
