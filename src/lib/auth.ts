@@ -31,9 +31,16 @@ export async function verifyPassword(hashStr: string, pw: string) {
   }
 }
 
+/**
+ * IP del client. Si usa X-Real-IP (nginx lo SOVRASCRIVE con l'IP vero) e, in mancanza,
+ * l'ULTIMO valore di X-Forwarded-For (quello aggiunto dal proxy): il primo valore lo può
+ * scrivere chiunque e servirebbe ad aggirare il limite ai tentativi di accesso.
+ */
 export async function clientIp() {
   const h = await headers();
-  return (h.get("x-forwarded-for")?.split(",")[0] || h.get("x-real-ip") || "").trim().slice(0, 64) || null;
+  const real = h.get("x-real-ip")?.trim();
+  const xff = h.get("x-forwarded-for")?.split(",").map((s) => s.trim()).filter(Boolean);
+  return (real || xff?.[xff.length - 1] || "").slice(0, 64) || null;
 }
 
 /**
@@ -69,6 +76,12 @@ export async function createSession(userId: number) {
     path: "/",
     expires: expiresAt,
   });
+}
+
+/** Chiude tutte le altre sessioni dell'utente (es. dopo il cambio password), tenendo quella corrente. */
+export async function revokeOtherSessions(userId: number) {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  await prisma.session.deleteMany({ where: { userId, ...(token ? { NOT: { id: sha256(token) } } : {}) } });
 }
 
 export async function destroySession() {

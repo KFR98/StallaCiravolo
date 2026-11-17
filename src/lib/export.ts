@@ -16,7 +16,9 @@ export async function toXlsx(sheet: string, cols: Col[], rows: Record<string, un
 export function toCsv(cols: Col[], rows: Record<string, unknown>[]) {
   const esc = (v: unknown) => {
     if (v == null) return "";
-    const s = v instanceof Date ? v.toISOString() : String(v);
+    let s = v instanceof Date ? v.toISOString() : String(v);
+    // Testi che iniziano con = + - @ verrebbero eseguiti come formule da Excel (CSV injection)
+    if (typeof v === "string" && /^[=+\-@\t\r]/.test(s)) s = "'" + s;
     return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   return "﻿" + [cols.map((c) => esc(c.header)).join(";"), ...rows.map((r) => cols.map((c) => esc(r[c.key])).join(";"))].join("\n");

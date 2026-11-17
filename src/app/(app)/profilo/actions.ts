@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { assertPermission, hashPassword, verifyPassword } from "@/lib/auth";
+import { assertPermission, hashPassword, verifyPassword, revokeOtherSessions } from "@/lib/auth";
 import { run, fd, UserError } from "@/lib/action";
 import { audit } from "@/lib/audit";
 
@@ -28,6 +28,8 @@ export async function updateMyAccount(form: FormData) {
       data.passwordHash = await hashPassword(newPw);
     }
     await prisma.user.update({ where: { id: me.id }, data });
+    // Password cambiata: si esce da tutti gli altri dispositivi (una sessione rubata smette di valere)
+    if (data.passwordHash) await revokeOtherSessions(me.id);
     await audit(me, "MODIFICA_PROFILO", "Utente", me.id, `Profilo aggiornato${data.username ? ` (nuovo nome utente: ${data.username})` : ""}${data.passwordHash ? " · password cambiata" : ""}`);
     return { ok: true, message: "Profilo aggiornato." };
   });

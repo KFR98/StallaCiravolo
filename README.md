@@ -146,12 +146,28 @@ porta 443 c'è già il pannello Pterodactyl: nginx distingue i due siti dal **no
    Certbot aggiunge da solo la parte HTTPS e il reindirizzamento da http a https. Il certificato del
    pannello non viene toccato. Il rinnovo è automatico (lo stesso timer di certbot che usi già).
 4. Nel server della stalla su Pterodactyl → *Startup* → `Indirizzo pubblico` =
-   `https://stalla.mionome.freeddns.org`, poi riavvia. I cookie diventano sicuri da soli in HTTPS.
+   `https://stalla.mionome.freeddns.org`, poi riavvia. Da quel momento il gestionale stesso rimanda a
+   questo indirizzo chi lo apre in http (anche da `http://IP:25572`) e invia l'header HSTS, così il
+   browser userà sempre https. I cookie diventano sicuri da soli in HTTPS.
+5. Verifica:
+   ```bash
+   curl -sI http://stalla.mionome.freeddns.org | head -3
+   ```
+   Deve rispondere `301` con `Location: https://...`. Se risponde `200`, nel blocco `listen 80` del file
+   `/etc/nginx/sites-available/stalla.conf` sostituisci tutto il contenuto di `location / { ... }` con
+   `return 301 https://$host$request_uri;` (lasciando `server_name`), poi `sudo nginx -t && sudo systemctl reload nginx`.
 
-### 3.3 Facoltativo: chiudere l'accesso diretto `IP:25572`
+### 3.3 Consigliato: chiudere l'accesso diretto `IP:25572`
+Con l'allocazione sull'IP pubblico il gestionale risponde anche su `http://IP:25572`, in chiaro e
+senza passare da nginx. Il punto 4 sopra rimanda gli utenti a https, ma la porta resta aperta.
 Docker apre le porte scavalcando `ufw`, quindi il firewall da solo non basta. Il modo pulito:
-nel pannello admin → *Nodes* → il nodo → *Allocation* crea l'allocazione `127.0.0.1` porta `25572`,
-assegnala al server della stalla al posto di quella pubblica e usa `proxy_pass http://127.0.0.1:25572`.
+1. Pannello admin → *Nodes* → il nodo → *Allocation*: crea l'allocazione IP `127.0.0.1`, porta `25572`.
+2. *Servers* → la stalla → *Build Configuration*: aggiungila, impostala come **principale** e rimuovi quella
+   sull'IP pubblico. Riavvia il server.
+3. In `/etc/nginx/sites-available/stalla.conf` metti `proxy_pass http://127.0.0.1:25572;` e ricarica nginx.
+4. Prova: `curl -sI http://127.0.0.1:25572 | head -1` dalla macchina risponde; `http://IP:25572` da fuori no.
+5. Se usi Oracle Cloud (o un altro provider con firewall esterno), puoi anche togliere la regola di ingresso
+   per la porta 25572 nella *Security List*.
 Da quel momento il gestionale è raggiungibile solo dal dominio in HTTPS.
 
 ### Alternativa – Cloudflare Tunnel
@@ -337,11 +353,17 @@ Tabelle principali: `User`, `Session`, `Breed`, `Coat`, `StatDefinition`, `CoatS
   controlla sul server sessione e permessi del ruolo. Un dipendente che apre `/stipendi` o `/admin` viene
   rimandato all'ufficio; esportazioni e backup rispondono 401/403.
 - Password con Argon2id, cookie di sessione `httpOnly`/`SameSite`, sessioni invalidate quando un account
-  viene disattivato, blocco dopo 5 tentativi di accesso errati in 5 minuti.
+  viene disattivato e (tranne quella in uso) quando si cambia la propria password.
+- Blocco dopo 5 tentativi errati per IP e utente (5 minuti) e dopo 20 per utente da qualsiasi IP
+  (15 minuti). L'IP è quello scritto da nginx: un `X-Forwarded-For` falsificato non aggira il limite.
+  Il messaggio d'errore e i tempi di risposta non rivelano se un nome utente esiste.
+- Con `Indirizzo pubblico` in https: reindirizzamento automatico a https e header HSTS.
+- Le esportazioni CSV neutralizzano i testi che Excel eseguirebbe come formule (`=`, `+`, `-`, `@`).
 - Protezione CSRF dei moduli (Next.js), header di sicurezza e Content-Security-Policy che blocca script e
   risorse esterne; il testo inserito dagli utenti (anche sulla mappa) viene sempre mostrato come testo.
 - Upload solo di immagini verificate dalla firma del file, nomi casuali, niente path traversal.
-- Consiglio: pubblica il sito solo in HTTPS (reverse proxy) e tieni aggiornato il codice con i riavvii.
+- Consiglio: pubblica il sito solo in HTTPS (reverse proxy), chiudi la porta diretta (sezione 3.3) e tieni
+  aggiornato il codice con i riavvii.
 
 ## 10. Test
 
