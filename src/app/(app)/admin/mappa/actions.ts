@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { assertPermission } from "@/lib/auth";
 import { run, UserError } from "@/lib/action";
 import { audit } from "@/lib/audit";
-import { startGeneration, mapJob, disableTiles, makePreview, sourceInfo, MAP_W, MAP_H } from "@/lib/map-tiles";
+import { startGeneration, mapJob, disableTiles, makePreview, sourceInfo, nativeZoomFor, MAP_W, MAP_H } from "@/lib/map-tiles";
 
 export async function generateMapTiles(cal: { x: number; y: number; s: number }, k: number) {
   return run(async () => {
@@ -14,7 +14,9 @@ export async function generateMapTiles(cal: { x: number; y: number; s: number },
       .object({ x: z.number().min(-MAP_W * 4).max(MAP_W * 4), y: z.number().min(-MAP_H * 4).max(MAP_H * 4), s: z.number().min(200).max(MAP_W * 8) })
       .parse(cal);
     const q = z.number().int().min(0).max(3).parse(k);
-    if (!(await sourceInfo())) throw new UserError("Carica prima un'immagine della mappa.");
+    const src = await sourceInfo();
+    if (!src) throw new UserError("Carica prima un'immagine della mappa.");
+    if (q > nativeZoomFor(src.width, c) || q < 1) throw new UserError("Qualità troppo alta per questa immagine: ingrandirla non aggiunge dettagli. Serve un'immagine più grande.");
     try {
       startGeneration(c, q);
     } catch (e) {

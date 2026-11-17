@@ -35,9 +35,9 @@ export async function POST(req: Request) {
     const meta = await sharp(tmp, { limitInputPixels: false }).metadata();
     const ext = meta.format ? EXT[meta.format] : undefined;
     if (!ext || !meta.width || !meta.height) throw new Error("formato");
-    if (meta.width < 2000) {
+    if (meta.width < 4000) {
       await rm(tmp, { force: true });
-      return Response.json({ error: `Immagine troppo piccola (${meta.width} px di larghezza): per migliorare la mappa servono almeno 4000 px.` }, { status: 400 });
+      return Response.json({ error: `Immagine troppo piccola (${meta.width} × ${meta.height} px): è la stessa definizione della mappa attuale. Per non sgranare serve un'immagine di almeno 4.000 px di larghezza (meglio 8.000–16.000).` }, { status: 400 });
     }
     for (const f of await readdir(MAP_DIR)) if (f.startsWith(SOURCE_BASENAME + ".")) await rm(path.join(MAP_DIR, f), { force: true });
     await rename(tmp, path.join(MAP_DIR, SOURCE_BASENAME + ext));
