@@ -21,6 +21,19 @@ async function main() {
     await prisma.setting.upsert({ where: { key }, create: { key, value: JSON.stringify(value) }, update: {} });
   }
 
+  // Correzioni di nomi nel catalogo già installato (prima del listino, così non si creano doppioni)
+  const RENAMES: [string, string, string][] = [["CRIOLLO", "Bay Roan Overo", "Blue Roan Overo"]];
+  for (const [breedName, from, to] of RENAMES) {
+    const breed = await prisma.breed.findFirst({ where: { name: breedName } });
+    if (!breed) continue;
+    const old = await prisma.coat.findUnique({ where: { breedId_name: { breedId: breed.id, name: from } } });
+    const exists = await prisma.coat.findUnique({ where: { breedId_name: { breedId: breed.id, name: to } } });
+    if (old && !exists) {
+      await prisma.coat.update({ where: { id: old.id }, data: { name: to } });
+      console.log(`Catalogo: ${breedName} "${from}" rinominato in "${to}".`);
+    }
+  }
+
   // Catalogo
   const file = path.join(__dirname, "..", "prisma", "seed-data", "listino.json");
   if (existsSync(file)) {

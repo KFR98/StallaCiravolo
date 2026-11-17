@@ -7,7 +7,8 @@ import { run, fd, UserError } from "@/lib/action";
 import { audit } from "@/lib/audit";
 import { DEFAULT_SETTINGS, getSettings, type Settings } from "@/lib/settings";
 import { currentAge } from "@/lib/age";
-import { saveImage, deleteUpload } from "@/lib/uploads";
+import { saveImage, saveImageBuffer, deleteUpload } from "@/lib/uploads";
+import { fetchRemoteImage } from "@/lib/remote-image";
 import { parseListino, type ParsedListino } from "@/lib/excel-import";
 import { applyListino } from "@/lib/catalog-import";
 import { ROLES } from "@/lib/permissions";
@@ -417,5 +418,45 @@ export async function confirmImport(payload: string, mode: "solo_nuovi" | "aggio
     if (!Array.isArray(parsed.rows) || !Array.isArray(parsed.statColumns)) throw new UserError("Dati di importazione non validi.");
     const r = await applyListino(parsed, mode, actor);
     return { ok: true, message: `Importazione completata: ${r.breedsCreated} razze e ${r.coatsCreated} manti nuovi, ${r.coatsUpdated} aggiornati, ${r.coatsSkipped} invariati.` };
+  });
+}
+
+/**
+ * Foto dei manti da link: una riga per manto, "RAZZA | Manto | https://…".
+ * Le immagini le scarica questo server e le salva nella sua cartella dati (non nel codice).
+ */
+export async function importCoatPhotos(form: FormData) {
+  return run(async () => {
+    const actor = await assertPermission("catalog.manage");
+    const text = String(form.get("lines") ?? "");
+    const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    if (!lines.length) throw new UserError("Incolla almeno una riga: RAZZA | Manto | link.");
+    if (lines.length > 80) throw new UserError("Massimo 80 righe per volta.");
+    const coats = await prisma.coat.findMany({ include: { breed: true } });
+    const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\(.*?\)/g, "").replace(/\s+/g, " ").trim();
+    const ok: string[] = [];
+    const errors: string[] = [];
+    for (const line of lines) {
+      const m = line.match(/^(.+?)\s*[|\t]\s*(.+?)\s*[|\t]\s*(https:\/\/\S+)$/i) ?? line.match(/^(.+?)\s{2,}(.+?)\s+(https:\/\/\S+)$/i);
+      if (!m) { errors.push(`“${line.slice(0, 60)}”: formato non valido (usa RAZZA | Manto | link)`); continue; }
+      const [, breedName, coatName, url] = m;
+      const coat = coats.find((c) => norm(c.breed.name) === norm(breedName) && norm(c.name) === norm(coatName))
+        ?? coats.find((c) => (norm(c.breed.name).startsWith(norm(breedName)) || norm(breedName).startsWith(norm(c.breed.name))) && norm(c.name) === norm(coatName));
+      if (!coat) { errors.push(`${breedName} – ${coatName}: manto non trovato nel catalogo`); continue; }
+      try {
+        const buf = await fetchRemoteImage(url);
+        const rel = await saveImageBuffer(buf, "coats", String(coat.id));
+        await prisma.coat.update({ where: { id: coat.id }, data: { imagePath: rel } });
+        await deleteUpload(coat.imagePath);
+        coat.imagePath = rel;
+        ok.push(`${coat.breed.name} – ${coat.name}`);
+      } catch (e) {
+        errors.push(`${coat.breed.name} – ${coat.name}: ${(e as Error).message}`);
+      }
+    }
+    if (ok.length) await audit(actor, "IMMAGINI_DA_LINK", "Manto", null, `Foto da link aggiornate: ${ok.length}`, { ok, errors });
+    const msg = `${ok.length} foto aggiornate.` + (errors.length ? ` Non riuscite (${errors.length}): ${errors.join(" · ")}` : "");
+    if (!ok.length) return { ok: false, error: msg };
+    return { ok: true, message: msg };
   });
 }

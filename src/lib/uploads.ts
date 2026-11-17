@@ -39,7 +39,11 @@ function sniff(buf: Buffer): string | null {
 export async function saveImage(file: File, folder: string, prefix: string): Promise<string> {
   if (!file || file.size === 0) throw new Error("Nessun file selezionato.");
   if (file.size > 8 * 1024 * 1024) throw new Error("Immagine troppo grande (massimo 8 MB).");
-  const buf = Buffer.from(await file.arrayBuffer());
+  return saveImageBuffer(Buffer.from(await file.arrayBuffer()), folder, prefix);
+}
+
+/** Salva un'immagine già in memoria (es. scaricata da un link), verificandone la firma. */
+export async function saveImageBuffer(buf: Buffer, folder: string, prefix: string): Promise<string> {
   const type = sniff(buf);
   if (!type) throw new Error("Formato non supportato: usa JPG, PNG, WEBP o GIF.");
   const name = `${prefix}-${randomBytes(4).toString("hex")}${TYPES[type]}`;

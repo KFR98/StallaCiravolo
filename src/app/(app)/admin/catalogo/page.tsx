@@ -6,6 +6,8 @@ import { money } from "@/lib/format";
 import { AdminTabs } from "../AdminTabs";
 import { PageHeader, Card, TableWrap } from "@/components/ui";
 import { BreedButton, StatsEditor } from "./CatalogForms";
+import { ActionForm } from "@/components/ActionForm";
+import { importCoatPhotos } from "../actions";
 import { getStatMeta } from "@/lib/catalog";
 
 export const metadata = { title: "Gestione catalogo" };
@@ -101,6 +103,20 @@ export default async function AdminCatalog({ searchParams }: { searchParams: Pro
           </Card>
         ))}
       </div>
+      <details id="foto-link" className="card mt-6">
+        <summary className="card-pad cursor-pointer"><span className="h-display text-[18px]">Foto dei manti da link</span></summary>
+        <div className="border-t border-border p-5">
+          <p className="mb-3 text-[14.5px] text-fg-2">
+            Una riga per manto: <code className="rounded bg-surface-3 px-1.5 py-0.5 text-[13px]">RAZZA | Manto | https://link-della-foto</code>.
+            Il server scarica ogni foto, la controlla e la imposta al posto di quella attuale (massimo 8 MB, solo immagini, solo link https).
+          </p>
+          <ActionForm action={importCoatPhotos} className="space-y-3">
+            <textarea name="lines" required rows={8} className="input font-mono text-[13px]" placeholder={"MUSTANG | Black Overo | https://…\nMORGAN | Bay | https://…"} />
+            <button className="btn btn-primary">Scarica e imposta le foto</button>
+          </ActionForm>
+        </div>
+      </details>
+
       <details id="statistiche" className="card mt-6">
         <summary className="card-pad cursor-pointer">
           <span className="h-display text-[18px]">Statistiche dei cavalli</span>

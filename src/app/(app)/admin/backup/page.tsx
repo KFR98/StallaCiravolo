@@ -5,7 +5,8 @@ import { dateTime } from "@/lib/format";
 import { AdminTabs } from "../AdminTabs";
 import { PageHeader, Card, TableWrap, Empty } from "@/components/ui";
 import { ActionForm, ActionButton } from "@/components/ActionForm";
-import { makeBackup, restoreFromFile } from "./actions";
+import { makeBackup, restoreFromFile, wipeGameData } from "./actions";
+import { can } from "@/lib/permissions";
 
 export const metadata = { title: "Backup" };
 
@@ -56,6 +57,32 @@ export default async function BackupPage() {
             </ActionForm>
             <p className="mt-2 text-[13px] text-fg-3">Le immagini sono file nella cartella upload: conservale con i backup del pannello.</p>
           </Card>
+          {can(me.role, "settings.manage") && (
+            <Card title="Azzera i dati di gioco">
+              <p className="mb-3 text-[14px] text-fg-2">
+                Per ripartire da zero quando il server RedM viene resettato. <b>Restano</b> utenti, catalogo, prezzi, impostazioni,
+                oggetti e fornitori della bottega e il registro attività. Prima di cancellare viene creato un backup automatico.
+              </p>
+              <ActionForm action={wipeGameData} confirm="Eliminare definitivamente i dati selezionati? Verrà prima creato un backup." className="space-y-3">
+                <fieldset className="space-y-1.5 text-[14.5px]">
+                  <legend className="field-label">Cosa azzerare</legend>
+                  {([
+                    ["stalla", "Cavalli in stalla, catture, passaggi e vendite di cavalli", true],
+                    ["oggetti", "Vendite di oggetti della bottega", true],
+                    ["stipendi", "Stipendi e pagamenti", true],
+                    ["rimborsi", "Rimborsi", true],
+                    ["prenotazioni", "Prenotazioni", true],
+                    ["noteBottega", "Note e proposte della bottega", true],
+                    ["mappa", "Punti sulla mappa degli spawn", false],
+                  ] as const).map(([name, label, def]) => (
+                    <label key={name} className="flex items-start gap-2"><input type="checkbox" name={name} defaultChecked={def} className="mt-1" /> {label}</label>
+                  ))}
+                </fieldset>
+                <label className="block"><span className="field-label">Scrivi AZZERA per confermare</span><input name="conferma" className="input" required autoComplete="off" /></label>
+                <button className="btn btn-danger">Azzera i dati selezionati</button>
+              </ActionForm>
+            </Card>
+          )}
         </div>
       </div>
     </>
