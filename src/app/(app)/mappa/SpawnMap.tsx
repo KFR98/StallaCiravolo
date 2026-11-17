@@ -163,8 +163,9 @@ export default function SpawnMap({ spawns, breeds, perms, noteNames, tiles }: Sp
       maxBounds: [[-300, -300], [H + 300, W + 300]], maxBoundsViscosity: 0.8, attributionControl: false, zoomControl: false,
     });
     L.control.zoom({ position: "bottomright", zoomInTitle: "Ingrandisci", zoomOutTitle: "Riduci" }).addTo(map);
-    // L'immagine semplice resta sotto: si vede subito mentre i tasselli definiti arrivano
-    L.imageOverlay("/map/rdr2-map.jpg", bounds, { className: "rdr-map-image" }).addTo(map);
+    // Con i tasselli HD si usa SOLO la nuova mappa. (Prima l'immagine semplice stava nel livello
+    // "overlay", che Leaflet disegna SOPRA i tasselli: copriva la mappa nuova.)
+    if (!tiles) L.imageOverlay("/map/rdr2-map.jpg", bounds, { className: "rdr-map-image" }).addTo(map);
     if (tiles) {
       L.tileLayer(`/api/mappa/tiles/${tiles.v}/{z}/{y}/{x}`, {
         tileSize: 256, zoomOffset: tiles.offset, minNativeZoom: -tiles.offset, maxNativeZoom: tiles.k,
