@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/db";
 import { assertPermission } from "@/lib/auth";
 import { run, UserError } from "@/lib/action";
 import { audit } from "@/lib/audit";
@@ -53,5 +54,16 @@ export async function rescanMapSource() {
     await makePreview();
     revalidatePath("/admin/mappa");
     return { ok: true, message: "Immagine trovata." };
+  });
+}
+
+export async function saveMapExtraZoom(form: FormData) {
+  return run(async () => {
+    const user = await assertPermission("settings.manage");
+    const n = z.coerce.number().int().min(0).max(2).parse(form.get("extra"));
+    await prisma.setting.upsert({ where: { key: "mapExtraZoom" }, create: { key: "mapExtraZoom", value: String(n) }, update: { value: String(n) } });
+    await audit(user, "MAPPA_ZOOM", "Mappa", null, `Zoom extra della mappa: ${n} livelli`);
+    revalidatePath("/mappa");
+    return { ok: true, message: "Zoom aggiornato." };
   });
 }

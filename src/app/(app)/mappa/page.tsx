@@ -13,17 +13,19 @@ export const dynamic = "force-dynamic";
 
 export default async function MapPage() {
   const user = await requireUser("map.view");
-  const [spawns, breeds, noteNames, tiles] = await Promise.all([
+  const [spawns, breeds, noteNames, tilesMeta, extraZoom] = await Promise.all([
     prisma.spawn.findMany({ include: { breed: true, coat: true, createdBy: true }, orderBy: { createdAt: "desc" } }),
     getBreedOptions(),
     getSetting("mapNoteNames"),
     getTilesMeta(),
+    getSetting("mapExtraZoom"),
   ]);
+  const tiles = tilesMeta ? { ...tilesMeta, extra: Number(extraZoom) || 0 } : null;
   return (
     <>
       <PageHeader title="Mappa degli spawn" subtitle="Cavalli avvistati, possibili cavalli e note, condivisi da tutta la stalla." />
       <SpawnMapLoader
-        key={tiles?.v ?? "semplice"}
+        key={tiles ? `${tiles.v}-${tiles.extra}` : "semplice"}
         spawns={spawns.map((s) => ({
           id: s.id, kind: s.kind, title: s.title, color: s.color, x: s.x, y: s.y, breedId: s.breedId, coatId: s.coatId,
           breed: s.breed?.name ?? (s.kind === "CAVALLO" ? "Razza sconosciuta" : null), coat: s.coat?.name ?? null, image: imageUrl(s.coat?.imagePath),

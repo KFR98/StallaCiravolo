@@ -5,18 +5,21 @@ import { ActionButton } from "@/components/ActionForm";
 import { AdminTabs } from "../AdminTabs";
 import { sourceInfo, getTilesMeta, getSavedCalibration, defaultCalibration, nativeZoomFor, previewPath, MAP_DIR, MAP_W, mapJob } from "@/lib/map-tiles";
 import { MapCalibrator } from "./MapCalibrator";
-import { disableMapTiles, rescanMapSource } from "./actions";
+import { disableMapTiles, rescanMapSource, saveMapExtraZoom } from "./actions";
+import { ActionForm } from "@/components/ActionForm";
+import { getSetting } from "@/lib/settings";
 
 export const metadata = { title: "Mappa ad alta definizione" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminMapPage() {
   const me = await requireUser("settings.manage");
-  const [src, tiles, saved, spawns] = await Promise.all([
+  const [src, tiles, saved, spawns, extra] = await Promise.all([
     sourceInfo(),
     getTilesMeta(),
     getSavedCalibration(),
     prisma.spawn.findMany({ select: { x: true, y: true } }),
+    getSetting("mapExtraZoom"),
   ]);
   const cal = saved ?? (src ? defaultCalibration(src.width, src.height) : null);
   const job = mapJob();
@@ -35,6 +38,19 @@ export default async function AdminMapPage() {
               Immagine caricata: {src ? <b>{src.file} · {src.width.toLocaleString("it-IT")} × {src.height.toLocaleString("it-IT")} px · {(src.size / 1048576).toFixed(1)} MB</b> : <span className="text-fg-3">nessuna</span>}
             </li>
           </ul>
+          {tiles && (
+            <ActionForm action={saveMapExtraZoom} className="mt-4 flex flex-wrap items-end gap-3 border-t border-border pt-4">
+              <label className="block">
+                <span className="field-label">Zoom oltre la risoluzione dell&apos;immagine</span>
+                <select name="extra" defaultValue={String(extra)} className="input">
+                  <option value="0">Nessuno: si ferma quando 1 pixel = 1 pixel (massima nitidezza)</option>
+                  <option value="1">1 livello in più: ingrandimento ×2, morbido</option>
+                  <option value="2">2 livelli in più: ingrandimento ×4, morbido</option>
+                </select>
+              </label>
+              <button className="btn btn-secondary">Salva</button>
+            </ActionForm>
+          )}
           {tiles && (
             <div className="mt-3">
               <ActionButton action={disableMapTiles} label="Torna alla mappa semplice" className="btn btn-ghost btn-sm" confirm="Tornare all'immagine semplice? I tasselli ad alta definizione verranno eliminati (l'immagine caricata resta)." />

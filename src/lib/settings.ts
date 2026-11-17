@@ -31,6 +31,8 @@ export const DEFAULT_SETTINGS = {
   backupDays: 14,
   /** Mappa: nome della categoria di ogni colore delle note (es. "#c8161d": "Pericolo") */
   mapNoteNames: {} as Record<string, string>,
+  /** Mappa HD: livelli di zoom oltre la risoluzione vera dell'immagine (ingrandimento morbido, non a quadretti) */
+  mapExtraZoom: 1,
 };
 
 export type Settings = typeof DEFAULT_SETTINGS;

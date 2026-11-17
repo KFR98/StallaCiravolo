@@ -25,7 +25,7 @@ export type SpawnPoint = {
   x: number; y: number; breedId: number | null; coatId: number | null; breed: string | null; coat: string | null; image: string | null;
   location: string | null; description: string | null; notes: string | null; author: string; createdAt: string; mine: boolean;
 };
-export type MapTiles = { v: string; k: number; offset: number };
+export type MapTiles = { v: string; k: number; offset: number; extra: number };
 export type SpawnMapProps = { spawns: SpawnPoint[]; breeds: BreedOption[]; perms: { add: boolean; manage: boolean }; noteNames: Record<string, string>; tiles: MapTiles | null };
 
 const KIND_LABEL: Record<Kind, string> = { CAVALLO: "Cavalli", POSSIBILE: "Possibili cavalli", NOTA: "Note" };
@@ -155,8 +155,9 @@ export default function SpawnMap({ spawns, breeds, perms, noteNames, tiles }: Sp
     // Come CRS.Simple, ma con l'origine dei pixel in alto a sinistra: i tasselli combaciano con l'immagine.
     // Le coordinate dei punti salvati (lat = y dal basso, lng = x) restano identiche.
     const crs = L.extend({}, L.CRS.Simple, { transformation: new L.Transformation(1, 0, -1, H) });
-    // Allo zoom massimo 1 pixel dello schermo = 1 pixel dell'immagine: niente sgranature.
-    const maxZoom = tiles ? tiles.k : 1;
+    // Zoom massimo: risoluzione vera dell'immagine + eventuali livelli extra scelti dall'admin
+    // (oltre la risoluzione vera il browser ingrandisce in modo morbido, senza quadretti).
+    const maxZoom = tiles ? tiles.k + Math.max(0, Math.min(2, tiles.extra)) : 1;
     const map = L.map(elRef.current, {
       crs, minZoom: -3, maxZoom, zoomSnap: 0.1, zoomDelta: 0.5, wheelPxPerZoomLevel: 90,
       maxBounds: [[-300, -300], [H + 300, W + 300]], maxBoundsViscosity: 0.8, attributionControl: false, zoomControl: false,
