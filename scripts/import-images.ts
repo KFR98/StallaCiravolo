@@ -5,6 +5,7 @@
  * all'avvio successivo non viene reimportata.
  *   npm run images:import [-- --force] [-- --dir=Cavalli]
  * Abbinamenti manuali: file Cavalli/abbinamenti.json  { "nome file.webp": "RAZZA|Manto" }
+ * Con "!" finale ("RAZZA|Manto!") la foto sostituisce UNA volta anche quella già presente.
  */
 import { readdirSync, existsSync, readFileSync, mkdirSync, copyFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -37,7 +38,8 @@ async function main() {
 
   for (const coat of coats) {
     const key = `${coat.breed.name}|${coat.name}`.toUpperCase();
-    const manualEntry = Object.entries(manual).find(([, v]) => v.toUpperCase() === key);
+    const manualEntry = Object.entries(manual).find(([, v]) => v.replace(/!$/, "").toUpperCase() === key);
+    const replaceOnce = !!manualEntry?.[1].endsWith("!");
     const file = manualEntry?.[0] ?? bestImageFor(coat.breed.name, coat.name, files);
     if (!file || !files.includes(file)) {
       if (!coat.imagePath) missing.push(`${coat.breed.name} – ${coat.name}`);
@@ -45,7 +47,8 @@ async function main() {
     }
     used.add(file);
     const memoKey = `${coat.id}|${file}`;
-    if (!force && (coat.imagePath || memo.has(memoKey))) continue;
+    if (!force && memo.has(memoKey)) continue;
+    if (!force && coat.imagePath && !replaceOnce) continue;
     const ext = path.extname(file).toLowerCase();
     const rel = `coats/${coat.id}-${slug(coat.breed.name)}-${slug(coat.name)}${ext}`;
     copyFileSync(path.join(srcDir, file), path.join(uploadDir, rel));

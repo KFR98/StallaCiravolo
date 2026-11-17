@@ -54,8 +54,6 @@ run(bin("tsx"), ["scripts/seed.ts"], "Inizializzazione dati");
 if (process.env.IMAGES_AUTO_IMPORT !== "false" && existsSync(path.join(root, "Cavalli"))) {
   // Importa solo le foto nuove della cartella Cavalli/ (non tocca quelle gestite dall'admin)
   spawnSync(bin("tsx"), ["scripts/import-images.ts"], { stdio: "inherit", env: process.env });
-  // Foto elencate in Cavalli/foto-da-link.json: scaricate dal server alla prima occasione
-  spawnSync(bin("tsx"), ["scripts/import-photo-links.ts"], { stdio: "inherit", env: process.env, timeout: 180_000 });
 }
 
 const standalone = path.join(root, ".next", "standalone");
