@@ -1,4 +1,3 @@
-import "server-only";
 import { lookup } from "node:dns/promises";
 import net from "node:net";
 

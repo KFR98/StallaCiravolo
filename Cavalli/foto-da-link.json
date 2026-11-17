@@ -1,0 +1,20 @@
+{
+  "_info": "Foto dei manti scaricate in automatico all'avvio dal server (non sono salvate nel codice). Chiave: \"RAZZA|Manto\". sostituisci=true rimpiazza una sola volta anche una foto già presente.",
+  "foto": [
+    { "cavallo": "MUSTANG|Black Overo", "url": "https://static.wikia.nocookie.net/reddeadredemption/images/3/3a/Black_Tovero_Mustang.PNG/revision/latest?cb=20240421231038" },
+    { "cavallo": "TURKOMAN|Sadie", "url": "https://static.wikia.nocookie.net/reddeadredemption/images/6/62/Gold_Dapple_Turkoman.PNG/revision/latest?cb=20240422160514" },
+    { "cavallo": "MISSOURI FOX TROTTER|Micah", "url": "https://static.wikia.nocookie.net/reddeadredemption/images/b/b0/Black_Missouri_Fox_Trotter.PNG/revision/latest?cb=20240421175907" },
+    { "cavallo": "DUTCH WARMBLOOD (Olandese)|War Vets", "url": "https://static.wikia.nocookie.net/reddeadredemption/images/8/84/Cremello_Gold_Dutch_Warmblood.PNG/revision/latest?cb=20240420170222" },
+    { "cavallo": "MUSTANG|Lenny", "url": "https://static.wikia.nocookie.net/reddeadredemption/images/0/0d/Light_Palomino_Mustang.PNG/revision/latest?cb=20240421231105" },
+    { "cavallo": "ARDENNES|Bill", "url": "https://static.wikia.nocookie.net/reddeadredemption/images/2/2e/Brown_Roan_Ardennes.PNG/revision/latest?cb=20240420140112" },
+    { "cavallo": "CRIOLLO|Blue Roan Overo", "url": "https://static.wikia.nocookie.net/reddeadredemption/images/e/ef/Blue_Roan_Overo_Criollo.PNG/revision/latest?cb=20240420145717" },
+    { "cavallo": "NOKOTA|Karen", "url": "https://static.wikia.nocookie.net/reddeadredemption/images/f/fe/Smoky_Black_Nokota.PNG/revision/latest?cb=20240421232351" },
+    { "cavallo": "HUNGARIAN|John", "url": "https://static.wikia.nocookie.net/reddeadredemption/images/6/65/Silver_Dark_Bay_Hungarian_Halfbred.PNG/revision/latest?cb=20240421163647" },
+    { "cavallo": "NELL II|Nell II", "url": "https://static.wikia.nocookie.net/reddeadredemption/images/e/e7/Sabino_Kentucky_Saddler.PNG/revision/latest?cb=20240421163932" },
+    { "cavallo": "MORGAN|Bay", "url": "https://static.wikia.nocookie.net/reddeadredemption/images/b/b5/RDR2Horse.PNG/revision/latest?cb=20240421180052", "sostituisci": true },
+    { "cavallo": "MANGY|Backup", "url": "https://static.wikia.nocookie.net/reddeadredemption/images/7/7f/Flaxen_Chestnut_Scrawny_Nag.PNG/revision/latest?cb=20240422160828" },
+    { "cavallo": "THOROUGHBRED (Purosangue)|Endless Summer", "url": "https://static.wikia.nocookie.net/reddeadredemption/images/f/f8/Seal_Brown_Thoroughbred.PNG/revision/latest?cb=20240422155437" },
+    { "cavallo": "MUSTANG|Endless Summer", "url": "https://static.wikia.nocookie.net/reddeadredemption/images/1/1b/Dark_Bay_Roan_Mustang.PNG/revision/latest?cb=20240421231112" },
+    { "cavallo": "NOKOTA|Endless Summer", "url": "https://static.wikia.nocookie.net/reddeadredemption/images/0/05/Gray_Roan_Sabino_Nokota.PNG/revision/latest?cb=20240421232345" }
+  ]
+}

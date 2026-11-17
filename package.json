@@ -16,7 +16,8 @@
     "backup": "tsx scripts/backup.ts",
     "admin:create": "tsx scripts/create-admin.ts",
     "test": "tsx --test tests/*.test.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "images:links": "tsx scripts/import-photo-links.ts"
   },
   "dependencies": {
     "@fontsource/barlow-condensed": "^5.3.0",
