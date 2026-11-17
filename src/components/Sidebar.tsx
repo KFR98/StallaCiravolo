@@ -56,9 +56,13 @@ export function AppShell({
   );
 
   const brand = (
-    <Link href="/" className="block">
-      <span className="block font-brand text-[22px] leading-none text-white">{stableName}</span>
-      <span className="mt-1 block font-display text-[11px] font-semibold tracking-[0.3em] text-[#ff5d55] uppercase">Gestionale stalla</span>
+    <Link href="/" className="flex min-w-0 items-center gap-2.5">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/brand/logo.png" alt="" width={42} height={42} className="size-[38px] shrink-0 lg:size-[42px]" />
+      <span className="min-w-0">
+        <span className="block truncate font-brand text-[22px] leading-none text-white lg:text-[18px]">{stableName}</span>
+        <span className="mt-1 block font-display text-[11px] font-semibold tracking-[0.3em] text-[#ff5d55] uppercase lg:text-[10px] lg:tracking-[0.24em]">Gestionale stalla</span>
+      </span>
     </Link>
   );
 

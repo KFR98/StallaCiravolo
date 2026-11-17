@@ -15,6 +15,8 @@ export default async function LoginPage() {
       <div className="absolute top-4 right-4"><ThemeToggle className="!text-neutral-300" /></div>
       <div className="card relative w-full max-w-[400px] p-7 sm:p-8">
         <div className="mb-6 text-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/logo.png" alt="" width={96} height={96} className="mx-auto mb-4 size-24 shadow-[0_8px_28px_rgba(114,34,206,0.35)]" />
           <div className="font-brand text-[30px] leading-none">{name}</div>
           <div className="mt-2 font-display text-[12px] font-semibold tracking-[0.3em] text-accent-text uppercase">Gestionale stalla</div>
         </div>
