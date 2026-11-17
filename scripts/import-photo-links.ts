@@ -24,13 +24,15 @@ async function main() {
   mkdirSync(path.join(uploadDir, "coats"), { recursive: true });
   const memoFile = path.join(uploadDir, ".foto-link-importate.json");
   const memo = new Set<string>(existsSync(memoFile) ? JSON.parse(readFileSync(memoFile, "utf8")) : []);
+  // Già tutte importate: si esce subito, senza database né rete
+  if (entries.every((e) => memo.has(`${e.cavallo}|${e.url}`))) return;
   const coats = await prisma.coat.findMany({ include: { breed: true } });
   let done = 0;
   for (const e of entries) {
     const [breed, coatName] = e.cavallo.split("|").map((s) => s.trim().toUpperCase());
     const coat = coats.find((c) => c.breed.name.toUpperCase() === breed && c.name.toUpperCase() === coatName);
     if (!coat) { console.log(`✖ ${e.cavallo}: manto non trovato nel catalogo`); continue; }
-    const key = `${coat.id}|${e.url}`;
+    const key = `${e.cavallo}|${e.url}`;
     if (memo.has(key)) continue;
     if (coat.imagePath && !e.sostituisci) { memo.add(key); continue; }
     if (dry) { console.log(`· ${e.cavallo} → da scaricare`); continue; }
