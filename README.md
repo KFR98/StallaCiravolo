@@ -268,6 +268,17 @@ l'admin può caricarle dalla scheda del manto.
 
 ---
 
+### Mappa in alta definizione
+La mappa di base è un'immagine da 2.000 px: zoomando sgrana. Da **Amministrazione → Mappa** l'admin carica
+un'immagine grande della stessa mappa (consigliati 8.000–16.000 px), la allinea a quella attuale trascinandola
+in trasparenza (i punti già salvati restano al loro posto) e preme **Genera mappa**. Il server la divide in
+tasselli da 256 px (`data/mappa/tiles-…`) e il sito scarica solo quelli visibili: allo zoom massimo un pixel
+dello schermo è un pixel dell'immagine. Si può usare anche una mappa personalizzata del proprio server.
+- Per caricare file grandi dal sito, nel blocco `server` di nginx serve `client_max_body_size 300m;`.
+  In alternativa copia l'immagine nella cartella `data/mappa` con il file manager di Pterodactyl e premi
+  *Cerca l'immagine nella cartella*.
+- *Torna alla mappa semplice* elimina i tasselli e ripristina l'immagine da 2.000 px.
+
 ## 7. Regole di calcolo
 
 **Prezzi** (tutti modificabili dall'admin, per ogni manto):

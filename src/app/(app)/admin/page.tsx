@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Users, BookOpen, Settings, DatabaseBackup, FileSpreadsheet, ScrollText } from "lucide-react";
+import { Users, BookOpen, Settings, DatabaseBackup, FileSpreadsheet, ScrollText, Map as MapIcon } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
@@ -23,6 +23,7 @@ export default async function AdminHome() {
     { href: "/admin/utenti", t: "Gestisci utenti", d: "Crea account, cambia ruoli, reimposta password, elimina.", icon: Users, perm: "users.manage" as const },
     { href: "/admin/catalogo", t: "Modifica catalogo", d: "Razze, manti, foto, statistiche, prezzi.", icon: BookOpen, perm: "catalog.manage" as const },
     { href: "/admin/impostazioni", t: "Impostazioni", d: "Età, fasce di prezzo, stipendi, gravidanza, backup.", icon: Settings, perm: "settings.manage" as const },
+    { href: "/admin/mappa", t: "Mappa in alta definizione", d: "Carica un'immagine grande della mappa e allineala ai punti.", icon: MapIcon, perm: "settings.manage" as const },
     { href: "/admin/backup", t: "Backup ed esportazioni", d: "Copie di sicurezza, ripristino, Excel/CSV.", icon: DatabaseBackup, perm: "data.backup" as const },
     { href: "/admin/import", t: "Importa listino Excel", d: "Aggiorna il catalogo da file.", icon: FileSpreadsheet, perm: "data.import" as const },
     { href: "/admin/audit", t: "Registro attività", d: "Chi ha fatto cosa e quando.", icon: ScrollText, perm: "audit.view" as const },

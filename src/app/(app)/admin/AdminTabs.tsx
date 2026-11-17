@@ -7,6 +7,7 @@ const ITEMS: { key: string; href: string; label: string; perm: Permission }[] = 
   { key: "utenti", href: "/admin/utenti", label: "Utenti", perm: "users.manage" },
   { key: "catalogo", href: "/admin/catalogo", label: "Catalogo", perm: "catalog.manage" },
   { key: "impostazioni", href: "/admin/impostazioni", label: "Impostazioni", perm: "settings.manage" },
+  { key: "mappa", href: "/admin/mappa", label: "Mappa", perm: "settings.manage" },
   { key: "backup", href: "/admin/backup", label: "Backup e dati", perm: "data.backup" },
   { key: "import", href: "/admin/import", label: "Importa Excel", perm: "data.import" },
   { key: "audit", href: "/admin/audit", label: "Registro attività", perm: "audit.view" },

@@ -68,10 +68,10 @@ export default async function HorsePage({ params }: { params: Promise<{ id: stri
         <div className="space-y-5">
           <Card pad={false} className="overflow-hidden">
             <div className="grid sm:grid-cols-[1.1fr_1fr]">
-              <div className="bg-surface-3">
+              <div className="flex items-center justify-center bg-surface-3">
                 {img ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={img} alt={`${horse.breed.name} ${horse.coat.name}`} className="h-full max-h-[320px] w-full object-cover" />
+                  <img src={img} alt={`${horse.breed.name} ${horse.coat.name}`} className="max-h-[380px] w-full object-contain" />
                 ) : <div className="flex h-full min-h-[200px] items-center justify-center text-fg-3">Immagine non disponibile</div>}
               </div>
               <dl className="card-pad grid grid-cols-[auto_1fr] content-start gap-x-4 gap-y-2 text-[14.5px]">

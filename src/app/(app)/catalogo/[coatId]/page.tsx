@@ -49,7 +49,7 @@ export default async function CoatPage({ params }: { params: Promise<{ coatId: s
             <div className="aspect-[16/10] bg-surface-3">
               {img ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={img} alt={`${coat.breed.name} ${coat.name}`} className="h-full w-full object-cover" />
+                <img src={img} alt={`${coat.breed.name} ${coat.name}`} className="h-full w-full object-contain" />
               ) : <div className="flex h-full flex-col items-center justify-center gap-2 text-fg-3"><HorseGlyph size={56} />Immagine non ancora caricata</div>}
             </div>
           </Card>

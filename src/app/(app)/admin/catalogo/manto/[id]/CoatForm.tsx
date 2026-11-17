@@ -66,7 +66,7 @@ export function CoatForm({ coat, breeds, stats }: { coat: Coat; breeds: { id: nu
           <span className="eyebrow block">Immagine</span>
           <div className="aspect-[4/3] overflow-hidden rounded-[3px] border border-border bg-surface-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            {preview ? <img src={preview} alt="" className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-fg-3/60">Nessuna immagine</div>}
+            {preview ? <img src={preview} alt="" className="h-full w-full object-contain" /> : <div className="flex h-full items-center justify-center text-fg-3/60">Nessuna immagine</div>}
           </div>
           <input
             type="file"
