@@ -35,22 +35,39 @@ export type Calibration = { x: number; y: number; s: number };
 
 const SOURCE_EXT = [".jpg", ".jpeg", ".png", ".webp", ".tif", ".tiff"];
 
+/**
+ * Immagine sorgente: la PIÙ RECENTE tra quelle nella cartella (caricata dal sito o copiata a mano
+ * con il file manager di Pterodactyl). Così un file nuovo vince sempre su quello vecchio.
+ */
 export async function findSource(): Promise<string | null> {
   if (!existsSync(MAP_DIR)) return null;
-  const files = await readdir(MAP_DIR);
-  // il file caricato dal sito ha la precedenza; altrimenti la prima immagine messa a mano nella cartella
-  const named = files.find((f) => f.startsWith(SOURCE_BASENAME + ".") && SOURCE_EXT.includes(path.extname(f).toLowerCase()));
-  const any = files.find((f) => SOURCE_EXT.includes(path.extname(f).toLowerCase()) && f !== "anteprima.jpg");
-  const f = named ?? any;
-  return f ? path.join(MAP_DIR, f) : null;
+  const files = (await readdir(MAP_DIR)).filter((f) => SOURCE_EXT.includes(path.extname(f).toLowerCase()) && f !== "anteprima.jpg" && !f.endsWith(".tmp"));
+  if (!files.length) return null;
+  const withTime = await Promise.all(files.map(async (f) => ({ f, t: (await stat(path.join(MAP_DIR, f))).mtimeMs })));
+  withTime.sort((a, b) => b.t - a.t);
+  return path.join(MAP_DIR, withTime[0].f);
+}
+
+/** File presenti nella cartella che il sito non sa leggere (es. .dds delle mod): per avvisare l'admin. */
+export async function unsupportedFiles(): Promise<string[]> {
+  if (!existsSync(MAP_DIR)) return [];
+  return (await readdir(MAP_DIR)).filter((f) => {
+    const e = path.extname(f).toLowerCase();
+    return !!e && !SOURCE_EXT.includes(e) && ![".tmp", ".xml"].includes(e) && !f.startsWith("tiles-");
+  });
 }
 
 export async function sourceInfo() {
   const src = await findSource();
   if (!src) return null;
-  const [m, st] = await Promise.all([sharp(src, { limitInputPixels: false }).metadata(), stat(src)]);
-  if (!m.width || !m.height) return null;
-  return { file: path.basename(src), width: m.width, height: m.height, size: st.size, mtime: st.mtimeMs };
+  try {
+    const [m, st] = await Promise.all([sharp(src, { limitInputPixels: false }).metadata(), stat(src)]);
+    if (!m.width || !m.height) return null;
+    return { file: path.basename(src), width: m.width, height: m.height, size: st.size, mtime: st.mtimeMs, error: null as string | null };
+  } catch {
+    const st = await stat(src);
+    return { file: path.basename(src), width: 0, height: 0, size: st.size, mtime: st.mtimeMs, error: "File non leggibile: salvalo di nuovo come JPG o PNG." };
+  }
 }
 
 /** Anteprima leggera (2000 px) della sorgente, usata per l'allineamento nel browser. */
@@ -63,6 +80,22 @@ export async function makePreview() {
 }
 
 export const previewPath = () => (existsSync(PREVIEW) ? PREVIEW : null);
+
+/** Rigenera l'anteprima se manca o se l'immagine sorgente è più nuova (es. file copiato a mano). */
+export async function ensurePreview(): Promise<boolean> {
+  const src = await findSource();
+  if (!src) return false;
+  const srcTime = (await stat(src)).mtimeMs;
+  const prevTime = existsSync(PREVIEW) ? (await stat(PREVIEW)).mtimeMs : 0;
+  if (prevTime >= srcTime) return true;
+  try {
+    await makePreview();
+    return true;
+  } catch (e) {
+    console.error("[mappa anteprima]", e);
+    return false;
+  }
+}
 
 /** Calibrazione predefinita: immagine larga quanto la mappa, centrata in verticale. */
 export function defaultCalibration(width: number, height: number): Calibration {
@@ -152,7 +185,9 @@ async function generate(cal: Calibration, k: number) {
   const maxLevel = Math.max(...levels);
   const m: MapTilesMeta = { v, k, offset: maxLevel - k };
   await prisma.setting.upsert({ where: { key: "mapTiles" }, create: { key: "mapTiles", value: JSON.stringify(m) }, update: { value: JSON.stringify(m) } });
-  await prisma.setting.upsert({ where: { key: "mapCalibration" }, create: { key: "mapCalibration", value: JSON.stringify(cal) }, update: { value: JSON.stringify(cal) } });
+  const st = await stat(src);
+  const savedCal = JSON.stringify({ ...cal, file: path.basename(src), mtime: st.mtimeMs });
+  await prisma.setting.upsert({ where: { key: "mapCalibration" }, create: { key: "mapCalibration", value: savedCal }, update: { value: savedCal } });
 
   // elimina le versioni precedenti
   for (const d of await readdir(MAP_DIR)) {
@@ -160,7 +195,7 @@ async function generate(cal: Calibration, k: number) {
   }
 }
 
-export async function getSavedCalibration(): Promise<Calibration | null> {
+export async function getSavedCalibration(): Promise<(Calibration & { file?: string; mtime?: number }) | null> {
   const row = await prisma.setting.findUnique({ where: { key: "mapCalibration" } });
   if (!row) return null;
   try {

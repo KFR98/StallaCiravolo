@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { PageHeader, Card } from "@/components/ui";
 import { ActionButton } from "@/components/ActionForm";
 import { AdminTabs } from "../AdminTabs";
-import { sourceInfo, getTilesMeta, getSavedCalibration, defaultCalibration, nativeZoomFor, previewPath, MAP_DIR, MAP_W, mapJob } from "@/lib/map-tiles";
+import { sourceInfo, ensurePreview, unsupportedFiles, getTilesMeta, getSavedCalibration, defaultCalibration, nativeZoomFor, previewPath, MAP_DIR, MAP_W, mapJob } from "@/lib/map-tiles";
 import { MapCalibrator } from "./MapCalibrator";
 import { disableMapTiles, rescanMapSource, saveMapExtraZoom } from "./actions";
 import { ActionForm } from "@/components/ActionForm";
@@ -14,14 +14,19 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminMapPage() {
   const me = await requireUser("settings.manage");
-  const [src, tiles, saved, spawns, extra] = await Promise.all([
+  await ensurePreview();
+  const [srcInfo, tiles, saved, spawns, extra, unsupported] = await Promise.all([
     sourceInfo(),
     getTilesMeta(),
     getSavedCalibration(),
     prisma.spawn.findMany({ select: { x: true, y: true } }),
     getSetting("mapExtraZoom"),
+    unsupportedFiles(),
   ]);
-  const cal = saved ?? (src ? defaultCalibration(src.width, src.height) : null);
+  const src = srcInfo && !srcInfo.error ? srcInfo : null;
+  // la calibrazione salvata vale solo per l'immagine con cui è stata fatta: con un file nuovo si riparte
+  const sameSource = !!(saved && src && saved.file === src.file && saved.mtime === src.mtime);
+  const cal = sameSource && saved ? { x: saved.x, y: saved.y, s: saved.s } : src ? defaultCalibration(src.width, src.height) : null;
   const job = mapJob();
   return (
     <>
@@ -34,8 +39,14 @@ export default async function AdminMapPage() {
               Mappa in uso:{" "}
               {tiles ? <b>alta definizione · {(MAP_W * 2 ** tiles.k).toLocaleString("it-IT")} px di larghezza</b> : <b>immagine semplice (2.000 px, sgrana zoomando)</b>}
             </li>
+            {srcInfo?.error && <li className="text-accent-text">{srcInfo.file}: {srcInfo.error}</li>}
+            {unsupported.length > 0 && (
+              <li className="text-accent-text">
+                File ignorati perché in un formato non supportato: {unsupported.join(", ")}. Aprili con un programma di grafica (es. GIMP, Paint.NET) e salvali come PNG o JPG.
+              </li>
+            )}
             <li>
-              Immagine caricata: {src ? <b>{src.file} · {src.width.toLocaleString("it-IT")} × {src.height.toLocaleString("it-IT")} px · {(src.size / 1048576).toFixed(1)} MB</b> : <span className="text-fg-3">nessuna</span>}
+              Immagine in uso per la generazione: {src ? <b>{src.file} · {src.width.toLocaleString("it-IT")} × {src.height.toLocaleString("it-IT")} px · {(src.size / 1048576).toFixed(1)} MB</b> : <span className="text-fg-3">nessuna</span>}
             </li>
           </ul>
           {tiles && (
