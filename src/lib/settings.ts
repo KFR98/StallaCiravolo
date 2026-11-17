@@ -29,6 +29,8 @@ export const DEFAULT_SETTINGS = {
   backupEveryHours: 24,
   /** Giorni di conservazione dei backup */
   backupDays: 14,
+  /** Mappa: nome della categoria di ogni colore delle note (es. "#c8161d": "Pericolo") */
+  mapNoteNames: {} as Record<string, string>,
 };
 
 export type Settings = typeof DEFAULT_SETTINGS;

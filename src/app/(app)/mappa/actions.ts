@@ -110,3 +110,19 @@ export async function deleteSpawn(form: FormData) {
     return { ok: true, message: "Spawn eliminato." };
   });
 }
+
+/** Nomi delle categorie delle note (un nome per colore): li vedono tutti nei filtri della mappa. */
+export async function saveNoteNames(form: FormData) {
+  return run(async () => {
+    const user = await assertPermission("map.manage");
+    const f = fd(form);
+    const names: Record<string, string> = {};
+    for (const c of NOTE_COLORS) {
+      const v = z.string().trim().max(24, "Nome categoria: massimo 24 caratteri").parse(f.str("n" + c.slice(1)));
+      if (v) names[c] = v;
+    }
+    await prisma.setting.upsert({ where: { key: "mapNoteNames" }, create: { key: "mapNoteNames", value: JSON.stringify(names) }, update: { value: JSON.stringify(names) } });
+    await audit(user, "CATEGORIE_NOTE", "Impostazioni", null, "Aggiornati i nomi delle categorie delle note sulla mappa", names);
+    return { ok: true, message: "Categorie aggiornate." };
+  });
+}

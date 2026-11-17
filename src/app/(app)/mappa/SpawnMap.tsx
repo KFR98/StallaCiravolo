@@ -6,14 +6,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
-import { Move, Plus, Route, X, Crosshair, Maximize2, Minimize2, LocateFixed } from "lucide-react";
+import { Move, Plus, Route, X, Crosshair, Maximize2, Minimize2, LocateFixed, SlidersHorizontal, Check, EyeOff, ChevronRight, Search, Bookmark, Save } from "lucide-react";
 import type { BreedOption } from "@/lib/catalog";
 import { ActionForm, ActionButton } from "@/components/ActionForm";
 import { Modal } from "@/components/Modal";
-import { HorsePicker, buildHorseOptions, type HorseOption } from "@/components/HorsePicker";
+import { HorsePicker, buildHorseOptions, matchHorse, type HorseOption } from "@/components/HorsePicker";
 import { HorseThumb } from "@/components/ui";
-import { createSpawn, updateSpawn, moveSpawn, deleteSpawn } from "./actions";
-import { NOTE_COLORS } from "./colors";
+import { createSpawn, updateSpawn, moveSpawn, deleteSpawn, saveNoteNames } from "./actions";
+import { NOTE_COLORS, NOTE_COLOR_DEFAULT_NAMES, noteColorName } from "./colors";
 
 const W = 2000;
 const H = 1556;
@@ -25,7 +25,7 @@ export type SpawnPoint = {
   x: number; y: number; breedId: number | null; coatId: number | null; breed: string | null; coat: string | null; image: string | null;
   location: string | null; description: string | null; notes: string | null; author: string; createdAt: string; mine: boolean;
 };
-export type SpawnMapProps = { spawns: SpawnPoint[]; breeds: BreedOption[]; perms: { add: boolean; manage: boolean } };
+export type SpawnMapProps = { spawns: SpawnPoint[]; breeds: BreedOption[]; perms: { add: boolean; manage: boolean }; noteNames: Record<string, string> };
 
 const KIND_LABEL: Record<Kind, string> = { CAVALLO: "Cavalli", POSSIBILE: "Possibili cavalli", NOTA: "Note" };
 const PALETTE = ["#c8161d", "#1d5f8f", "#1f7a3d", "#b45309", "#6b21a8", "#0f766e", "#9a3412", "#3730a3", "#be185d", "#4d7c0f", "#0e7490", "#a16207"];
@@ -36,6 +36,37 @@ const label = (s: SpawnPoint) => (s.kind === "NOTA" ? s.title ?? "Nota" : `${s.k
 /** Le etichette di Leaflet sono HTML: il testo inserito dagli utenti va sempre "disinnescato". */
 const esc = (t: string) => t.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 const safeColor = (c: string) => (/^#[0-9a-fA-F]{6}$/.test(c) ? c : "#57534e");
+
+/* ───────── Filtri di visualizzazione ─────────
+ * sel:   razze ("b:<id>", "b:none") e manti ("c:<id>") da mostrare; "p:none" = possibili senza razza.
+ *        Vuoto = tutti. Toccando un elemento si vede SOLO quello (e gli altri eventualmente aggiunti).
+ * notes: colori (categorie) delle note da mostrare; vuoto = tutte.
+ */
+type Filters = { sel: string[]; notes: string[]; kinds: Kind[]; mine: boolean; labels: boolean };
+type Preset = { name: string; sel: string[]; notes: string[]; kinds: Kind[]; mine: boolean };
+const ALL_KINDS: Kind[] = ["CAVALLO", "POSSIBILE", "NOTA"];
+const DEFAULT_FILTERS: Filters = { sel: [], notes: [], kinds: ALL_KINDS, mine: false, labels: true };
+const STORE = "mappa-filtri-v1";
+const STORE_PRESETS = "mappa-filtri-salvati-v1";
+const noteColor = (s: SpawnPoint) => safeColor(s.color ?? NOTE_COLORS[0]);
+const strArr = (v: unknown, max = 500) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && x.length < 40).slice(0, max) : []);
+const kindArr = (v: unknown) => strArr(v).filter((k): k is Kind => (ALL_KINDS as string[]).includes(k));
+
+function horseKey(s: SpawnPoint) {
+  if (s.breedId == null) return s.kind === "POSSIBILE" ? "p:none" : "b:none";
+  return `b:${s.breedId}`;
+}
+
+function isVisible(s: SpawnPoint, f: Filters, breedsWithSelCoat: Set<number>) {
+  if (!f.kinds.includes(s.kind)) return false;
+  if (f.mine && !s.mine) return false;
+  if (s.kind === "NOTA") return f.notes.length === 0 || f.notes.includes(noteColor(s));
+  if (f.sel.length === 0) return true;
+  if (f.sel.includes(horseKey(s))) return true;
+  if (s.coatId != null) return f.sel.includes(`c:${s.coatId}`);
+  // punto "tutti i manti": compare se di quella razza è scelto almeno un manto
+  return s.breedId != null && breedsWithSelCoat.has(s.breedId);
+}
 
 function markerIcon(s: SpawnPoint, opts: { selected?: boolean; num?: number; draggable?: boolean }) {
   const color = safeColor(pointColor(s));
@@ -63,7 +94,7 @@ function markerIcon(s: SpawnPoint, opts: { selected?: boolean; num?: number; dra
   });
 }
 
-export default function SpawnMap({ spawns, breeds, perms }: SpawnMapProps) {
+export default function SpawnMap({ spawns, breeds, perms, noteNames }: SpawnMapProps) {
   const router = useRouter();
   const wrapRef = useRef<HTMLDivElement>(null);
   const elRef = useRef<HTMLDivElement>(null);
@@ -72,9 +103,11 @@ export default function SpawnMap({ spawns, breeds, perms }: SpawnMapProps) {
   const routeRef = useRef<L.LayerGroup | null>(null);
   const tempRef = useRef<L.Marker | null>(null);
   const options = useMemo(() => buildHorseOptions(breeds, true), [breeds]);
-  const [filters, setFilters] = useState<HorseOption[]>([]);
-  const [kinds, setKinds] = useState<Kind[]>(["CAVALLO", "POSSIBILE", "NOTA"]);
-  const [labels, setLabels] = useState(true);
+  const [f, setF] = useState<Filters>(DEFAULT_FILTERS);
+  const [presets, setPresets] = useState<Preset[]>([]);
+  const [showFilters, setShowFilters] = useState(false); // pannello filtri sopra la mappa a schermo intero
+  const [catOpen, setCatOpen] = useState(false);
+  const loadedRef = useRef(false);
   const [adding, setAdding] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [full, setFull] = useState(false);
@@ -86,23 +119,34 @@ export default function SpawnMap({ spawns, breeds, perms }: SpawnMapProps) {
   addingRef.current = adding;
   const autoFitRef = useRef(true);
 
-  const visible = useMemo(
-    () =>
-      spawns.filter((s) => {
-        if (!kinds.includes(s.kind)) return false;
-        if (filters.length === 0 || s.kind === "NOTA") return true;
-        return filters.some((f) => (f.coatId ? s.coatId === f.coatId : s.breedId === f.breedId));
-      }),
-    [spawns, filters, kinds],
-  );
-  const groups = useMemo(() => {
-    const m = new Map<string, SpawnPoint[]>();
-    for (const s of visible) {
-      const k = s.kind === "NOTA" ? "📌 Note" : s.kind === "POSSIBILE" ? "? Possibili cavalli" : s.breed ?? "Razza sconosciuta";
-      m.set(k, [...(m.get(k) ?? []), s]);
-    }
-    return [...m.entries()].sort((a, b) => (a[0].startsWith("📌") ? -1 : b[0].startsWith("📌") ? 1 : a[0].startsWith("?") ? -1 : b[0].startsWith("?") ? 1 : a[0].localeCompare(b[0])));
-  }, [visible]);
+  // Filtri salvati nel browser: alla prossima apertura la mappa è come l'hai lasciata
+  useEffect(() => {
+    try {
+      const v = JSON.parse(localStorage.getItem(STORE) || "null");
+      if (v && typeof v === "object") {
+        setF({ sel: strArr(v.sel), notes: strArr(v.notes), kinds: Array.isArray(v.kinds) ? kindArr(v.kinds) : ALL_KINDS, mine: v.mine === true, labels: v.labels !== false });
+      }
+      const ps = JSON.parse(localStorage.getItem(STORE_PRESETS) || "[]");
+      if (Array.isArray(ps)) {
+        setPresets(ps.filter((x) => x && typeof x.name === "string").slice(0, 20).map((x) => ({ name: String(x.name).slice(0, 30), sel: strArr(x.sel), notes: strArr(x.notes), kinds: Array.isArray(x.kinds) ? kindArr(x.kinds) : ALL_KINDS, mine: x.mine === true })));
+      }
+    } catch {}
+    loadedRef.current = true;
+  }, []);
+  useEffect(() => {
+    if (!loadedRef.current) return;
+    try { localStorage.setItem(STORE, JSON.stringify(f)); } catch {}
+  }, [f]);
+  const savePresets = (next: Preset[]) => {
+    setPresets(next);
+    try { localStorage.setItem(STORE_PRESETS, JSON.stringify(next)); } catch {}
+  };
+
+  const visible = useMemo(() => {
+    const coatBreed = new Map(options.filter((o) => o.coatId != null).map((o) => [`c:${o.coatId}`, o.breedId]));
+    const breedsWithSelCoat = new Set(f.sel.map((k) => coatBreed.get(k)).filter((b): b is number => b != null));
+    return spawns.filter((s) => isVisible(s, f, breedsWithSelCoat));
+  }, [spawns, f, options]);
 
   useEffect(() => {
     if (!elRef.current || mapRef.current) return;
@@ -154,7 +198,7 @@ export default function SpawnMap({ spawns, breeds, perms }: SpawnMapProps) {
         icon: markerIcon(s, { selected: selected?.id === s.id, num: routeIdx >= 0 ? routeIdx + 1 : undefined, draggable }),
         draggable, title: label(s), keyboard: true, riseOnHover: true,
       });
-      if (labels) m.bindTooltip(esc(label(s)), { permanent: true, direction: "right", offset: [14, 0], className: "spawn-label" });
+      if (f.labels) m.bindTooltip(esc(label(s)), { permanent: true, direction: "right", offset: [14, 0], className: "spawn-label" });
       m.on("click", () => setSelected(s));
       m.on("dragend", async () => {
         const p = m.getLatLng();
@@ -163,7 +207,7 @@ export default function SpawnMap({ spawns, breeds, perms }: SpawnMapProps) {
       });
       m.addTo(layer);
     }
-  }, [visible, labels, selected, editMode, perms.manage, routeIds, router]);
+  }, [visible, f.labels, selected, editMode, perms.manage, routeIds, router]);
 
   // Percorso
   useEffect(() => {
@@ -221,32 +265,25 @@ export default function SpawnMap({ spawns, breeds, perms }: SpawnMapProps) {
   }, [full]);
 
   const toggleRoute = (id: number) => setRouteIds((r) => (r.includes(id) ? r.filter((x) => x !== id) : [...r, id]));
-  const focus = (s: SpawnPoint) => { setSelected(s); mapRef.current?.setView([s.y, s.x], 1); };
-  const toggleKind = (k: Kind) => setKinds((ks) => (ks.includes(k) ? ks.filter((x) => x !== k) : [...ks, k]));
+  const focus = (s: SpawnPoint) => { setSelected(s); mapRef.current?.setView([s.y, s.x], Math.max(mapRef.current.getZoom(), 1)); };
+  const addSel = (key: string) => setF((x) => (x.sel.includes(key) ? x : { ...x, sel: [...x.sel, key] }));
+  const filtering = f.sel.length > 0 || f.notes.length > 0 || f.mine || f.kinds.length < ALL_KINDS.length;
+  const resetFilters = () => setF((x) => ({ ...DEFAULT_FILTERS, labels: x.labels }));
+
+  const panelProps = {
+    spawns, visible, f, setF, presets, savePresets, options, routeIds, toggleRoute, focus, noteNames,
+    canManage: perms.manage, onEditCategories: () => setCatOpen(true),
+    selectedId: selected?.id ?? null, filtering, resetFilters,
+    onRouteAll: () => setRouteIds(visible.map((s) => s.id)),
+  };
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[1fr_340px]">
+    <div className="grid gap-4 xl:grid-cols-[1fr_360px]">
       <div className="min-w-0 space-y-3">
         <div className="card flex flex-wrap items-start gap-2 p-3">
           <div className="min-w-[220px] flex-1">
-            <HorsePicker options={options} breedName={null} coatName={null} placeholder="Filtra cavalli: aggiungi razze o manti…" clearOnSelect
-              onChange={(o) => o && setFilters((f) => (f.some((x) => x.key === o.key) ? f : [...f, o]))} />
-            {filters.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {filters.map((f) => (
-                  <button key={f.key} type="button" className="chip" aria-pressed="true" onClick={() => setFilters((x) => x.filter((y) => y.key !== f.key))} aria-label={`Rimuovi filtro ${f.breed} ${f.coat ?? ""}`}>
-                    {f.breed}{f.coat ? ` · ${f.coat}` : ""} <X size={14} />
-                  </button>
-                ))}
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setFilters([])}>Togli filtri</button>
-              </div>
-            )}
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {(Object.keys(KIND_LABEL) as Kind[]).map((k) => (
-              <button key={k} type="button" className="chip" aria-pressed={kinds.includes(k)} onClick={() => toggleKind(k)}>{KIND_LABEL[k]}</button>
-            ))}
-            <button type="button" className="chip" aria-pressed={labels} onClick={() => setLabels((v) => !v)}>Nomi</button>
+            <HorsePicker options={options} breedName={null} coatName={null} placeholder="Mostra solo… cerca razza o manto" clearOnSelect
+              onChange={(o) => o && addSel(o.key)} />
           </div>
           <div className="flex w-full flex-wrap gap-2 sm:w-auto">
             {perms.manage && (
@@ -260,6 +297,7 @@ export default function SpawnMap({ spawns, breeds, perms }: SpawnMapProps) {
               </button>
             )}
           </div>
+          <ActiveFilters {...panelProps} />
         </div>
 
         {/* isolate: i livelli interni di Leaflet non possono più coprire menu e finestre */}
@@ -279,6 +317,12 @@ export default function SpawnMap({ spawns, breeds, perms }: SpawnMapProps) {
             <button type="button" onClick={toggleFull} className="btn btn-icon bg-[#0b0a09]/85 !text-white hover:bg-[#0b0a09]" aria-label={full ? "Esci da schermo intero" : "Schermo intero"} title={full ? "Esci da schermo intero" : "Schermo intero"}>
               {full ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
             </button>
+            {full && (
+              <button type="button" onClick={() => setShowFilters((v) => !v)} aria-pressed={showFilters} className={clsx("btn btn-icon relative !text-white", showFilters ? "bg-[#c8161d] hover:bg-[#e01f27]" : "bg-[#0b0a09]/85 hover:bg-[#0b0a09]")} aria-label="Filtri" title="Filtri">
+                <SlidersHorizontal size={18} />
+                {filtering && !showFilters && <span className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-[#ff5d55] ring-2 ring-[#0b0a09]" />}
+              </button>
+            )}
             <button type="button" onClick={() => { autoFitRef.current = true; mapRef.current?.fitBounds([[0, 0], [H, W]], { padding: [8, 8] }); }} className="btn btn-icon bg-[#0b0a09]/85 !text-white hover:bg-[#0b0a09]" aria-label="Mostra tutta la mappa" title="Mostra tutta la mappa">
               <LocateFixed size={18} />
             </button>
@@ -287,8 +331,13 @@ export default function SpawnMap({ spawns, breeds, perms }: SpawnMapProps) {
           <div className={clsx("w-full", full ? "h-dvh" : "h-[62dvh] min-h-[340px] sm:h-[72dvh]")}>
             <div ref={elRef} className="h-full w-full" />
           </div>
+          {full && showFilters && (
+            <div className="absolute top-2 bottom-2 left-2 z-[500] flex w-[min(360px,calc(100%-4.5rem))]">
+              <FilterPanel {...panelProps} className="h-full w-full" onClose={() => setShowFilters(false)} />
+            </div>
+          )}
           {full && selected && (
-            <div className="absolute bottom-2 left-2 right-16 z-[500] sm:right-auto sm:w-[360px]">
+            <div className={clsx("absolute bottom-2 z-[500]", showFilters ? "right-16 hidden w-[340px] lg:block" : "left-2 right-16 sm:right-auto sm:w-[360px]")}>
               <PointCard s={selected} perms={perms} inRoute={routeIds.includes(selected.id)} onRoute={() => toggleRoute(selected.id)} onEdit={() => setEditing(selected)} onClose={() => setSelected(null)} />
             </div>
           )}
@@ -304,53 +353,368 @@ export default function SpawnMap({ spawns, breeds, perms }: SpawnMapProps) {
           <div className="card card-pad">
             <div className="mb-2 flex items-center justify-between"><h3 className="eyebrow">Percorso · {routeIds.length} tappe</h3><button className="btn btn-ghost btn-sm" onClick={() => setRouteIds([])}>Cancella</button></div>
             <ol className="space-y-1 text-[14px]">
-              {routeIds.map((id, i) => { const s = spawns.find((x) => x.id === id); return s ? <li key={id}><b className="mr-1.5 text-accent-text">{i + 1}.</b>{label(s)}{s.location ? <span className="text-fg-3"> — {s.location}</span> : null}</li> : null; })}
+              {routeIds.map((id, i) => { const s = spawns.find((x) => x.id === id); return s ? <li key={id} className="flex items-start gap-1.5"><b className="text-accent-text">{i + 1}.</b><span className="min-w-0 flex-1">{label(s)}{s.location ? <span className="text-fg-3"> — {s.location}</span> : null}</span><button className="btn btn-ghost btn-icon btn-sm -my-1" onClick={() => toggleRoute(id)} aria-label={`Togli dal percorso: ${label(s)}`}><X size={14} /></button></li> : null; })}
             </ol>
           </div>
         )}
 
-        <div className="card max-h-[60dvh] overflow-y-auto">
-          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-surface px-4 py-3">
-            <h3 className="eyebrow">Punti sulla mappa · {visible.length}</h3>
-            {visible.length > 0 && <button className="btn btn-ghost btn-sm" onClick={() => setRouteIds(visible.map((s) => s.id))} title="Usa tutti i punti visibili come percorso"><Route size={15} /> Tutti</button>}
-          </div>
-          {groups.length === 0 ? <p className="p-4 text-fg-3">Nessun punto.</p> : groups.map(([name, items]) => (
-            <details key={name} open className="border-b border-border last:border-0">
-              <summary className="flex cursor-pointer items-center gap-2 px-4 py-2.5 font-semibold">
-                <span className="inline-block size-2.5 shrink-0 rounded-full" style={{ background: safeColor(pointColor(items[0])) }} />
-                <span className="truncate">{name.replace(/^📌 |^\? /, "")}</span>
-                <span className="ml-auto text-[13px] font-normal text-fg-3">{items.length}</span>
-              </summary>
-              <ul className="pb-2">
-                {items.map((s) => (
-                  <li key={s.id} className={clsx("flex items-center gap-2 px-4 py-1.5", selected?.id === s.id && "bg-surface-3")}>
-                    <input type="checkbox" checked={routeIds.includes(s.id)} onChange={() => toggleRoute(s.id)} aria-label={`Percorso: ${label(s)}`} />
-                    {s.kind === "NOTA" && <span className="inline-block size-2.5 shrink-0 rounded-full" style={{ background: safeColor(pointColor(s)) }} />}
-                    <button className="min-w-0 flex-1 text-left" onClick={() => focus(s)}>
-                      <span className="block truncate text-[14px]">{s.kind === "NOTA" ? s.title : s.kind === "POSSIBILE" ? (s.breed ? `${s.breed}${s.coat ? " · " + s.coat : ""}` : "Da verificare") : s.coat ?? "Manto vario"}</span>
-                      {s.location && <span className="block truncate text-[12.5px] text-fg-3">{s.location}</span>}
-                    </button>
-                    {routeIds.includes(s.id) && <span className="badge badge-solid-accent">{routeIds.indexOf(s.id) + 1}</span>}
-                  </li>
-                ))}
-              </ul>
-            </details>
-          ))}
-        </div>
+        {!full && <FilterPanel {...panelProps} className="max-h-[78dvh]" />}
 
         <div className="card card-pad text-[13px] text-fg-2">
           <h3 className="eyebrow mb-2">Legenda</h3>
           <ul className="space-y-1.5">
             <li className="flex items-center gap-2"><Legend kind="CAVALLO" /> Cavallo avvistato (colore della razza)</li>
             <li className="flex items-center gap-2"><Legend kind="POSSIBILE" /> Possibile cavallo da verificare</li>
-            <li className="flex items-center gap-2"><Legend kind="NOTA" /> Nota libera (colore a scelta)</li>
+            <li className="flex items-center gap-2"><Legend kind="NOTA" /> Nota libera: il colore fa da categoria (es. rosso = pericolo)</li>
           </ul>
         </div>
       </aside>
 
-      <PointFormModal open={!!draft} title="Nuovo punto" options={options} point={draft} action={createSpawn} onClose={() => setDraft(null)} onDone={() => { setAdding(false); router.refresh(); }} />
-      <PointFormModal open={!!editing} title="Modifica punto" options={options} point={editing ? { x: editing.x, y: editing.y } : null} initial={editing ?? undefined} action={updateSpawn} onClose={() => setEditing(null)} onDone={() => setEditing(null)} />
+      <CategoriesModal open={catOpen} onClose={() => setCatOpen(false)} names={noteNames} />
+      <PointFormModal open={!!draft} title="Nuovo punto" noteNames={noteNames} options={options} point={draft} action={createSpawn} onClose={() => setDraft(null)} onDone={() => { setAdding(false); router.refresh(); }} />
+      <PointFormModal open={!!editing} title="Modifica punto" noteNames={noteNames} options={options} point={editing ? { x: editing.x, y: editing.y } : null} initial={editing ?? undefined} action={updateSpawn} onClose={() => setEditing(null)} onDone={() => setEditing(null)} />
     </div>
+  );
+}
+
+/* ───────── Pannello filtri (stile rdr2map, adattato al roleplay) ───────── */
+
+type PanelProps = {
+  spawns: SpawnPoint[]; visible: SpawnPoint[]; f: Filters; setF: React.Dispatch<React.SetStateAction<Filters>>;
+  presets: Preset[]; savePresets: (p: Preset[]) => void; options: HorseOption[]; noteNames: Record<string, string>;
+  canManage: boolean; onEditCategories: () => void;
+  routeIds: number[]; toggleRoute: (id: number) => void; focus: (s: SpawnPoint) => void; selectedId: number | null;
+  filtering: boolean; resetFilters: () => void; onRouteAll: () => void;
+};
+
+function keyLabel(key: string, options: HorseOption[]) {
+  if (key === "b:none") return "Razza sconosciuta";
+  if (key === "p:none") return "Possibili da verificare";
+  const o = options.find((x) => x.key === key);
+  return o ? (o.coat ? `${o.breed} · ${o.coat}` : o.breed) : "?";
+}
+
+/** Riepilogo dei filtri attivi sopra la mappa (utile soprattutto su telefono, dove il pannello è sotto). */
+function ActiveFilters({ f, setF, options, visible, spawns, filtering, resetFilters, noteNames }: PanelProps) {
+  if (!filtering) return null;
+  const hiddenKinds = ALL_KINDS.filter((k) => !f.kinds.includes(k));
+  return (
+    <div className="flex w-full flex-wrap items-center gap-1.5 border-t border-border pt-2">
+      <span className="mr-1 text-[13px] font-semibold text-fg-2">Vedi {visible.length} di {spawns.length}:</span>
+      {f.sel.map((k) => (
+        <button key={k} type="button" className="chip" aria-pressed="true" onClick={() => setF((x) => ({ ...x, sel: x.sel.filter((y) => y !== k) }))} aria-label={`Togli filtro ${keyLabel(k, options)}`}>
+          {keyLabel(k, options)} <X size={14} />
+        </button>
+      ))}
+      {f.notes.map((c) => (
+        <button key={c} type="button" className="chip" aria-pressed="true" onClick={() => setF((x) => ({ ...x, notes: x.notes.filter((y) => y !== c) }))} aria-label="Togli filtro colore nota">
+          <span className="inline-block size-3 rounded-full ring-1 ring-white/60" style={{ background: c }} /> {noteColorName(noteNames, c)} <X size={14} />
+        </button>
+      ))}
+      {f.mine && <button type="button" className="chip" aria-pressed="true" onClick={() => setF((x) => ({ ...x, mine: false }))}>Solo i miei <X size={14} /></button>}
+      {hiddenKinds.map((k) => (
+        <button key={k} type="button" className="chip" onClick={() => setF((x) => ({ ...x, kinds: [...x.kinds, k] }))} title="Tocca per mostrarli di nuovo">
+          <EyeOff size={14} /> {KIND_LABEL[k]} nascosti
+        </button>
+      ))}
+      <button type="button" className="btn btn-ghost btn-sm" onClick={resetFilters}>Mostra tutto</button>
+    </div>
+  );
+}
+
+type RowState = "sel" | "inherit" | "off" | "neutral";
+
+function FilterRow({ state, onToggle, lead, name, sub, count, expanded, onExpand, title }: {
+  state: RowState; onToggle: () => void; lead: React.ReactNode; name: string; sub?: string; count: number;
+  expanded?: boolean; onExpand?: () => void; title: string;
+}) {
+  return (
+    <div className={clsx("group flex items-stretch border-l-[3px] transition-colors", state === "sel" ? "border-accent bg-accent-soft" : "border-transparent hover:bg-surface-3", state === "off" && "opacity-55 hover:opacity-100")}>
+      <button type="button" onClick={onToggle} aria-pressed={state === "sel"} title={title} className="flex min-h-11 min-w-0 flex-1 items-center gap-2.5 py-1.5 pr-1 pl-3 text-left">
+        {lead}
+        <span className="min-w-0 flex-1">
+          <span className={clsx("block truncate text-[14.5px]", state === "sel" ? "font-semibold text-fg" : "font-medium")}>{name}</span>
+          {sub && <span className="block truncate text-[12.5px] text-fg-3">{sub}</span>}
+        </span>
+        <span className="shrink-0 text-[13px] text-fg-3 tabular-nums">{count}</span>
+        <span className="flex w-5 shrink-0 justify-center" aria-hidden="true">
+          {state === "sel" ? <Check size={17} className="text-accent-text" strokeWidth={3} /> : state === "inherit" ? <Check size={16} className="text-fg-3" /> : state === "off" ? <EyeOff size={15} className="text-fg-3" /> : null}
+        </span>
+      </button>
+      {onExpand && (
+        <button type="button" onClick={onExpand} aria-expanded={expanded} aria-label={expanded ? `Chiudi ${name}` : `Apri ${name}: manti e punti`} className="flex w-10 shrink-0 items-center justify-center text-fg-3 hover:text-fg">
+          <ChevronRight size={18} className={clsx("transition-transform", expanded && "rotate-90")} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+function PointRow({ s, text, routeIds, toggleRoute, focus, selectedId }: { s: SpawnPoint; text: string } & Pick<PanelProps, "routeIds" | "toggleRoute" | "focus" | "selectedId">) {
+  const idx = routeIds.indexOf(s.id);
+  return (
+    <li className={clsx("flex items-center gap-1 py-0.5 pr-2 pl-9", selectedId === s.id && "bg-surface-3")}>
+      <button type="button" className="min-w-0 flex-1 py-1 text-left" onClick={() => focus(s)} title="Mostra sulla mappa">
+        <span className="block truncate text-[13.5px]">{s.location || text}</span>
+        <span className="block truncate text-[12px] text-fg-3">{s.location ? `${text} · ` : ""}{s.author} · {s.createdAt}</span>
+      </button>
+      {idx >= 0 && <span className="badge badge-solid-accent">{idx + 1}</span>}
+      <button type="button" onClick={() => toggleRoute(s.id)} aria-pressed={idx >= 0} className={clsx("btn btn-icon btn-sm", idx >= 0 ? "btn-secondary !text-accent-text" : "btn-ghost text-fg-3")}
+        aria-label={idx >= 0 ? `Togli dal percorso: ${text}` : `Aggiungi al percorso: ${text}`} title={idx >= 0 ? "Togli dal percorso" : "Aggiungi al percorso"}>
+        <Route size={15} />
+      </button>
+    </li>
+  );
+}
+
+function FilterPanel(props: PanelProps & { className?: string; onClose?: () => void }) {
+  const { spawns, visible, f, setF, presets, savePresets, routeIds, toggleRoute, focus, selectedId, filtering, resetFilters, onRouteAll, className, onClose, noteNames, canManage, onEditCategories } = props;
+  const [q, setQ] = useState("");
+  const [open, setOpen] = useState<Set<string>>(new Set());
+  const [naming, setNaming] = useState(false);
+  const [presetName, setPresetName] = useState("");
+  const rowProps = { routeIds, toggleRoute, focus, selectedId };
+
+  // Albero razze → manti → punti (tutti i punti, così si possono attivare anche quelli nascosti)
+  const tree = useMemo(() => {
+    type CoatNode = { key: string; name: string; image: string | null; points: SpawnPoint[] };
+    type BreedNode = { key: string; breedId: number | null; name: string; points: SpawnPoint[]; coats: Map<string, CoatNode>; loose: SpawnPoint[] };
+    const breeds = new Map<string, BreedNode>();
+    const unknown: SpawnPoint[] = [];
+    const notes = new Map<string, SpawnPoint[]>();
+    for (const s of spawns) {
+      if (f.mine && !s.mine) continue;
+      if (s.kind === "NOTA") { const c = noteColor(s); notes.set(c, [...(notes.get(c) ?? []), s]); continue; }
+      const key = horseKey(s);
+      if (key === "p:none") { unknown.push(s); continue; }
+      let b = breeds.get(key);
+      if (!b) { b = { key, breedId: s.breedId, name: s.breed ?? "Razza sconosciuta", points: [], coats: new Map(), loose: [] }; breeds.set(key, b); }
+      b.points.push(s);
+      if (s.coatId != null) {
+        const ck = `c:${s.coatId}`;
+        const c = b.coats.get(ck) ?? { key: ck, name: s.coat ?? "?", image: s.image, points: [] };
+        c.points.push(s);
+        b.coats.set(ck, c);
+      } else b.loose.push(s);
+    }
+    const list = [...breeds.values()].sort((a, b) => a.name.localeCompare(b.name)).map((b) => ({ ...b, coatList: [...b.coats.values()].sort((x, y) => x.name.localeCompare(y.name)) }));
+    const noteList = [...notes.entries()].map(([color, points]) => ({ color, points })).sort((a, b) => NOTE_COLORS.indexOf(a.color) - NOTE_COLORS.indexOf(b.color));
+    return { list, unknown, noteList };
+  }, [spawns, f.mine]);
+
+  const ql = q.trim();
+  const matchText = (t: string | null | undefined) => !!t && matchHorse({ breed: t, coat: null }, ql);
+  const pointMatch = (s: SpawnPoint) => !ql || matchText(s.location) || matchText(s.title) || matchText(s.description);
+  const isOpen = (k: string) => open.has(k) || !!ql;
+  const toggleOpen = (k: string) => setOpen((o) => { const n = new Set(o); if (n.has(k)) n.delete(k); else n.add(k); return n; });
+
+  const stateOf = (key: string, parent?: string): RowState => {
+    if (f.sel.includes(key)) return "sel";
+    if (parent && f.sel.includes(parent)) return "inherit";
+    return f.sel.length ? "off" : "neutral";
+  };
+  const toggleBreed = (key: string, coatKeys: string[]) =>
+    setF((x) => (x.sel.includes(key) ? { ...x, sel: x.sel.filter((k) => k !== key) } : { ...x, sel: [...x.sel.filter((k) => !coatKeys.includes(k)), key] }));
+  const toggleCoat = (key: string, breedKey: string) =>
+    setF((x) => {
+      if (x.sel.includes(key)) return { ...x, sel: x.sel.filter((k) => k !== key) };
+      // razza intera già scelta: si passa a "solo questo manto"
+      return { ...x, sel: [...x.sel.filter((k) => k !== breedKey), key] };
+    });
+  const noteState = (c: string): RowState => (f.notes.includes(c) ? "sel" : f.notes.length ? "off" : "neutral");
+  const toggleNote = (c: string) => setF((x) => ({ ...x, notes: x.notes.includes(c) ? x.notes.filter((y) => y !== c) : [...x.notes, c] }));
+  const toggleKind = (k: Kind) => setF((x) => ({ ...x, kinds: x.kinds.includes(k) ? x.kinds.filter((y) => y !== k) : [...x.kinds, k] }));
+
+  const savePreset = () => {
+    const name = presetName.trim().slice(0, 30);
+    if (!name) return;
+    const p: Preset = { name, sel: f.sel, notes: f.notes, kinds: f.kinds, mine: f.mine };
+    savePresets([...presets.filter((x) => x.name !== name), p].slice(-20));
+    setPresetName("");
+    setNaming(false);
+    toast.success(`Filtro “${name}” salvato.`);
+  };
+  const applyPreset = (p: Preset) => setF((x) => ({ ...x, sel: p.sel, notes: p.notes, kinds: p.kinds.length ? p.kinds : ALL_KINDS, mine: p.mine }));
+
+  const breeds = tree.list.filter((b) => !ql || matchText(b.name) || b.coatList.some((c) => matchText(c.name)) || b.points.some(pointMatch));
+  const notes = tree.noteList.map((n) => ({ ...n, shown: n.points.filter(pointMatch) })).filter((n) => !ql || n.shown.length);
+  const unknownShown = tree.unknown.filter(pointMatch);
+  const horsesOff = !f.kinds.includes("CAVALLO") && !f.kinds.includes("POSSIBILE");
+
+  return (
+    <div className={clsx("card flex min-h-0 flex-col overflow-hidden", className)}>
+      <div className="space-y-2.5 border-b border-border p-3">
+        <div className="flex items-center gap-2">
+          <SlidersHorizontal size={17} className="shrink-0 text-fg-3" aria-hidden="true" />
+          <h3 className="eyebrow flex-1">Filtri · {visible.length} di {spawns.length} visibili</h3>
+          {filtering && <button type="button" className="btn btn-ghost btn-sm" onClick={resetFilters}>Mostra tutto</button>}
+          {onClose && <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={onClose} aria-label="Chiudi filtri"><X size={16} /></button>}
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {ALL_KINDS.map((k) => (
+            <button key={k} type="button" className="chip" aria-pressed={f.kinds.includes(k)} onClick={() => toggleKind(k)}>{KIND_LABEL[k]}</button>
+          ))}
+          <button type="button" className="chip" aria-pressed={f.mine} onClick={() => setF((x) => ({ ...x, mine: !x.mine }))}>Solo i miei</button>
+          <button type="button" className="chip" aria-pressed={f.labels} onClick={() => setF((x) => ({ ...x, labels: !x.labels }))}>Nomi</button>
+        </div>
+        <label className="input flex items-center gap-2 !py-1.5">
+          <Search size={16} className="shrink-0 text-fg-3" aria-hidden="true" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cerca nell'elenco: razza, manto, luogo…" className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-fg-3 focus-visible:!outline-none" aria-label="Cerca nell'elenco" />
+          {q && <button type="button" onClick={() => setQ("")} aria-label="Svuota ricerca" className="text-fg-3 hover:text-fg"><X size={15} /></button>}
+        </label>
+        {(presets.length > 0 || filtering) && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {presets.map((p) => (
+              <span key={p.name} className="inline-flex items-center rounded-full border border-border-strong bg-surface text-[13px]">
+                <button type="button" onClick={() => applyPreset(p)} className="inline-flex min-h-8 items-center gap-1.5 pr-1 pl-3 font-medium text-fg-2 hover:text-fg" title="Applica questo filtro">
+                  <Bookmark size={13} /> {p.name}
+                </button>
+                <button type="button" onClick={() => savePresets(presets.filter((x) => x !== p))} className="flex min-h-8 items-center px-2 text-fg-3 hover:text-fg" aria-label={`Elimina filtro salvato ${p.name}`}><X size={13} /></button>
+              </span>
+            ))}
+            {filtering && !naming && (
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setNaming(true)}><Save size={14} /> Salva filtro</button>
+            )}
+          </div>
+        )}
+        {naming && (
+          <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); savePreset(); }}>
+            <input autoFocus value={presetName} onChange={(e) => setPresetName(e.target.value)} maxLength={30} placeholder="Nome, es. Arabi del nord" className="input !min-h-9 flex-1" aria-label="Nome del filtro" />
+            <button className="btn btn-primary btn-sm" disabled={!presetName.trim()}>Salva</button>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setNaming(false)}>Annulla</button>
+          </form>
+        )}
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <p className="px-3 pt-2.5 pb-1.5 text-[12.5px] leading-snug text-fg-3">
+          {f.sel.length || f.notes.length
+            ? "Sulla mappa vedi solo gli elementi evidenziati. Tocca per aggiungerne o toglierne."
+            : <>Tocca una razza, un manto o un colore per vedere <b className="text-fg-2">solo quello</b>. Con <Route size={12} className="inline align-[-1px]" /> aggiungi un punto al percorso.</>}
+        </p>
+
+        {spawns.length === 0 && <p className="p-4 text-fg-3">Nessun punto sulla mappa.</p>}
+
+        {breeds.length > 0 && (
+          <section aria-label="Cavalli per razza" className={clsx(horsesOff && "opacity-50")}>
+            <h4 className="eyebrow px-3 pt-2 pb-1">Cavalli {horsesOff && "· nascosti"}</h4>
+            {breeds.map((b) => {
+              const coatKeys = b.coatList.map((c) => c.key);
+              const st = stateOf(b.key);
+              const color = safeColor(breedColor(b.breedId));
+              return (
+                <div key={b.key}>
+                  <FilterRow
+                    state={st === "off" && coatKeys.some((k) => f.sel.includes(k)) ? "inherit" : st}
+                    onToggle={() => toggleBreed(b.key, coatKeys)}
+                    title={st === "sel" ? "Togli dal filtro" : "Mostra solo questa razza"}
+                    lead={<span className="inline-block size-3 shrink-0 rounded-full ring-2 ring-white/70" style={{ background: color }} />}
+                    name={b.name}
+                    sub={b.coatList.length ? `${b.coatList.length} ${b.coatList.length === 1 ? "manto" : "manti"}` : undefined}
+                    count={b.points.length}
+                    expanded={isOpen(b.key)}
+                    onExpand={() => toggleOpen(b.key)}
+                  />
+                  {isOpen(b.key) && (
+                    <div className="border-l-[3px] border-transparent pb-1">
+                      {b.coatList.filter((c) => !ql || matchText(b.name) || matchText(c.name) || c.points.some(pointMatch)).map((c) => (
+                        <div key={c.key} className="pl-4">
+                          <FilterRow
+                            state={stateOf(c.key, b.key)}
+                            onToggle={() => toggleCoat(c.key, b.key)}
+                            title={f.sel.includes(c.key) ? "Togli dal filtro" : "Mostra solo questo manto"}
+                            lead={<HorseThumb src={c.image} size={30} />}
+                            name={c.name}
+                            count={c.points.length}
+                          />
+                          <ul>{c.points.filter((s) => !ql || matchText(b.name) || matchText(c.name) || pointMatch(s)).map((s) => <PointRow key={s.id} s={s} text={s.kind === "POSSIBILE" ? `Possibile · ${c.name}` : c.name} {...rowProps} />)}</ul>
+                        </div>
+                      ))}
+                      {b.loose.length > 0 && (
+                        <ul className="pl-4">{b.loose.filter((s) => !ql || matchText(b.name) || pointMatch(s)).map((s) => <PointRow key={s.id} s={s} text={s.kind === "POSSIBILE" ? "Possibile · manto da verificare" : "Tutti i manti"} {...rowProps} />)}</ul>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </section>
+        )}
+
+        {tree.unknown.length > 0 && (!ql || unknownShown.length > 0) && (
+          <section aria-label="Possibili cavalli da verificare" className={clsx(!f.kinds.includes("POSSIBILE") && "opacity-50")}>
+            <h4 className="eyebrow px-3 pt-3 pb-1">Possibili {!f.kinds.includes("POSSIBILE") && "· nascosti"}</h4>
+            <FilterRow
+              state={stateOf("p:none")}
+              onToggle={() => setF((x) => ({ ...x, sel: x.sel.includes("p:none") ? x.sel.filter((k) => k !== "p:none") : [...x.sel, "p:none"] }))}
+              title="Mostra solo i possibili cavalli da verificare"
+              lead={<span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-dashed border-white/80 bg-[#78716c] text-[11px] font-extrabold text-white">?</span>}
+              name="Da verificare"
+              count={tree.unknown.length}
+              expanded={isOpen("p:none")}
+              onExpand={() => toggleOpen("p:none")}
+            />
+            {isOpen("p:none") && <ul className="pb-1">{unknownShown.map((s) => <PointRow key={s.id} s={s} text="Possibile cavallo" {...rowProps} />)}</ul>}
+          </section>
+        )}
+
+        {notes.length > 0 && (
+          <section aria-label="Note per colore" className={clsx(!f.kinds.includes("NOTA") && "opacity-50")}>
+            <div className="flex items-center justify-between px-3 pt-3 pb-1">
+              <h4 className="eyebrow">Note per categoria {!f.kinds.includes("NOTA") && "· nascoste"}</h4>
+              {canManage && <button type="button" className="btn btn-ghost btn-sm -my-1" onClick={onEditCategories}>Rinomina</button>}
+            </div>
+            {notes.map((n) => {
+              const k = "n:" + n.color;
+              return (
+                <div key={n.color}>
+                  <FilterRow
+                    state={noteState(n.color)}
+                    onToggle={() => toggleNote(n.color)}
+                    title="Mostra solo le note di questo colore"
+                    lead={<span className="inline-block size-3.5 shrink-0 rounded-full ring-2 ring-white/70" style={{ background: n.color }} />}
+                    name={noteColorName(noteNames, n.color)}
+                    sub={n.points.map((p) => p.title).filter(Boolean).slice(0, 3).join(", ") + (n.points.length > 3 ? "…" : "")}
+                    count={n.points.length}
+                    expanded={isOpen(k)}
+                    onExpand={() => toggleOpen(k)}
+                  />
+                  {isOpen(k) && <ul className="pb-1">{n.shown.map((s) => <PointRow key={s.id} s={s} text={s.title ?? "Nota"} {...rowProps} />)}</ul>}
+                </div>
+              );
+            })}
+          </section>
+        )}
+        {ql && breeds.length === 0 && notes.length === 0 && unknownShown.length === 0 && <p className="p-4 text-fg-3">Niente trovato per “{q}”.</p>}
+        <div className="h-2" />
+      </div>
+
+      {visible.length > 1 && (
+        <div className="border-t border-border p-2">
+          <button type="button" className="btn btn-ghost btn-sm w-full" onClick={onRouteAll} title="Crea un percorso che tocca tutti i punti visibili, nell'ordine dell'elenco">
+            <Route size={15} /> Percorso con i {visible.length} punti visibili
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CategoriesModal({ open, onClose, names }: { open: boolean; onClose: () => void; names: Record<string, string> }) {
+  const router = useRouter();
+  return (
+    <Modal open={open} onClose={onClose} title="Categorie delle note">
+      <ActionForm action={saveNoteNames} onSuccess={() => { onClose(); router.refresh(); }} className="space-y-3">
+        <p className="text-[14px] text-fg-2">Dai un nome a ogni colore, per esempio <b>Pericolo</b>, <b>Accampamento</b>, <b>Abbeveratoio</b>. Lo vedranno tutti nei filtri e quando creano una nota. Lascia vuoto per usare il nome del colore.</p>
+        {NOTE_COLORS.map((c, i) => (
+          <label key={c} className="flex items-center gap-3">
+            <span className="inline-block size-7 shrink-0 rounded-full ring-2 ring-white/70" style={{ background: c }} aria-hidden="true" />
+            <input name={"n" + c.slice(1)} defaultValue={names[c] ?? ""} maxLength={24} placeholder={NOTE_COLOR_DEFAULT_NAMES[i]} className="input flex-1" aria-label={`Nome per il colore ${NOTE_COLOR_DEFAULT_NAMES[i]}`} />
+          </label>
+        ))}
+        <button className="btn btn-primary w-full">Salva categorie</button>
+      </ActionForm>
+    </Modal>
   );
 }
 
@@ -386,8 +750,8 @@ function PointCard({ s, perms, inRoute, onRoute, onEdit, onClose }: { s: SpawnPo
   );
 }
 
-function PointFormModal({ open, title, options, point, initial, action, onClose, onDone }: {
-  open: boolean; title: string; options: HorseOption[]; point: { x: number; y: number } | null; initial?: SpawnPoint;
+function PointFormModal({ open, title, options, point, initial, action, onClose, onDone, noteNames }: {
+  open: boolean; title: string; noteNames: Record<string, string>; options: HorseOption[]; point: { x: number; y: number } | null; initial?: SpawnPoint;
   action: (fd: FormData) => Promise<{ ok: boolean; message?: string; error?: string }>; onClose: () => void; onDone: () => void;
 }) {
   const [kind, setKind] = useState<Kind>(initial?.kind ?? "CAVALLO");
@@ -413,11 +777,11 @@ function PointFormModal({ open, title, options, point, initial, action, onClose,
           <>
             <label className="block"><span className="field-label">Titolo *</span><input name="title" defaultValue={initial?.title ?? ""} className="input" required maxLength={80} placeholder="Es. Accampamento, abbeveratoio, pericolo…" /></label>
             <div>
-              <span className="field-label">Colore</span>
+              <span className="field-label">Categoria · <b className="text-fg">{noteColorName(noteNames, color)}</b></span>
               <input type="hidden" name="color" value={color} />
               <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Colore">
                 {NOTE_COLORS.map((c) => (
-                  <button key={c} type="button" role="radio" aria-checked={color === c} aria-label={`Colore ${c}`} onClick={() => setColor(c)}
+                  <button key={c} type="button" role="radio" aria-checked={color === c} aria-label={noteColorName(noteNames, c)} title={noteColorName(noteNames, c)} onClick={() => setColor(c)}
                     className={clsx("size-9 rounded-full border-2 transition-transform", color === c ? "scale-110 border-fg" : "border-transparent")} style={{ background: c }} />
                 ))}
               </div>

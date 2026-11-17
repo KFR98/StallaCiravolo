@@ -2,6 +2,7 @@ import { requireUser } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
 import { getBreedOptions, imageUrl } from "@/lib/catalog";
+import { getSetting } from "@/lib/settings";
 import { dateTime } from "@/lib/format";
 import { PageHeader } from "@/components/ui";
 import { SpawnMapLoader } from "./SpawnMapLoader";
@@ -10,9 +11,10 @@ export const metadata = { title: "Mappa degli spawn" };
 
 export default async function MapPage() {
   const user = await requireUser("map.view");
-  const [spawns, breeds] = await Promise.all([
+  const [spawns, breeds, noteNames] = await Promise.all([
     prisma.spawn.findMany({ include: { breed: true, coat: true, createdBy: true }, orderBy: { createdAt: "desc" } }),
     getBreedOptions(),
+    getSetting("mapNoteNames"),
   ]);
   return (
     <>
@@ -25,6 +27,7 @@ export default async function MapPage() {
           author: s.createdBy.displayName, createdAt: dateTime(s.createdAt), mine: s.createdById === user.id,
         }))}
         breeds={breeds}
+        noteNames={noteNames && typeof noteNames === "object" ? noteNames : {}}
         perms={{ add: can(user.role, "map.add"), manage: can(user.role, "map.manage") }}
       />
     </>
