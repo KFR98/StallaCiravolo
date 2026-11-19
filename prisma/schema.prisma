@@ -327,6 +327,10 @@ enum SpawnKind {
   POSSIBILE
   /// Nota libera sulla mappa (segnaposto colorato)
   NOTA
+  /// Cavallo raro (razza dal catalogo e/o nome libero, es. "Arabo bianco")
+  RARO
+  /// Cavallo leggendario (razza dal catalogo e/o nome libero)
+  LEGGENDARIO
 }
 
 model Spawn {

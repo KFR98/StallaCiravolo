@@ -18,7 +18,7 @@ import { NOTE_COLORS, NOTE_COLOR_DEFAULT_NAMES, noteColorName } from "./colors";
 const W = 2000;
 const H = 1556;
 
-type Kind = "CAVALLO" | "POSSIBILE" | "NOTA";
+type Kind = "CAVALLO" | "POSSIBILE" | "NOTA" | "RARO" | "LEGGENDARIO";
 
 export type SpawnPoint = {
   id: number; kind: Kind; title: string | null; color: string | null;
@@ -28,11 +28,21 @@ export type SpawnPoint = {
 export type MapTiles = { v: string; k: number; offset: number; extra: number };
 export type SpawnMapProps = { spawns: SpawnPoint[]; breeds: BreedOption[]; perms: { add: boolean; manage: boolean }; noteNames: Record<string, string>; tiles: MapTiles | null };
 
-const KIND_LABEL: Record<Kind, string> = { CAVALLO: "Cavalli", POSSIBILE: "Possibili cavalli", NOTA: "Note" };
+const KIND_LABEL: Record<Kind, string> = { CAVALLO: "Cavalli", POSSIBILE: "Possibili cavalli", RARO: "Rari", LEGGENDARIO: "Leggendari", NOTA: "Note" };
+const RARE_COLOR = "#7c3aed";
+const LEGEND_COLOR = "#c99a1c";
+const isSpecial = (k: Kind) => k === "RARO" || k === "LEGGENDARIO";
+/** Nome mostrato per rari e leggendari: il nome libero, altrimenti la razza */
+const specialName = (s: SpawnPoint) => s.title?.trim() || s.breed || "Senza nome";
 const PALETTE = ["#c8161d", "#1d5f8f", "#1f7a3d", "#b45309", "#6b21a8", "#0f766e", "#9a3412", "#3730a3", "#be185d", "#4d7c0f", "#0e7490", "#a16207"];
 const breedColor = (id: number | null) => (id == null ? "#57534e" : PALETTE[id % PALETTE.length]);
-const pointColor = (s: SpawnPoint) => (s.kind === "NOTA" ? s.color ?? NOTE_COLORS[0] : s.kind === "POSSIBILE" ? "#78716c" : breedColor(s.breedId));
-const label = (s: SpawnPoint) => (s.kind === "NOTA" ? s.title ?? "Nota" : `${s.kind === "POSSIBILE" ? "? " : ""}${s.breed ?? "Possibile cavallo"}${s.coat ? " · " + s.coat : ""}`);
+const pointColor = (s: SpawnPoint) =>
+  s.kind === "NOTA" ? s.color ?? NOTE_COLORS[0] : s.kind === "POSSIBILE" ? "#78716c" : s.kind === "RARO" ? RARE_COLOR : s.kind === "LEGGENDARIO" ? LEGEND_COLOR : breedColor(s.breedId);
+const label = (s: SpawnPoint) => {
+  if (s.kind === "NOTA") return s.title ?? "Nota";
+  if (isSpecial(s.kind)) return `${s.kind === "RARO" ? "Raro" : "Leggendario"} · ${specialName(s)}${s.title && s.breed ? ` (${s.breed})` : ""}`;
+  return `${s.kind === "POSSIBILE" ? "? " : ""}${s.breed ?? "Possibile cavallo"}${s.coat ? " · " + s.coat : ""}`;
+};
 
 /** Le etichette di Leaflet sono HTML: il testo inserito dagli utenti va sempre "disinnescato". */
 const esc = (t: string) => t.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -45,12 +55,14 @@ const safeColor = (c: string) => (/^#[0-9a-fA-F]{6}$/.test(c) ? c : "#57534e");
  */
 type Filters = { sel: string[]; notes: string[]; kinds: Kind[]; mine: boolean; labels: boolean };
 type Preset = { name: string; sel: string[]; notes: string[]; kinds: Kind[]; mine: boolean };
-const ALL_KINDS: Kind[] = ["CAVALLO", "POSSIBILE", "NOTA"];
+const ALL_KINDS: Kind[] = ["CAVALLO", "POSSIBILE", "RARO", "LEGGENDARIO", "NOTA"];
 const DEFAULT_FILTERS: Filters = { sel: [], notes: [], kinds: ALL_KINDS, mine: false, labels: true };
 const STORE = "mappa-filtri-v1";
 const STORE_PRESETS = "mappa-filtri-salvati-v1";
 const noteColor = (s: SpawnPoint) => safeColor(s.color ?? NOTE_COLORS[0]);
-const strArr = (v: unknown, max = 500) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && x.length < 40).slice(0, max) : []);
+const strArr = (v: unknown, max = 500) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && x.length < 100).slice(0, max) : []);
+/** Chiave filtro di un raro/leggendario: tipo + nome (senza maiuscole), così punti con lo stesso nome stanno insieme */
+const specialKey = (s: SpawnPoint) => `${s.kind === "RARO" ? "r" : "l"}:${specialName(s).toLowerCase()}`;
 const kindArr = (v: unknown) => strArr(v).filter((k): k is Kind => (ALL_KINDS as string[]).includes(k));
 
 function horseKey(s: SpawnPoint) {
@@ -63,6 +75,7 @@ function isVisible(s: SpawnPoint, f: Filters, breedsWithSelCoat: Set<number>) {
   if (f.mine && !s.mine) return false;
   if (s.kind === "NOTA") return f.notes.length === 0 || f.notes.includes(noteColor(s));
   if (f.sel.length === 0) return true;
+  if (isSpecial(s.kind)) return f.sel.includes(specialKey(s));
   if (f.sel.includes(horseKey(s))) return true;
   if (s.coatId != null) return f.sel.includes(`c:${s.coatId}`);
   // punto "tutti i manti": compare se di quella razza è scelto almeno un manto
@@ -79,6 +92,14 @@ function markerIcon(s: SpawnPoint, opts: { selected?: boolean; num?: number; dra
     // segnaposto classico colorato
     body = `<path d="M16 31C16 31 5 20 5 12.5a11 11 0 0 1 22 0C27 20 16 31 16 31Z" fill="${color}" stroke="#fff" stroke-width="2"/><circle cx="16" cy="12.5" r="4" fill="#fff"/>`;
     anchorY = size - 2;
+  } else if (s.kind === "RARO") {
+    // rombo viola con stella
+    body = `<path d="M16 1.5 30.5 16 16 30.5 1.5 16Z" fill="${color}" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M16 9.2l2 4.3 4.6.5-3.4 3.1 1 4.6L16 19.4l-4.2 2.3 1-4.6-3.4-3.1 4.6-.5Z" fill="#fff"/>`;
+    anchorY = size / 2;
+  } else if (s.kind === "LEGGENDARIO") {
+    // disco oro con doppio bordo e stella grande
+    body = `<circle cx="16" cy="16" r="14" fill="${color}" stroke="#fff" stroke-width="2"/><circle cx="16" cy="16" r="10.6" fill="none" stroke="#5c4306" stroke-width="1.2" opacity=".7"/><path d="M16 6.8l2.7 5.6 6.1.7-4.5 4.2 1.2 6.1L16 20.4l-5.5 3 1.2-6.1-4.5-4.2 6.1-.7Z" fill="#fff" stroke="#5c4306" stroke-width=".6"/>`;
+    anchorY = size / 2;
   } else if (s.kind === "POSSIBILE") {
     body = `<circle cx="16" cy="16" r="13" fill="${color}" stroke="#fff" stroke-width="2" stroke-dasharray="4 2.5"/><text x="16" y="21.5" text-anchor="middle" font-size="16" font-weight="800" fill="#fff" font-family="Inter,sans-serif">?</text>`;
     anchorY = size / 2;
@@ -382,6 +403,8 @@ export default function SpawnMap({ spawns, breeds, perms, noteNames, tiles }: Sp
           <ul className="space-y-1.5">
             <li className="flex items-center gap-2"><Legend kind="CAVALLO" /> Cavallo avvistato (colore della razza)</li>
             <li className="flex items-center gap-2"><Legend kind="POSSIBILE" /> Possibile cavallo da verificare</li>
+            <li className="flex items-center gap-2"><Legend kind="RARO" /> Cavallo raro</li>
+            <li className="flex items-center gap-2"><Legend kind="LEGGENDARIO" /> Cavallo leggendario</li>
             <li className="flex items-center gap-2"><Legend kind="NOTA" /> Nota libera: il colore fa da categoria (es. rosso = pericolo)</li>
           </ul>
         </div>
@@ -407,6 +430,10 @@ type PanelProps = {
 function keyLabel(key: string, options: HorseOption[]) {
   if (key === "b:none") return "Razza sconosciuta";
   if (key === "p:none") return "Possibili da verificare";
+  if (key.startsWith("r:") || key.startsWith("l:")) {
+    const n = key.slice(2);
+    return `${key[0] === "r" ? "Raro" : "Leggendario"} · ${n.charAt(0).toUpperCase()}${n.slice(1)}`;
+  }
   const o = options.find((x) => x.key === key);
   return o ? (o.coat ? `${o.breed} · ${o.coat}` : o.breed) : "?";
 }
@@ -499,9 +526,17 @@ function FilterPanel(props: PanelProps & { className?: string; onClose?: () => v
     const breeds = new Map<string, BreedNode>();
     const unknown: SpawnPoint[] = [];
     const notes = new Map<string, SpawnPoint[]>();
+    const specials = new Map<string, { key: string; kind: Kind; name: string; breed: string | null; image: string | null; points: SpawnPoint[] }>();
     for (const s of spawns) {
       if (f.mine && !s.mine) continue;
       if (s.kind === "NOTA") { const c = noteColor(s); notes.set(c, [...(notes.get(c) ?? []), s]); continue; }
+      if (isSpecial(s.kind)) {
+        const k = specialKey(s);
+        const g = specials.get(k) ?? { key: k, kind: s.kind, name: specialName(s), breed: s.breed, image: s.image, points: [] };
+        g.points.push(s);
+        specials.set(k, g);
+        continue;
+      }
       const key = horseKey(s);
       if (key === "p:none") { unknown.push(s); continue; }
       let b = breeds.get(key);
@@ -516,7 +551,8 @@ function FilterPanel(props: PanelProps & { className?: string; onClose?: () => v
     }
     const list = [...breeds.values()].sort((a, b) => a.name.localeCompare(b.name)).map((b) => ({ ...b, coatList: [...b.coats.values()].sort((x, y) => x.name.localeCompare(y.name)) }));
     const noteList = [...notes.entries()].map(([color, points]) => ({ color, points })).sort((a, b) => NOTE_COLORS.indexOf(a.color) - NOTE_COLORS.indexOf(b.color));
-    return { list, unknown, noteList };
+    const specialList = [...specials.values()].sort((a, b) => (a.kind === b.kind ? a.name.localeCompare(b.name) : a.kind === "LEGGENDARIO" ? -1 : 1));
+    return { list, unknown, noteList, specialList };
   }, [spawns, f.mine]);
 
   const ql = q.trim();
@@ -556,6 +592,8 @@ function FilterPanel(props: PanelProps & { className?: string; onClose?: () => v
   const breeds = tree.list.filter((b) => !ql || matchText(b.name) || b.coatList.some((c) => matchText(c.name)) || b.points.some(pointMatch));
   const notes = tree.noteList.map((n) => ({ ...n, shown: n.points.filter(pointMatch) })).filter((n) => !ql || n.shown.length);
   const unknownShown = tree.unknown.filter(pointMatch);
+  const specials = tree.specialList.map((g) => ({ ...g, shown: g.points.filter((p) => !ql || matchText(g.name) || matchText(g.breed) || pointMatch(p)) })).filter((g) => !ql || g.shown.length);
+  const toggleSel = (key: string) => setF((x) => ({ ...x, sel: x.sel.includes(key) ? x.sel.filter((k) => k !== key) : [...x.sel, key] }));
   const horsesOff = !f.kinds.includes("CAVALLO") && !f.kinds.includes("POSSIBILE");
 
   return (
@@ -675,6 +713,31 @@ function FilterPanel(props: PanelProps & { className?: string; onClose?: () => v
           </section>
         )}
 
+        {specials.length > 0 && (
+          <section aria-label="Cavalli rari e leggendari">
+            <h4 className="eyebrow px-3 pt-3 pb-1">Rari e leggendari</h4>
+            {specials.map((g) => {
+              const off = !f.kinds.includes(g.kind);
+              return (
+                <div key={g.key} className={clsx(off && "opacity-50")}>
+                  <FilterRow
+                    state={stateOf(g.key)}
+                    onToggle={() => toggleSel(g.key)}
+                    title={f.sel.includes(g.key) ? "Togli dal filtro" : "Mostra solo questo"}
+                    lead={<span className="inline-flex size-6 shrink-0 items-center justify-center" aria-hidden="true" dangerouslySetInnerHTML={{ __html: markerIcon({ kind: g.kind } as SpawnPoint, {}).options.html as string }} />}
+                    name={g.name}
+                    sub={`${g.kind === "RARO" ? "Raro" : "Leggendario"}${g.breed && g.breed.toLowerCase() !== g.name.toLowerCase() ? " · " + g.breed : ""}${off ? " · nascosti" : ""}`}
+                    count={g.points.length}
+                    expanded={isOpen(g.key)}
+                    onExpand={() => toggleOpen(g.key)}
+                  />
+                  {isOpen(g.key) && <ul className="pb-1">{g.shown.map((p) => <PointRow key={p.id} s={p} text={label(p)} {...rowProps} />)}</ul>}
+                </div>
+              );
+            })}
+          </section>
+        )}
+
         {notes.length > 0 && (
           <section aria-label="Note per colore" className={clsx(!f.kinds.includes("NOTA") && "opacity-50")}>
             <div className="flex items-center justify-between px-3 pt-3 pb-1">
@@ -744,11 +807,14 @@ function PointCard({ s, perms, inRoute, onRoute, onEdit, onClose }: { s: SpawnPo
   return (
     <div className="card card-pad fade-up">
       <div className="flex items-start gap-3">
-        {s.kind === "NOTA" ? <span className="mt-1 inline-block size-4 rounded-full" style={{ background: safeColor(pointColor(s)) }} /> : <HorseThumb src={s.image} size={44} />}
+        {s.kind === "NOTA" ? <span className="mt-1 inline-block size-4 rounded-full" style={{ background: safeColor(pointColor(s)) }} /> : isSpecial(s.kind) && !s.image ? <Legend kind={s.kind} /> : <HorseThumb src={s.image} size={44} />}
         <div className="min-w-0 flex-1">
-          <div className="eyebrow">{s.kind === "NOTA" ? "Nota" : s.kind === "POSSIBILE" ? "Possibile cavallo" : "Cavallo"}</div>
-          <h3 className="text-[17px] font-semibold">{s.kind === "NOTA" ? s.title : s.breed ?? "Da verificare"}</h3>
-          {s.kind !== "NOTA" && s.coat && <div className="text-fg-3">{s.coat}</div>}
+          <div className="eyebrow" style={isSpecial(s.kind) ? { color: pointColor(s) } : undefined}>
+            {s.kind === "NOTA" ? "Nota" : s.kind === "POSSIBILE" ? "Possibile cavallo" : s.kind === "RARO" ? "Cavallo raro" : s.kind === "LEGGENDARIO" ? "Cavallo leggendario" : "Cavallo"}
+          </div>
+          <h3 className="text-[17px] font-semibold">{s.kind === "NOTA" ? s.title : isSpecial(s.kind) ? specialName(s) : s.breed ?? "Da verificare"}</h3>
+          {isSpecial(s.kind) && s.title && s.breed && <div className="text-fg-3">{s.breed}{s.coat ? ` · ${s.coat}` : ""}</div>}
+          {!isSpecial(s.kind) && s.kind !== "NOTA" && s.coat && <div className="text-fg-3">{s.coat}</div>}
         </div>
         <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose} aria-label="Chiudi scheda"><X size={16} /></button>
       </div>
@@ -784,8 +850,8 @@ function PointFormModal({ open, title, options, point, initial, action, onClose,
         <input type="hidden" name="x" value={point?.x ?? ""} />
         <input type="hidden" name="y" value={point?.y ?? ""} />
         <input type="hidden" name="kind" value={kind} />
-        <div className="grid grid-cols-3 gap-1 rounded-lg bg-surface-3 p-1" role="radiogroup" aria-label="Tipo di punto">
-          {([["CAVALLO", "Cavallo"], ["POSSIBILE", "Possibile ?"], ["NOTA", "Nota"]] as const).map(([k, l]) => (
+        <div className="grid grid-cols-3 gap-1 rounded-lg bg-surface-3 p-1 sm:grid-cols-5" role="radiogroup" aria-label="Tipo di punto">
+          {([["CAVALLO", "Cavallo"], ["POSSIBILE", "Possibile ?"], ["RARO", "Raro"], ["LEGGENDARIO", "Leggendario"], ["NOTA", "Nota"]] as const).map(([k, l]) => (
             <button key={k} type="button" role="radio" aria-checked={kind === k} onClick={() => setKind(k)}
               className={clsx("min-h-10 rounded-md text-[14px] font-semibold transition-colors", kind === k ? "bg-surface text-fg shadow-sm" : "text-fg-3 hover:text-fg")}>{l}</button>
           ))}
@@ -803,6 +869,21 @@ function PointFormModal({ open, title, options, point, initial, action, onClose,
                 ))}
               </div>
             </div>
+          </>
+        ) : isSpecial(kind) ? (
+          <>
+            <label className="block">
+              <span className="field-label">Nome del cavallo {kind === "RARO" ? "raro" : "leggendario"}</span>
+              <input name="title" defaultValue={initial && isSpecial(initial.kind) ? initial.title ?? "" : ""} className="input" maxLength={80}
+                placeholder={kind === "RARO" ? "Es. Arabo bianco, Appaloosa del nord…" : "Es. Cavallo leggendario del lago, Mustang fantasma…"} />
+            </label>
+            <HorsePicker
+              label="Razza dal catalogo (facoltativa)"
+              options={options}
+              value={value}
+              placeholder="Cerca razza o manto…"
+            />
+            <p className="text-[13px] text-fg-3">Scrivi un nome, scegli una razza, o entrambi. Nei filtri i punti con lo stesso nome vengono raggruppati.</p>
           </>
         ) : (
           <HorsePicker

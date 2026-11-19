@@ -13,7 +13,7 @@ const MAP_SIZE = { width: 2000, height: 1556 };
 
 const schema = z
   .object({
-    kind: z.enum(["CAVALLO", "POSSIBILE", "NOTA"]),
+    kind: z.enum(["CAVALLO", "POSSIBILE", "NOTA", "RARO", "LEGGENDARIO"]),
     title: z.string().trim().max(80).nullable(),
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Colore non valido").nullable(),
     x: z.number().min(0).max(MAP_SIZE.width, "Posizione fuori mappa"),
@@ -26,12 +26,15 @@ const schema = z
   })
   .refine((d) => d.kind !== "CAVALLO" || d.breedId, { message: "Per uno spawn di cavallo scegli razza e manto" })
   .refine((d) => d.kind !== "NOTA" || d.title, { message: "Dai un titolo alla nota" })
+  .refine((d) => (d.kind !== "RARO" && d.kind !== "LEGGENDARIO") || d.breedId || d.title, { message: "Scegli la razza o scrivi il nome del cavallo" })
   .transform((d) => ({
     ...d,
-    // le note non hanno cavallo; i cavalli non hanno colore personalizzato
+    // le note non hanno cavallo; i cavalli non hanno colore personalizzato.
+    // Rari e leggendari: razza dal catalogo (facoltativa) + nome libero nel titolo
     breedId: d.kind === "NOTA" ? null : d.breedId,
     coatId: d.kind === "NOTA" ? null : d.coatId,
     color: d.kind === "NOTA" ? d.color ?? NOTE_COLORS[0] : null,
+    title: d.kind === "NOTA" || d.kind === "RARO" || d.kind === "LEGGENDARIO" ? d.title : null,
   }));
 
 function read(form: FormData) {
