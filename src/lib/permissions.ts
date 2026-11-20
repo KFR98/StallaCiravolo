@@ -36,6 +36,8 @@ export const PERMISSIONS = {
   "map.view": { group: "Mappa", label: "Vedere la mappa degli spawn", defaults: [...ALL, "OSPITE"] },
   "map.add": { group: "Mappa", label: "Aggiungere punti sulla mappa", defaults: ALL },
   "map.manage": { group: "Mappa", label: "Spostare, modificare ed eliminare i punti di tutti", defaults: BOSS },
+  "map.exportImage": { group: "Mappa", label: "Esportare l'immagine della mappa con i punti", defaults: TOP },
+  "map.backup": { group: "Mappa", label: "Scaricare il backup dei punti e reimportarlo", hint: "Con l'importazione “sostituisci” si possono rimpiazzare tutti i punti", defaults: TOP },
 
   "reservations.edit": { group: "Bacheca", label: "Vedere e scrivere note e prenotazioni", defaults: ALL },
   "reservations.delete": { group: "Bacheca", label: "Eliminare note e prenotazioni", defaults: BOSS },

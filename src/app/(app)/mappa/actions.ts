@@ -162,7 +162,7 @@ const importFile = z.object({
  */
 export async function importSpawns(form: FormData) {
   return run(async () => {
-    const user = await assertPermission("map.manage");
+    const user = await assertPermission("map.backup");
     const mode = form.get("mode") === "sostituisci" ? "sostituisci" : "aggiungi";
     const file = form.get("file");
     if (!(file instanceof File) || file.size === 0) throw new UserError("Scegli il file della mappa (.json).");

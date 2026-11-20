@@ -12,7 +12,7 @@ import { audit } from "@/lib/audit";
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return new Response("Non autenticato", { status: 401 });
-  if (!can(user.role, "map.manage")) return new Response("Non autorizzato", { status: 403 });
+  if (!can(user.role, "map.backup")) return new Response("Non autorizzato", { status: 403 });
   const [spawns, noteNames] = await Promise.all([
     prisma.spawn.findMany({ include: { breed: true, coat: true, createdBy: true }, orderBy: { id: "asc" } }),
     getSetting("mapNoteNames"),

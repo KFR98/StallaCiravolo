@@ -43,7 +43,7 @@ export default async function MapPage() {
         breeds={visibleBreeds}
         tiles={tiles}
         noteNames={noteNames && typeof noteNames === "object" ? noteNames : {}}
-        perms={{ add: can(user.role, "map.add"), manage: can(user.role, "map.manage") }}
+        perms={{ add: can(user.role, "map.add"), manage: can(user.role, "map.manage"), exportImage: can(user.role, "map.exportImage"), backup: can(user.role, "map.backup") }}
       />
     </>
   );

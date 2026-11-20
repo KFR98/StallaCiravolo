@@ -26,7 +26,7 @@ export type SpawnPoint = {
   location: string | null; description: string | null; notes: string | null; author: string; createdAt: string; mine: boolean;
 };
 export type MapTiles = { v: string; k: number; offset: number; extra: number };
-export type SpawnMapProps = { spawns: SpawnPoint[]; breeds: BreedOption[]; perms: { add: boolean; manage: boolean }; noteNames: Record<string, string>; tiles: MapTiles | null };
+export type SpawnMapProps = { spawns: SpawnPoint[]; breeds: BreedOption[]; perms: { add: boolean; manage: boolean; exportImage: boolean; backup: boolean }; noteNames: Record<string, string>; tiles: MapTiles | null };
 
 const KIND_LABEL: Record<Kind, string> = { CAVALLO: "Cavalli", POSSIBILE: "Possibili cavalli", RARO: "Rari", LEGGENDARIO: "Leggendari", NOTA: "Note" };
 const RARE_COLOR = "#7c3aed";
@@ -325,9 +325,11 @@ export default function SpawnMap({ spawns, breeds, perms, noteNames, tiles }: Sp
               onChange={(o) => o && addSel(o.key)} />
           </div>
           <div className="flex w-full flex-wrap gap-2 sm:w-auto">
-            <button type="button" className="btn btn-secondary flex-1 sm:flex-none" onClick={() => setExportOpen(true)} title="Esporta immagine, backup dei punti, importa">
-              <Share2 size={16} /> Esporta
-            </button>
+            {(perms.exportImage || perms.backup) && (
+              <button type="button" className="btn btn-secondary flex-1 sm:flex-none" onClick={() => setExportOpen(true)} title="Esporta immagine, backup dei punti, importa">
+                <Share2 size={16} /> Esporta
+              </button>
+            )}
             {perms.manage && (
               <button type="button" className={clsx("btn flex-1 sm:flex-none", editMode ? "btn-primary" : "btn-secondary")} onClick={() => { setEditMode((v) => !v); setAdding(false); }} aria-pressed={editMode}>
                 <Move size={16} /> {editMode ? "Fine modifica" : "Modifica"}
@@ -414,7 +416,7 @@ export default function SpawnMap({ spawns, breeds, perms, noteNames, tiles }: Sp
         </div>
       </aside>
 
-      <ExportModal open={exportOpen} onClose={() => setExportOpen(false)} visible={visible} total={spawns.length} tiles={tiles} labels={f.labels} canManage={perms.manage} />
+      <ExportModal open={exportOpen} onClose={() => setExportOpen(false)} visible={visible} total={spawns.length} tiles={tiles} labels={f.labels} canImage={perms.exportImage} canBackup={perms.backup} />
       <CategoriesModal open={catOpen} onClose={() => setCatOpen(false)} names={noteNames} />
       <PointFormModal open={!!draft} title="Nuovo punto" noteNames={noteNames} options={options} point={draft} action={createSpawn} onClose={() => setDraft(null)} onDone={() => { setAdding(false); router.refresh(); }} />
       <PointFormModal open={!!editing} title="Modifica punto" noteNames={noteNames} options={options} point={editing ? { x: editing.x, y: editing.y } : null} initial={editing ?? undefined} action={updateSpawn} onClose={() => setEditing(null)} onDone={() => setEditing(null)} />
@@ -930,8 +932,8 @@ async function exportMapImage(opts: { points: SpawnPoint[]; tiles: MapTiles | nu
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 }
 
-function ExportModal({ open, onClose, visible, total, tiles, labels, canManage }: {
-  open: boolean; onClose: () => void; visible: SpawnPoint[]; total: number; tiles: MapTiles | null; labels: boolean; canManage: boolean;
+function ExportModal({ open, onClose, visible, total, tiles, labels, canImage, canBackup }: {
+  open: boolean; onClose: () => void; visible: SpawnPoint[]; total: number; tiles: MapTiles | null; labels: boolean; canImage: boolean; canBackup: boolean;
 }) {
   const router = useRouter();
   const [withLabels, setWithLabels] = useState(labels);
@@ -954,6 +956,7 @@ function ExportModal({ open, onClose, visible, total, tiles, labels, canManage }
   return (
     <Modal open={open} onClose={onClose} title="Esporta e importa">
       <div className="space-y-5">
+        {canImage && (
         <section className="space-y-2.5">
           <h4 className="flex items-center gap-2 font-semibold"><ImageDown size={18} /> Immagine con i punti</h4>
           <p className="text-[14px] text-fg-2">
@@ -965,10 +968,11 @@ function ExportModal({ open, onClose, visible, total, tiles, labels, canManage }
             {busy ? <><Loader2 size={17} className="animate-spin" /> {busy}</> : <><ImageDown size={17} /> Scarica immagine</>}
           </button>
         </section>
+        )}
 
-        {canManage && (
+        {canBackup && (
           <>
-            <section className="space-y-2.5 border-t border-border pt-4">
+            <section className={clsx("space-y-2.5", canImage && "border-t border-border pt-4")}>
               <h4 className="flex items-center gap-2 font-semibold"><Download size={18} /> Backup dei punti</h4>
               <p className="text-[14px] text-fg-2">Un file con tutti i punti della mappa e le categorie delle note, da tenere sul tuo PC e reimportare quando vuoi.</p>
               <a href="/api/mappa/esporta" className="btn btn-secondary w-full" download><Download size={17} /> Scarica backup (.json)</a>
