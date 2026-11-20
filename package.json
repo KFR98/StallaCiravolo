@@ -54,5 +54,11 @@
   },
   "engines": {
     "node": ">=20.12"
+  },
+  "allowScripts": {
+    "@prisma/client": true,
+    "@prisma/engines": true,
+    "esbuild": true,
+    "prisma": true
   }
 }
