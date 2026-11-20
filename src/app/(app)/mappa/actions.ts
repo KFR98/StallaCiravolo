@@ -1,7 +1,10 @@
 "use server";
 
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
+import { writeBackup } from "@/lib/backup";
 import { assertPermission } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { run, fd, UserError } from "@/lib/action";
@@ -127,5 +130,119 @@ export async function saveNoteNames(form: FormData) {
     await prisma.setting.upsert({ where: { key: "mapNoteNames" }, create: { key: "mapNoteNames", value: JSON.stringify(names) }, update: { value: JSON.stringify(names) } });
     await audit(user, "CATEGORIE_NOTE", "Impostazioni", null, "Aggiornati i nomi delle categorie delle note sulla mappa", names);
     return { ok: true, message: "Categorie aggiornate." };
+  });
+}
+
+/* ───────── Backup dei punti: reimportazione da file JSON ───────── */
+
+const importPoint = z.object({
+  tipo: z.enum(["CAVALLO", "POSSIBILE", "NOTA", "RARO", "LEGGENDARIO"]),
+  titolo: z.string().max(80).nullable().optional(),
+  colore: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
+  x: z.number().min(0).max(MAP_SIZE.width),
+  y: z.number().min(0).max(MAP_SIZE.height),
+  razza: z.string().max(120).nullable().optional(),
+  manto: z.string().max(120).nullable().optional(),
+  posizione: z.string().max(120).nullable().optional(),
+  descrizione: z.string().max(2000).nullable().optional(),
+  note: z.string().max(2000).nullable().optional(),
+  autore: z.string().max(50).nullable().optional(),
+});
+const importFile = z.object({
+  formato: z.literal("stalla-ciravolo-mappa"),
+  versione: z.number().int().min(1).max(1),
+  categorieNote: z.record(z.string(), z.string().max(24)).optional(),
+  punti: z.array(z.unknown()).max(5000),
+});
+
+/**
+ * Reimporta un file esportato dalla mappa.
+ * - "aggiungi": mette i punti del file accanto a quelli esistenti, saltando quelli già presenti.
+ * - "sostituisci": elimina tutti i punti attuali e mette quelli del file (prima viene creato un backup).
+ */
+export async function importSpawns(form: FormData) {
+  return run(async () => {
+    const user = await assertPermission("map.manage");
+    const mode = form.get("mode") === "sostituisci" ? "sostituisci" : "aggiungi";
+    const file = form.get("file");
+    if (!(file instanceof File) || file.size === 0) throw new UserError("Scegli il file della mappa (.json).");
+    if (file.size > 10 * 1024 * 1024) throw new UserError("File troppo grande (massimo 10 MB).");
+    let raw: unknown;
+    try {
+      raw = JSON.parse(await file.text());
+    } catch {
+      throw new UserError("Il file non è un JSON valido.");
+    }
+    const parsed = importFile.safeParse(raw);
+    if (!parsed.success) throw new UserError("Questo non è un file di backup della mappa del gestionale.");
+
+    // razze e manti si ritrovano per nome (senza distinzione tra maiuscole/minuscole)
+    const breeds = await prisma.breed.findMany({ include: { coats: true } });
+    const norm = (s: string) => s.trim().toLowerCase();
+    const breedBy = new Map(breeds.map((b) => [norm(b.name), b]));
+    const users = await prisma.user.findMany({ select: { id: true, username: true } });
+    const userBy = new Map(users.map((u) => [u.username.toLowerCase(), u.id]));
+
+    const rows: Prisma.SpawnCreateManyInput[] = [];
+    let invalid = 0;
+    let unknownBreed = 0;
+    for (const p of parsed.data.punti) {
+      const r = importPoint.safeParse(p);
+      if (!r.success) { invalid++; continue; }
+      const d = r.data;
+      let breedId: number | null = null;
+      let coatId: number | null = null;
+      if (d.razza && d.tipo !== "NOTA") {
+        const b = breedBy.get(norm(d.razza));
+        if (b) {
+          breedId = b.id;
+          if (d.manto) coatId = b.coats.find((c) => norm(c.name) === norm(d.manto!))?.id ?? null;
+        } else unknownBreed++;
+      }
+      // un cavallo senza razza riconosciuta diventa "possibile" (da verificare), così non va perso
+      const kind = d.tipo === "CAVALLO" && !breedId ? "POSSIBILE" : d.tipo;
+      rows.push({
+        kind, x: d.x, y: d.y, breedId, coatId,
+        title: kind === "NOTA" || kind === "RARO" || kind === "LEGGENDARIO" ? d.titolo ?? (kind === "NOTA" ? "Nota" : null) : null,
+        color: kind === "NOTA" ? d.colore ?? NOTE_COLORS[0] : null,
+        location: d.posizione ?? null, description: d.descrizione ?? null, notes: d.note ?? null,
+        createdById: (d.autore && userBy.get(d.autore.toLowerCase())) || user.id,
+      });
+    }
+    if (!rows.length) throw new UserError("Nel file non c'è nessun punto valido.");
+
+    let backupFile: string | null = null;
+    let skipped = 0;
+    let toCreate = rows;
+    if (mode === "sostituisci") {
+      backupFile = (await writeBackup("prima-import-mappa")).file;
+    } else {
+      // salta i punti già presenti (stesso tipo, stessa posizione entro mezzo pixel, stesso cavallo o titolo)
+      const existing = await prisma.spawn.findMany({ select: { kind: true, x: true, y: true, breedId: true, coatId: true, title: true } });
+      toCreate = rows.filter((r) => {
+        const dup = existing.some((e) => e.kind === r.kind && Math.abs(e.x - r.x) < 0.5 && Math.abs(e.y - r.y) < 0.5 && e.breedId === (r.breedId ?? null) && e.coatId === (r.coatId ?? null) && (e.title ?? null) === (r.title ?? null));
+        if (dup) skipped++;
+        return !dup;
+      });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      if (mode === "sostituisci") await tx.spawn.deleteMany();
+      if (toCreate.length) await tx.spawn.createMany({ data: toCreate });
+      const cats = parsed.data.categorieNote;
+      if (cats && Object.keys(cats).length) {
+        const clean = Object.fromEntries(Object.entries(cats).filter(([c]) => NOTE_COLORS.includes(c)));
+        await tx.setting.upsert({ where: { key: "mapNoteNames" }, create: { key: "mapNoteNames", value: JSON.stringify(clean) }, update: { value: JSON.stringify(clean) } });
+      }
+      await audit(user, "IMPORTA_MAPPA", "Mappa", null,
+        `Importati ${toCreate.length} punti (${mode})${skipped ? `, ${skipped} già presenti` : ""}${backupFile ? `. Backup: ${backupFile}` : ""}`, undefined, tx);
+    });
+    revalidatePath("/mappa");
+    const extra = [
+      skipped ? `${skipped} già presenti saltati` : null,
+      invalid ? `${invalid} righe non valide ignorate` : null,
+      unknownBreed ? `${unknownBreed} con razza non presente nel catalogo (segnati senza razza)` : null,
+    ].filter(Boolean).join(", ");
+    return { ok: true, message: `${mode === "sostituisci" ? "Mappa sostituita" : "Punti aggiunti"}: ${toCreate.length}${extra ? ` · ${extra}` : ""}.` };
   });
 }

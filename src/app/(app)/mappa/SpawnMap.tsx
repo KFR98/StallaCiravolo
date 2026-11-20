@@ -6,13 +6,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
-import { Move, Plus, Route, X, Crosshair, Maximize2, Minimize2, LocateFixed, SlidersHorizontal, Check, EyeOff, ChevronRight, Search, Bookmark, Save } from "lucide-react";
+import { Move, Plus, Route, X, Crosshair, Maximize2, Minimize2, LocateFixed, SlidersHorizontal, Check, EyeOff, ChevronRight, Search, Bookmark, Save, ImageDown, Download, Upload, Loader2, Share2 } from "lucide-react";
 import type { BreedOption } from "@/lib/catalog";
 import { ActionForm, ActionButton } from "@/components/ActionForm";
 import { Modal } from "@/components/Modal";
 import { HorsePicker, buildHorseOptions, matchHorse, type HorseOption } from "@/components/HorsePicker";
 import { HorseThumb } from "@/components/ui";
-import { createSpawn, updateSpawn, moveSpawn, deleteSpawn, saveNoteNames } from "./actions";
+import { createSpawn, updateSpawn, moveSpawn, deleteSpawn, saveNoteNames, importSpawns } from "./actions";
 import { NOTE_COLORS, NOTE_COLOR_DEFAULT_NAMES, noteColorName } from "./colors";
 
 const W = 2000;
@@ -129,6 +129,7 @@ export default function SpawnMap({ spawns, breeds, perms, noteNames, tiles }: Sp
   const [presets, setPresets] = useState<Preset[]>([]);
   const [showFilters, setShowFilters] = useState(false); // pannello filtri sopra la mappa a schermo intero
   const [catOpen, setCatOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const loadedRef = useRef(false);
   const [adding, setAdding] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -324,6 +325,9 @@ export default function SpawnMap({ spawns, breeds, perms, noteNames, tiles }: Sp
               onChange={(o) => o && addSel(o.key)} />
           </div>
           <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+            <button type="button" className="btn btn-secondary flex-1 sm:flex-none" onClick={() => setExportOpen(true)} title="Esporta immagine, backup dei punti, importa">
+              <Share2 size={16} /> Esporta
+            </button>
             {perms.manage && (
               <button type="button" className={clsx("btn flex-1 sm:flex-none", editMode ? "btn-primary" : "btn-secondary")} onClick={() => { setEditMode((v) => !v); setAdding(false); }} aria-pressed={editMode}>
                 <Move size={16} /> {editMode ? "Fine modifica" : "Modifica"}
@@ -410,6 +414,7 @@ export default function SpawnMap({ spawns, breeds, perms, noteNames, tiles }: Sp
         </div>
       </aside>
 
+      <ExportModal open={exportOpen} onClose={() => setExportOpen(false)} visible={visible} total={spawns.length} tiles={tiles} labels={f.labels} canManage={perms.manage} />
       <CategoriesModal open={catOpen} onClose={() => setCatOpen(false)} names={noteNames} />
       <PointFormModal open={!!draft} title="Nuovo punto" noteNames={noteNames} options={options} point={draft} action={createSpawn} onClose={() => setDraft(null)} onDone={() => { setAdding(false); router.refresh(); }} />
       <PointFormModal open={!!editing} title="Modifica punto" noteNames={noteNames} options={options} point={editing ? { x: editing.x, y: editing.y } : null} initial={editing ?? undefined} action={updateSpawn} onClose={() => setEditing(null)} onDone={() => setEditing(null)} />
@@ -794,6 +799,208 @@ function CategoriesModal({ open, onClose, names }: { open: boolean; onClose: () 
         ))}
         <button className="btn btn-primary w-full">Salva categorie</button>
       </ActionForm>
+    </Modal>
+  );
+}
+
+/* ───────── Esporta / importa ───────── */
+
+/** Carica un'immagine (stessa origine: la tela resta esportabile). */
+function loadImg(src: string) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const im = new Image();
+    im.decoding = "async";
+    im.onload = () => resolve(im);
+    im.onerror = () => reject(new Error("immagine non caricata: " + src));
+    im.src = src;
+  });
+}
+
+/**
+ * Disegna la mappa con i punti su una tela e la scarica in PNG.
+ * Usa la mappa in alta definizione (4000 px) se c'è, altrimenti l'immagine semplice (2000 px).
+ */
+async function exportMapImage(opts: { points: SpawnPoint[]; tiles: MapTiles | null; labels: boolean; title: string; onProgress: (t: string) => void }) {
+  const { points, tiles, labels, title, onProgress } = opts;
+  const z = tiles ? Math.min(tiles.k, 1) : 0;
+  const scale = 2 ** z;
+  const cw = W * scale;
+  const ch = H * scale;
+  const canvas = document.createElement("canvas");
+  canvas.width = cw;
+  canvas.height = ch;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Il browser non permette di creare l'immagine.");
+  ctx.fillStyle = "#d4b98a";
+  ctx.fillRect(0, 0, cw, ch);
+
+  // 1. la mappa
+  if (tiles) {
+    const level = z + tiles.offset;
+    const cols = Math.ceil(cw / 256);
+    const rows = Math.ceil(ch / 256);
+    const jobs: { x: number; y: number }[] = [];
+    for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) jobs.push({ x, y });
+    let done = 0;
+    for (let i = 0; i < jobs.length; i += 12) {
+      await Promise.all(
+        jobs.slice(i, i + 12).map(async ({ x, y }) => {
+          try {
+            const im = await loadImg(`/api/mappa/tiles/${tiles.v}/${level}/${y}/${x}`);
+            ctx.drawImage(im, x * 256, y * 256);
+          } catch {
+            /* tassello mancante: resta lo sfondo */
+          }
+          done++;
+        }),
+      );
+      onProgress(`Mappa ${Math.round((done / jobs.length) * 100)}%`);
+    }
+  } else {
+    ctx.drawImage(await loadImg("/map/rdr2-map.jpg"), 0, 0, cw, ch);
+  }
+
+  // 2. i punti (stesse icone della mappa)
+  onProgress("Punti…");
+  const ui = scale >= 2 ? 1.5 : 1;
+  const cache = new Map<string, HTMLImageElement>();
+  const iconFor = async (s: SpawnPoint) => {
+    const icon = markerIcon(s, {});
+    const html = (icon.options.html as string).replace("<svg ", '<svg xmlns="http://www.w3.org/2000/svg" ');
+    let im = cache.get(html);
+    if (!im) {
+      im = await loadImg(URL.createObjectURL(new Blob([html], { type: "image/svg+xml" })));
+      cache.set(html, im);
+    }
+    const [iw, ih] = icon.options.iconSize as [number, number];
+    const [ax, ay] = icon.options.iconAnchor as [number, number];
+    return { im, w: iw * ui, h: ih * ui, ax: ax * ui, ay: ay * ui };
+  };
+  const placed: { s: SpawnPoint; px: number; py: number; w: number }[] = [];
+  for (const s of points) {
+    const px = s.x * scale;
+    const py = (H - s.y) * scale;
+    const ic = await iconFor(s);
+    ctx.drawImage(ic.im, px - ic.ax, py - ic.ay, ic.w, ic.h);
+    placed.push({ s, px, py, w: ic.w });
+  }
+
+  // 3. i nomi
+  if (labels) {
+    const fs = Math.round(12 * ui);
+    ctx.font = `600 ${fs}px Inter, system-ui, sans-serif`;
+    ctx.textBaseline = "middle";
+    for (const { s, px, py, w } of placed) {
+      const text = label(s);
+      const tw = ctx.measureText(text).width;
+      const lx = px + w / 2 + 4 * ui;
+      const ly = py;
+      ctx.fillStyle = "rgba(11,10,9,0.85)";
+      ctx.beginPath();
+      ctx.roundRect(lx, ly - fs * 0.8, tw + 10 * ui, fs * 1.6, 4 * ui);
+      ctx.fill();
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(text, lx + 5 * ui, ly + 0.5);
+    }
+  }
+
+  // 4. intestazione
+  const hs = Math.round(16 * ui);
+  ctx.font = `700 ${hs}px Inter, system-ui, sans-serif`;
+  const head = `${title} · ${points.length} punti · ${new Date().toLocaleDateString("it-IT")}`;
+  const hw = ctx.measureText(head).width;
+  ctx.fillStyle = "rgba(11,10,9,0.88)";
+  ctx.beginPath();
+  ctx.roundRect(16 * ui, 16 * ui, hw + 24 * ui, hs * 2, 6 * ui);
+  ctx.fill();
+  ctx.fillStyle = "#ffffff";
+  ctx.textBaseline = "middle";
+  ctx.fillText(head, 28 * ui, 16 * ui + hs);
+
+  for (const im of cache.values()) URL.revokeObjectURL(im.src);
+  onProgress("Salvataggio…");
+  const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/png"));
+  if (!blob) throw new Error("Immagine troppo grande per questo browser.");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `mappa-spawn-${new Date().toISOString().slice(0, 10)}.png`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+function ExportModal({ open, onClose, visible, total, tiles, labels, canManage }: {
+  open: boolean; onClose: () => void; visible: SpawnPoint[]; total: number; tiles: MapTiles | null; labels: boolean; canManage: boolean;
+}) {
+  const router = useRouter();
+  const [withLabels, setWithLabels] = useState(labels);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [mode, setMode] = useState<"aggiungi" | "sostituisci">("aggiungi");
+  useEffect(() => { if (open) setWithLabels(labels); }, [open, labels]);
+
+  const makeImage = async () => {
+    setBusy("Preparazione…");
+    try {
+      await exportMapImage({ points: visible, tiles, labels: withLabels, title: "Mappa degli spawn", onProgress: setBusy });
+      toast.success("Immagine scaricata.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Esportazione non riuscita.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} title="Esporta e importa">
+      <div className="space-y-5">
+        <section className="space-y-2.5">
+          <h4 className="flex items-center gap-2 font-semibold"><ImageDown size={18} /> Immagine con i punti</h4>
+          <p className="text-[14px] text-fg-2">
+            Un&apos;immagine PNG della mappa{tiles ? " in alta definizione" : ""} con i <b>{visible.length}</b> punti visibili adesso
+            {visible.length < total ? ` (su ${total}: usa i filtri per scegliere cosa includere)` : ""}.
+          </p>
+          <label className="flex items-center gap-2 text-[14px]"><input type="checkbox" checked={withLabels} onChange={(e) => setWithLabels(e.target.checked)} /> Scrivi i nomi accanto ai punti</label>
+          <button type="button" className="btn btn-primary w-full" onClick={makeImage} disabled={!!busy || !visible.length}>
+            {busy ? <><Loader2 size={17} className="animate-spin" /> {busy}</> : <><ImageDown size={17} /> Scarica immagine</>}
+          </button>
+        </section>
+
+        {canManage && (
+          <>
+            <section className="space-y-2.5 border-t border-border pt-4">
+              <h4 className="flex items-center gap-2 font-semibold"><Download size={18} /> Backup dei punti</h4>
+              <p className="text-[14px] text-fg-2">Un file con tutti i punti della mappa e le categorie delle note, da tenere sul tuo PC e reimportare quando vuoi.</p>
+              <a href="/api/mappa/esporta" className="btn btn-secondary w-full" download><Download size={17} /> Scarica backup (.json)</a>
+            </section>
+
+            <section className="space-y-2.5 border-t border-border pt-4">
+              <h4 className="flex items-center gap-2 font-semibold"><Upload size={18} /> Importa un backup</h4>
+              <ActionForm
+                action={importSpawns}
+                confirm={() => (mode === "sostituisci" ? "Eliminare TUTTI i punti attuali e mettere quelli del file? Prima viene creato un backup del database." : null)}
+                onSuccess={() => { onClose(); router.refresh(); }}
+                className="space-y-3"
+              >
+                <input type="file" name="file" accept="application/json,.json" required className="block w-full text-[14px]" />
+                <input type="hidden" name="mode" value={mode} />
+                <div className="grid grid-cols-2 gap-1 rounded-lg bg-surface-3 p-1" role="radiogroup" aria-label="Modalità di importazione">
+                  {([["aggiungi", "Aggiungi ai punti attuali"], ["sostituisci", "Sostituisci tutti"]] as const).map(([k, l]) => (
+                    <button key={k} type="button" role="radio" aria-checked={mode === k} onClick={() => setMode(k)}
+                      className={clsx("min-h-10 rounded-md px-2 text-[13.5px] font-semibold transition-colors", mode === k ? "bg-surface text-fg shadow-sm" : "text-fg-3 hover:text-fg")}>{l}</button>
+                  ))}
+                </div>
+                <p className="text-[13px] text-fg-3">
+                  {mode === "aggiungi"
+                    ? "I punti già presenti (stessa posizione e stesso cavallo) vengono saltati: puoi reimportare lo stesso file senza doppioni."
+                    : "La mappa diventa esattamente quella del file. Prima viene salvato un backup del database."}
+                </p>
+                <button className={clsx("btn w-full", mode === "sostituisci" ? "btn-danger" : "btn-primary")}><Upload size={17} /> Importa</button>
+              </ActionForm>
+            </section>
+          </>
+        )}
+      </div>
     </Modal>
   );
 }
