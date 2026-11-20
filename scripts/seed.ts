@@ -34,6 +34,19 @@ async function main() {
     }
   }
 
+  // Bottega: correzione una tantum delle categorie importate dall'Excel.
+  // Nella categoria Carri restano solo Telaio, Cerchione, Ruota, Chiodi e Martello; il resto va in Cavalli.
+  const FIX_KEY = "fix_bottega_carri_v1";
+  if (!(await prisma.setting.findUnique({ where: { key: FIX_KEY } }))) {
+    const carri = ["telaio", "cerchione", "ruota", "chiodi", "martello"];
+    const wrong = (await prisma.shopItem.findMany({ where: { kind: "VENDITA", group: "Carri" } })).filter((i) => !carri.includes(i.name.trim().toLowerCase()));
+    if (wrong.length) {
+      await prisma.shopItem.updateMany({ where: { id: { in: wrong.map((i) => i.id) } }, data: { group: "Cavalli" } });
+      console.log(`Bottega: ${wrong.length} oggetti spostati da Carri a Cavalli.`);
+    }
+    await prisma.setting.create({ data: { key: FIX_KEY, value: "true" } });
+  }
+
   // Catalogo
   const file = path.join(__dirname, "..", "prisma", "seed-data", "listino.json");
   if (existsSync(file)) {

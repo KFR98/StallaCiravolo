@@ -291,6 +291,13 @@ model Sale {
   /// Fascia di prezzo applicata (es. "5-10", "11-16", "Libero", "Governo")
   priceBracket  String
   listPrice     Decimal?
+  /// Prezzo base della fascia (senza addestramento)
+  basePrice     Decimal?
+  /// Addestramento aggiunto (null = venduto senza addestramento)
+  trainingPrice Decimal?
+  /// Oggetti della bottega venduti insieme al cavallo (registrati come vendita di oggetti collegata)
+  itemsTotal    Decimal?
+  itemSaleId    Int?
   discountType  DiscountType?
   discountValue Decimal?
   finalPrice    Decimal

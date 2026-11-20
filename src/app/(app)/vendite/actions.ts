@@ -54,6 +54,10 @@ export async function voidSale(form: FormData) {
       const r = await tx.sale.updateMany({ where: { id, voided: false }, data: { voided: true, voidedAt: new Date(), voidedById: user.id, voidReason: reason } });
       if (r.count !== 1) throw new UserError("Vendita già annullata o inesistente.");
       const sale = await tx.sale.findUniqueOrThrow({ where: { id } });
+      // gli oggetti venduti insieme al cavallo vengono annullati con lui
+      if (sale.itemSaleId) {
+        await tx.itemSale.updateMany({ where: { id: sale.itemSaleId, voided: false }, data: { voided: true, voidedAt: new Date(), voidedById: user.id, voidReason: 'Annullata con la vendita del cavallo: ' + reason } });
+      }
       if (back && sale.type === "STALLA") {
         await tx.horse.updateMany({
           where: { id: sale.horseId, status: "VENDUTO" },

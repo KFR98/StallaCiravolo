@@ -47,6 +47,12 @@ export default async function HorsePage({ params }: { params: Promise<{ id: stri
     isAdmin ? getBreedOptions() : Promise.resolve([]),
   ]);
   const img = imageUrl(horse.coat.imagePath);
+  // Oggetti della bottega vendibili insieme al cavallo (prima quelli della categoria Cavalli)
+  const shopItems = inStable && isOwner
+    ? (await prisma.shopItem.findMany({ where: { kind: "VENDITA", archived: false, price: { not: null } }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }))
+        .map((i) => ({ id: i.id, name: i.name, price: Number(i.price), group: i.group }))
+        .sort((a, b) => (a.group === "Cavalli" ? 0 : 1) - (b.group === "Cavalli" ? 0 : 1))
+    : [];
 
   return (
     <>
@@ -125,12 +131,17 @@ export default async function HorsePage({ params }: { params: Promise<{ id: stri
                   horseId={horse.id}
                   version={horse.version}
                   bracket={p.bracket}
-                  bracketText={bracketLabel(p.bracket, s)}
-                  listPrice={p.listPrice}
+                  age={p.age}
+                  minSaleAge={s.minSaleAge}
+                  bracketAMax={s.bracketAMax}
+                  bracketBMax={s.bracketBMax}
+                  basePriceA={horse.coat.basePriceA == null ? null : Number(horse.coat.basePriceA)}
+                  basePriceB={horse.coat.basePriceB == null ? null : Number(horse.coat.basePriceB)}
+                  trainingPrice={horse.coat.trainingPrice == null ? null : Number(horse.coat.trainingPrice)}
                   canOverride={can(user.role, "sales.overridePrice")}
                   maxDiscount={s.maxDiscountPercent}
-                  minSaleAge={s.minSaleAge}
                   pregnant={preg != null}
+                  shopItems={shopItems}
                 />
               ) : (
                 <p className="text-fg-2">Questo cavallo è in carico a <b>{horse.owner.displayName}</b>: solo lui può venderlo o passarlo a un altro stalliere.</p>
@@ -146,8 +157,9 @@ export default async function HorsePage({ params }: { params: Promise<{ id: stri
 
           <Card title="Prezzi del manto">
             <dl className="grid grid-cols-2 gap-y-1.5 text-[14.5px]">
-              <dt className="text-fg-3">Vendita {s.minSaleAge}-{s.bracketAMax} anni</dt><dd className="text-right font-semibold">{money(horse.coat.salePriceA)}</dd>
-              <dt className="text-fg-3">Vendita {s.bracketAMax + 1}-{s.bracketBMax} anni</dt><dd className="text-right font-semibold">{money(horse.coat.salePriceB)}</dd>
+              <dt className="text-fg-3">Base {s.minSaleAge}-{s.bracketAMax} anni</dt><dd className="text-right font-semibold">{money(horse.coat.basePriceA)}</dd>
+              <dt className="text-fg-3">Base {s.bracketAMax + 1}-{s.bracketBMax} anni</dt><dd className="text-right font-semibold">{money(horse.coat.basePriceB)}</dd>
+              <dt className="text-fg-3">Addestramento (facoltativo)</dt><dd className="text-right font-semibold">+ {money(horse.coat.trainingPrice)}</dd>
               <dt className="text-fg-3">Oltre {s.bracketBMax} anni</dt><dd className="text-right">Prezzo libero</dd>
               <dt className="text-fg-3">Vendita al blip</dt><dd className="text-right font-semibold">{money(horse.coat.governmentPrice)}</dd>
             </dl>
@@ -159,7 +171,12 @@ export default async function HorsePage({ params }: { params: Promise<{ id: stri
                 <div key={sale.id} className="space-y-1 text-[14.5px]">
                   <div className="flex gap-2"><SaleTypeBadge type={sale.type} />{sale.voided && <span className="badge badge-accent">Annullata</span>}</div>
                   <div>{dateTime(sale.soldAt)} · {sale.sellerName}</div>
-                  <div className="text-[18px] font-bold">{money(sale.finalPrice)}</div>
+                  <div className="text-[18px] font-bold">{money(sale.finalPrice)}{sale.itemsTotal != null && <span className="ml-2 text-[14px] font-normal text-fg-3">+ oggetti {money(sale.itemsTotal)}</span>}</div>
+                  {(sale.basePrice != null || sale.trainingPrice != null) && (
+                    <div className="text-[13px] text-fg-3">
+                      {sale.priceBracket}{sale.basePrice != null && ` · base ${money(sale.basePrice)}`}{sale.trainingPrice != null && ` · addestramento ${money(sale.trainingPrice)}`}
+                    </div>
+                  )}
                 </div>
               ))}
             </Card>

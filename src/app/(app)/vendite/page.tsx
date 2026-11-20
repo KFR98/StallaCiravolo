@@ -165,7 +165,10 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
                         <div className="min-w-0 flex-1">
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0"><div className="truncate font-semibold">{x.breedName}</div><div className="truncate text-[13px] text-fg-3">{x.coatName}</div></div>
-                            <b className="text-[15.5px] whitespace-nowrap">{money(x.finalPrice)}</b>
+                            <div className="text-right">
+                              <b className="text-[15.5px] whitespace-nowrap">{money(x.finalPrice)}</b>
+                              {x.itemsTotal != null && <div className="text-[12px] whitespace-nowrap text-fg-3">+ oggetti {money(x.itemsTotal)}</div>}
+                            </div>
                           </div>
                           <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[12.5px] text-fg-3">
                             <SaleTypeBadge type={x.type} />
@@ -200,7 +203,11 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
                     <td className="whitespace-nowrap">{s.ageAtSale != null ? formatAge(Number(s.ageAtSale)) : "—"}</td>
                     <td>{s.sellerName}</td>
                     <td className="whitespace-nowrap text-fg-2">{dateTime(s.soldAt)}</td>
-                    <td className="num text-fg-2">{money(s.listPrice)}{s.discountValue ? <div className="text-[12px]">sconto {s.discountType === "PERCENTUALE" ? `${Number(s.discountValue)}%` : money(s.discountValue)}</div> : null}</td>
+                    <td className="num text-fg-2">
+                      {s.basePrice != null ? money(s.basePrice) : money(s.listPrice)}
+                      {s.trainingPrice != null && <div className="text-[12px]">+ addestr. {money(s.trainingPrice)}</div>}
+                      {s.itemsTotal != null && <div className="text-[12px]">+ oggetti {money(s.itemsTotal)}</div>}
+                      {s.discountValue ? <div className="text-[12px]">sconto {s.discountType === "PERCENTUALE" ? `${Number(s.discountValue)}%` : money(s.discountValue)}</div> : null}</td>
                     <td className="num text-[15.5px] font-bold">{money(s.finalPrice)}</td>
                     {isAdmin && (
                       <td className="!pr-5 text-right">
