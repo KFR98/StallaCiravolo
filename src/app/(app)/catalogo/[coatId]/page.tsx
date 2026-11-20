@@ -1,3 +1,4 @@
+import { canSeeBreed } from "@/lib/permissions";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
@@ -29,6 +30,7 @@ export default async function CoatPage({ params }: { params: Promise<{ coatId: s
     },
   });
   if (!coat) notFound();
+  if (!canSeeBreed(user.role, coat.breedId)) notFound();
   const [s, meta, inStable] = await Promise.all([getSettings(), getStatMeta(), prisma.horse.count({ where: { coatId: coat.id, status: "IN_STALLA" } })]);
   const admin = can(user.role, "catalog.manage");
   const img = imageUrl(coat.imagePath);

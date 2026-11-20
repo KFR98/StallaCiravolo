@@ -13,11 +13,21 @@ datasource db {
 
 // ───────────────────────────── UTENTI E SESSIONI ─────────────────────────────
 
-enum Role {
-  ADMIN
-  DIRETTORE
-  GESTORE
-  DIPENDENTE
+/// Ruoli modificabili dal pannello (come i ruoli di un server Discord).
+/// "ADMIN" ha sempre tutti i permessi e non si può eliminare.
+model AppRole {
+  key         String   @id
+  name        String
+  color       String?
+  sortOrder   Int      @default(0)
+  /// Ruolo di sistema (creato all'installazione): si può modificare ma non eliminare
+  system      Boolean  @default(false)
+  /// JSON: elenco dei permessi
+  permissions String   @default("[]")
+  /// JSON: razze visibili ({ mode: "all"|"only"|"except", breedIds: number[], rare: boolean, legendary: boolean })
+  access      String   @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model User {
@@ -25,7 +35,8 @@ model User {
   username      String    @unique
   displayName   String
   passwordHash  String
-  role          Role      @default(DIPENDENTE)
+  /// Chiave di AppRole (es. "ADMIN", "DIPENDENTE", "OSPITE" o un ruolo creato dall'admin)
+  role          String    @default("DIPENDENTE")
   active        Boolean   @default(true)
   /// Percentuali stipendio personali (null = usa quelle globali)
   pctStable     Decimal?

@@ -7,7 +7,7 @@ import { getSettings } from "@/lib/settings";
 import { payrollOverview } from "@/lib/payroll";
 import { money, dateTime, dateOnly, TZ } from "@/lib/format";
 import { weekLabel } from "@/lib/weeks";
-import { ROLE_LABELS } from "@/lib/permissions";
+import { roleLabel } from "@/lib/permissions";
 import { PageHeader, Card, StatTile, TableWrap } from "@/components/ui";
 import { PayButton, WeekMenu, PercentForm } from "../PayrollControls";
 
@@ -29,7 +29,7 @@ export default async function UserPayrollPage({ params }: { params: Promise<{ us
   return (
     <>
       <Link href="/stipendi" className="btn btn-ghost btn-sm mb-3 -ml-2"><ArrowLeft size={16} /> Stipendi</Link>
-      <PageHeader title={user.displayName} subtitle={ROLE_LABELS[user.role]} actions={ov && <PayButton userId={id} name={user.displayName} due={ov.due} weeks={ov.arrears.map((w) => weekLabel(w.weekStart, TZ).split(" – ")[0])} currentDue={ov.current?.residual ?? 0} className="btn btn-primary" />} />
+      <PageHeader title={user.displayName} subtitle={roleLabel(user.role)} actions={ov && <PayButton userId={id} name={user.displayName} due={ov.due} weeks={ov.arrears.map((w) => weekLabel(w.weekStart, TZ).split(" – ")[0])} currentDue={ov.current?.residual ?? 0} className="btn btn-primary" />} />
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatTile label="Gli spetta" value={money(ov?.due ?? 0)} hint={`${ov?.arrears.length ?? 0} settimane`} tone="accent" />
         <StatTile label="Ultimo pagamento" value={ov?.lastPaidAt ? dateOnly(ov.lastPaidAt) : "Mai"} />

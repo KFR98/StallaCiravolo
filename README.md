@@ -355,6 +355,15 @@ Tabelle principali: `User`, `Session`, `Breed`, `Coat`, `StatDefinition`, `CoatS
 `Spawn`, `Reservation`, `ShopItem`, `Supplier`, `ShopNote`, `Reimbursement`, `ItemSale`,
 `ItemSaleLine`, `PayrollEntry`, `Payment`, `Setting`, `AuditLog`.
 
+## 8.1 Ruoli e permessi
+Da **Amministrazione → Ruoli** (solo l'amministratore) si creano ruoli nuovi e si decide, con un interruttore per
+ogni voce, cosa può vedere e fare ciascuno, come i ruoli di un server Discord. Per ogni ruolo si sceglie anche
+quali **razze** vede (tutte, solo alcune, tutte tranne alcune) e se vede i cavalli **rari** e **leggendari**:
+vale per mappa, catalogo, listino e confronto.
+- L'**Amministratore** è il proprietario: ha sempre tutto e non si può eliminare.
+- Ruoli di partenza: Amministratore, Direttore, Gestore, Dipendente (non vede rari e leggendari), **Ospite** (solo la mappa).
+- Eliminando un ruolo si sceglie dove spostare i suoi utenti. I controlli sono sempre fatti dal server.
+
 ## 9. Sicurezza
 
 - Tutte le query passano da Prisma con parametri: il testo digitato (ricerche, filtri, URL) non viene mai

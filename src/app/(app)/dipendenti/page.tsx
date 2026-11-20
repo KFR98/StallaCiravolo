@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
-import { can, ROLE_LABELS } from "@/lib/permissions";
+import { can, roleLabel } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
 import { employeeStats } from "@/lib/stats";
 import { money, dateTime, TZ } from "@/lib/format";
@@ -25,7 +25,7 @@ export default async function EmployeesPage({ searchParams }: { searchParams: Pr
         <Card pad={false}>
           <table className="tbl">
             <thead><tr><th className="!pl-5">Nome</th><th>Ruolo</th><th>Ultimo accesso</th></tr></thead>
-            <tbody>{users.map((u) => <tr key={u.id}><td className="!pl-5 font-semibold">{u.displayName}</td><td>{ROLE_LABELS[u.role]}</td><td>{dateTime(u.lastLoginAt)}</td></tr>)}</tbody>
+            <tbody>{users.map((u) => <tr key={u.id}><td className="!pl-5 font-semibold">{u.displayName}</td><td>{roleLabel(u.role)}</td><td>{dateTime(u.lastLoginAt)}</td></tr>)}</tbody>
           </table>
         </Card>
       </>
@@ -65,7 +65,7 @@ export default async function EmployeesPage({ searchParams }: { searchParams: Pr
                 <tbody>
                   {rows.map((r) => (
                     <tr key={r.userId}>
-                      <td className="!pl-5"><Link href={`/dipendenti/${r.userId}${allTime ? "" : `?settimana=${wk(week)}`}`} className="font-semibold hover:text-accent-text">{r.name}</Link><div className="text-[12.5px] text-fg-3">{ROLE_LABELS[r.role as keyof typeof ROLE_LABELS]}</div></td>
+                      <td className="!pl-5"><Link href={`/dipendenti/${r.userId}${allTime ? "" : `?settimana=${wk(week)}`}`} className="font-semibold hover:text-accent-text">{r.name}</Link><div className="text-[12.5px] text-fg-3">{roleLabel(r.role)}</div></td>
                       <td className="num">{r.captures}</td>
                       <td className="num">{r.deposits}</td>
                       <td className="num font-semibold">{r.sales}</td>

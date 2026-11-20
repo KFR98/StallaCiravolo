@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { requireUser } from "@/lib/auth";
-import { can, ROLE_LABELS } from "@/lib/permissions";
+import { can, roleLabel } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
 import { employeeStats } from "@/lib/stats";
 import { money, TZ } from "@/lib/format";
@@ -26,7 +26,7 @@ export default async function EmployeePage({ params, searchParams }: { params: P
     <>
       <Link href="/dipendenti" className="btn btn-ghost btn-sm mb-3 -ml-2"><ArrowLeft size={16} /> Personale</Link>
       <PageHeader
-        eyebrow={`${ROLE_LABELS[user.role]} · @${user.username}${user.active ? "" : " · disattivato"}`}
+        eyebrow={`${roleLabel(user.role)} · @${user.username}${user.active ? "" : " · disattivato"}`}
         title={user.displayName}
         actions={can(me.role, "payroll.manage") ? <Link href={`/stipendi/${user.id}`} className="btn btn-secondary">Stipendi</Link> : undefined}
       />

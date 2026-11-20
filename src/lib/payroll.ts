@@ -1,4 +1,5 @@
-import type { PayrollEntry, Role } from "@prisma/client";
+import type { PayrollEntry } from "@prisma/client";
+type Role = string;
 import { prisma } from "./db";
 import { getSettings, type Settings } from "./settings";
 import { TZ } from "./format";

@@ -1,3 +1,4 @@
+import { canSeeBreed } from "@/lib/permissions";
 import { requireUser } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { getCatalogRows } from "@/lib/catalog";
@@ -8,8 +9,9 @@ import { CompareTable } from "./CompareTable";
 export const metadata = { title: "Confronto cavalli" };
 
 export default async function ComparePage() {
-  await requireUser("prices.view");
-  const [{ meta, rows }, s] = await Promise.all([getCatalogRows(), getSettings()]);
+  const user = await requireUser("prices.view");
+  const [{ meta, rows: all }, s] = await Promise.all([getCatalogRows(), getSettings()]);
+  const rows = all.filter((r) => canSeeBreed(user.role, r.breedId));
   return (
     <>
       <PageHeader title="Catalogo e prezzi" subtitle="Confronta i cavalli per voto, statistiche e prezzo, per consigliare l'acquirente." />

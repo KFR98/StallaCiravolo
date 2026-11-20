@@ -13,7 +13,7 @@ export const BACKUP_DIR = path.resolve(process.env.BACKUP_DIR || "./data/backups
 const ORDER = [
   "user", "breed", "coat", "statDefinition", "coatStat", "priceHistory", "horse", "horseTransfer", "sale",
   "spawn", "reservation", "payrollEntry", "payment", "shopItem", "supplier", "shopNote", "reimbursement",
-  "itemSale", "itemSaleLine", "setting", "auditLog",
+  "itemSale", "itemSaleLine", "setting", "auditLog", "appRole",
 ] as const;
 type ModelName = (typeof ORDER)[number];
 
@@ -22,7 +22,7 @@ const TABLES: Record<ModelName, string> = {
   priceHistory: "PriceHistory", horse: "Horse", sale: "Sale", spawn: "Spawn", reservation: "Reservation",
   payrollEntry: "PayrollEntry", payment: "Payment", setting: "Setting", auditLog: "AuditLog",
   horseTransfer: "HorseTransfer", shopItem: "ShopItem", supplier: "Supplier", shopNote: "ShopNote",
-  reimbursement: "Reimbursement", itemSale: "ItemSale", itemSaleLine: "ItemSaleLine",
+  reimbursement: "Reimbursement", itemSale: "ItemSale", itemSaleLine: "ItemSaleLine", appRole: "AppRole",
 };
 
 export type BackupFile = { app: "stalla-ciravolo"; version: 1; createdAt: string; data: Record<string, unknown[]> };

@@ -10,6 +10,7 @@ import { hash } from "@node-rs/argon2";
 import { prisma } from "../src/lib/db";
 import { applyListino } from "../src/lib/catalog-import";
 import { DEFAULT_SETTINGS } from "../src/lib/settings";
+import { ensureSystemRoles } from "../src/lib/roles-seed";
 import type { ParsedListino } from "../src/lib/excel-import";
 
 async function main() {
@@ -33,6 +34,9 @@ async function main() {
       console.log(`Catalogo: ${breedName} "${from}" rinominato in "${to}".`);
     }
   }
+
+  // Ruoli di base (Amministratore, Direttore, Gestore, Dipendente, Ospite): creati solo se mancano
+  await ensureSystemRoles();
 
   // Bottega: correzione una tantum delle categorie importate dall'Excel.
   // Nella categoria Carri restano solo Telaio, Cerchione, Ruota, Chiodi e Martello; il resto va in Cavalli.

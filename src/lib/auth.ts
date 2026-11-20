@@ -3,9 +3,9 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createHash, randomBytes } from "node:crypto";
 import { hash, verify } from "@node-rs/argon2";
-import type { Role } from "@prisma/client";
 import { prisma } from "./db";
 import { can, type Permission } from "./permissions";
+import { loadRoles } from "./roles";
 
 export const SESSION_COOKIE = "stalla_session";
 const SESSION_DAYS = 7;
@@ -14,7 +14,8 @@ export type CurrentUser = {
   id: number;
   username: string;
   displayName: string;
-  role: Role;
+  /** Chiave del ruolo (AppRole.key) */
+  role: string;
 };
 
 const sha256 = (t: string) => createHash("sha256").update(t).digest("hex");
@@ -94,6 +95,7 @@ export async function destroySession() {
 /** Utente corrente (o null). Verifica sessione, scadenza e account attivo a ogni richiesta. */
 export async function getCurrentUser(): Promise<CurrentUser | null> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  await loadRoles();
   if (!token) return null;
   const session = await prisma.session.findUnique({
     where: { id: sha256(token) },
@@ -119,7 +121,8 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 export async function requireUser(perm?: Permission): Promise<CurrentUser> {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (perm && !can(user.role, perm)) redirect("/?negato=1");
+  // dalla pagina iniziale si va semplicemente alla propria "home" (es. l'ospite alla mappa), senza avviso
+  if (perm && !can(user.role, perm)) redirect(homeFor(user.role) + (perm === "dashboard.view" ? "" : "?negato=1"));
   return user;
 }
 
@@ -131,4 +134,13 @@ export async function assertPermission(perm?: Permission): Promise<CurrentUser> 
   if (!user) throw new AuthError("Sessione scaduta: effettua di nuovo l'accesso.");
   if (perm && !can(user.role, perm)) throw new AuthError("Non hai i permessi per questa operazione.");
   return user;
+}
+
+/** Prima pagina che il ruolo può aprire (es. l'ospite va direttamente alla mappa). */
+export function homeFor(role: string): string {
+  const pages: [string, Permission][] = [
+    ["/", "dashboard.view"], ["/stalla", "horses.view"], ["/mappa", "map.view"], ["/catalogo", "catalog.view"],
+    ["/listino", "prices.view"], ["/bottega", "shop.view"], ["/prenotazioni", "reservations.edit"],
+  ];
+  return pages.find(([, p]) => can(role, p))?.[0] ?? "/profilo";
 }

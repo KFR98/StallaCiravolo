@@ -11,11 +11,17 @@ import { saveImage, saveImageBuffer, deleteUpload } from "@/lib/uploads";
 import { fetchRemoteImage } from "@/lib/remote-image";
 import { parseListino, type ParsedListino } from "@/lib/excel-import";
 import { applyListino } from "@/lib/catalog-import";
-import { ROLES } from "@/lib/permissions";
+import { ADMIN_ROLE } from "@/lib/permissions";
 
 // ─────────────────────────── UTENTI ───────────────────────────
 
 const pwSchema = z.string().min(8, "La password deve avere almeno 8 caratteri").max(200);
+
+/** Il ruolo deve esistere; il ruolo Amministratore lo può dare solo un amministratore. */
+async function checkAssignableRole(actor: { role: string }, role: string) {
+  if (!(await prisma.appRole.findUnique({ where: { key: role } }))) throw new UserError("Ruolo inesistente.");
+  if (role === ADMIN_ROLE && actor.role !== ADMIN_ROLE) throw new UserError("Solo un amministratore può dare il ruolo di amministratore.");
+}
 
 export async function createUser(form: FormData) {
   return run(async () => {
@@ -25,12 +31,13 @@ export async function createUser(form: FormData) {
       .object({
         username: z.string().trim().min(3, "Nome utente: almeno 3 caratteri").max(50).regex(/^[a-zA-Z0-9._-]+$/, "Nome utente: solo lettere, numeri, punto, trattino"),
         displayName: z.string().trim().min(2, "Inserisci il nome in gioco").max(100),
-        role: z.enum(ROLES as [string, ...string[]]),
+        role: z.string().min(1).max(40),
         password: pwSchema,
       })
       .parse({ username: f.str("username"), displayName: f.str("displayName"), role: f.str("role"), password: f.str("password") });
+    await checkAssignableRole(actor, data.role);
     const u = await prisma.user.create({
-      data: { username: data.username, displayName: data.displayName, role: data.role as never, passwordHash: await hashPassword(data.password) },
+      data: { username: data.username, displayName: data.displayName, role: data.role, passwordHash: await hashPassword(data.password) },
     });
     await audit(actor, "CREA_UTENTE", "Utente", u.id, `Creato utente ${u.username} (${u.role})`);
     return { ok: true, message: `Account ${u.username} creato.` };
@@ -46,13 +53,15 @@ export async function updateUser(form: FormData) {
       .object({
         username: z.string().trim().min(3, "Nome utente: almeno 3 caratteri").max(50).regex(/^[a-zA-Z0-9._-]+$/, "Nome utente: solo lettere, numeri, punto, trattino"),
         displayName: z.string().trim().min(2).max(100),
-        role: z.enum(ROLES as [string, ...string[]]),
+        role: z.string().min(1).max(40),
         active: z.boolean(),
         notes: z.string().max(2000).nullable(),
       })
       .parse({ username: f.str("username"), displayName: f.str("displayName"), role: f.str("role"), active: f.bool("active"), notes: f.opt("notes") });
     const before = await prisma.user.findUnique({ where: { id } });
     if (!before) throw new UserError("Utente non trovato.");
+    if (data.role !== before.role) await checkAssignableRole(actor, data.role);
+    if (before.role === ADMIN_ROLE && actor.role !== ADMIN_ROLE) throw new UserError("Solo un amministratore può modificare un altro amministratore.");
     // Un amministratore non si può disattivare: ne deve restare sempre almeno uno attivo per poter entrare
     if (data.role === "ADMIN" && !data.active) throw new UserError("Un amministratore non può essere disattivato. Se serve, cambia prima il suo ruolo.");
     if (before.id === actor.id && data.role !== "ADMIN") throw new UserError("Non puoi togliere a te stesso il ruolo di amministratore.");
@@ -62,7 +71,7 @@ export async function updateUser(form: FormData) {
     }
     if (data.username !== before.username && (await prisma.user.findUnique({ where: { username: data.username } }))) throw new UserError("Nome utente già in uso.");
     await prisma.$transaction(async (tx) => {
-      await tx.user.update({ where: { id }, data: { ...data, role: data.role as never } });
+      await tx.user.update({ where: { id }, data: { ...data, role: data.role } });
       if (!data.active) await tx.session.deleteMany({ where: { userId: id } });
       await audit(actor, "MODIFICA_UTENTE", "Utente", id, `Modificato utente ${before.username}${data.username !== before.username ? ` → ${data.username}` : ""}`, {
         prima: { username: before.username, displayName: before.displayName, role: before.role, active: before.active },

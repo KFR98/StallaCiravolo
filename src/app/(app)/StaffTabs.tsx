@@ -1,5 +1,5 @@
 import { Tabs } from "@/components/ui";
-import type { Role } from "@prisma/client";
+type Role = string;
 import { can } from "@/lib/permissions";
 
 export function StaffTabs({ role, active }: { role: Role; active: "dipendenti" | "stipendi" | "storico" }) {

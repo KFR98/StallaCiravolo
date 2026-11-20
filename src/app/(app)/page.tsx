@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
-import { can, ROLE_LABELS } from "@/lib/permissions";
+import { can, roleLabel } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { salesSummary, dailyTrend, employeeStats, periods } from "@/lib/stats";
@@ -16,7 +16,7 @@ import { SalesTrendChart } from "@/components/Charts";
 import { WeeklyChampion } from "@/components/WeeklyChampion";
 
 export default async function Dashboard({ searchParams }: { searchParams: Promise<{ negato?: string }> }) {
-  const user = await requireUser();
+  const user = await requireUser("dashboard.view");
   const sp = await searchParams;
   const s = await getSettings();
   const overview = can(user.role, "dashboard.overview");
@@ -44,7 +44,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
 
   return (
     <>
-      <PageHeader eyebrow={`${ROLE_LABELS[user.role]} · settimana ${weekLabel(p.week, TZ)}`} title={overview ? "Ufficio" : `Ciao, ${user.displayName}`} />
+      <PageHeader eyebrow={`${roleLabel(user.role)} · settimana ${weekLabel(p.week, TZ)}`} title={overview ? "Ufficio" : `Ciao, ${user.displayName}`} />
       {sp.negato && <div className="card mb-4 border-accent p-3 text-accent-text">Non hai i permessi per accedere a quella pagina.</div>}
 
       {toFoal.length > 0 && (

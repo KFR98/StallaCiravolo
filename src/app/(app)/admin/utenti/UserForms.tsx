@@ -4,7 +4,8 @@ import { useState } from "react";
 import { ActionForm } from "@/components/ActionForm";
 import { Modal } from "@/components/Modal";
 import { createUser, updateUser, resetPassword, deleteUserCompletely, userDataSummary } from "../actions";
-import { ROLE_LABELS, ROLES } from "@/lib/permissions";
+
+export type RoleOption = { key: string; name: string };
 
 const genPw = () => {
   const c = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -23,7 +24,7 @@ function PasswordField() {
   );
 }
 
-export function NewUserButton() {
+export function NewUserButton({ roles }: { roles: RoleOption[] }) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -33,7 +34,7 @@ export function NewUserButton() {
           <label className="block"><span className="field-label">Nome in gioco</span><input name="displayName" className="input" required /></label>
           <label className="block"><span className="field-label">Nome utente (per l&apos;accesso)</span><input name="username" className="input" required pattern="[a-zA-Z0-9._\-]+" minLength={3} /></label>
           <label className="block"><span className="field-label">Ruolo</span>
-            <select name="role" className="input" defaultValue="DIPENDENTE">{ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}</select>
+            <select name="role" className="input" defaultValue={roles.some((r) => r.key === "DIPENDENTE") ? "DIPENDENTE" : roles[0]?.key}>{roles.map((r) => <option key={r.key} value={r.key}>{r.name}</option>)}</select>
           </label>
           <label className="block"><span className="field-label">Password iniziale (min. 8 caratteri)</span><PasswordField /></label>
           <button className="btn btn-primary w-full">Crea account</button>
@@ -45,7 +46,7 @@ export function NewUserButton() {
 
 type Summary = Awaited<ReturnType<typeof userDataSummary>>;
 
-export function EditUserButton({ user, isMe }: { user: { id: number; username: string; displayName: string; role: string; active: boolean; notes: string | null }; isMe: boolean }) {
+export function EditUserButton({ user, isMe, roles }: { user: { id: number; username: string; displayName: string; role: string; active: boolean; notes: string | null }; isMe: boolean; roles: RoleOption[] }) {
   const [open, setOpen] = useState<null | "edit" | "delete">(null);
   const [role, setRole] = useState(user.role);
   const [summary, setSummary] = useState<Summary | null>(null);
@@ -63,7 +64,10 @@ export function EditUserButton({ user, isMe }: { user: { id: number; username: s
           <label className="block"><span className="field-label">Nome in gioco</span><input name="displayName" defaultValue={user.displayName} className="input" required /></label>
           <label className="block"><span className="field-label">Nome utente per l&apos;accesso</span><input name="username" defaultValue={user.username} className="input" required pattern="[a-zA-Z0-9._\-]+" minLength={3} /></label>
           <label className="block"><span className="field-label">Ruolo</span>
-            <select name="role" className="input" defaultValue={user.role} onChange={(e) => setRole(e.target.value)}>{ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}</select>
+            <select name="role" className="input" defaultValue={user.role} onChange={(e) => setRole(e.target.value)}>
+              {!roles.some((r) => r.key === user.role) && <option value={user.role}>{user.role}</option>}
+              {roles.map((r) => <option key={r.key} value={r.key}>{r.name}</option>)}
+            </select>
           </label>
           {role === "ADMIN" ? (
             <>

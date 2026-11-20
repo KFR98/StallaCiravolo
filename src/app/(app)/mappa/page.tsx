@@ -1,5 +1,5 @@
 import { requireUser } from "@/lib/auth";
-import { can } from "@/lib/permissions";
+import { can, canSeeBreed, roleAccess } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
 import { getBreedOptions, imageUrl } from "@/lib/catalog";
 import { getSetting } from "@/lib/settings";
@@ -20,19 +20,27 @@ export default async function MapPage() {
     getTilesMeta(),
     getSetting("mapExtraZoom"),
   ]);
+  // Razze visibili per il ruolo (e rari/leggendari): il resto non arriva nemmeno al browser
+  const access = roleAccess(user.role);
+  const visibleSpawns = spawns.filter((s) => {
+    if (s.kind === "RARO" && !access.rare) return false;
+    if (s.kind === "LEGGENDARIO" && !access.legendary) return false;
+    return s.kind === "NOTA" || canSeeBreed(user.role, s.breedId);
+  });
+  const visibleBreeds = breeds.filter((b) => canSeeBreed(user.role, b.id));
   const tiles = tilesMeta ? { ...tilesMeta, extra: Number(extraZoom) || 0 } : null;
   return (
     <>
       <PageHeader title="Mappa degli spawn" subtitle="Cavalli avvistati, possibili cavalli e note, condivisi da tutta la stalla." />
       <SpawnMapLoader
         key={tiles ? `${tiles.v}-${tiles.extra}` : "semplice"}
-        spawns={spawns.map((s) => ({
+        spawns={visibleSpawns.map((s) => ({
           id: s.id, kind: s.kind, title: s.title, color: s.color, x: s.x, y: s.y, breedId: s.breedId, coatId: s.coatId,
           breed: s.breed?.name ?? (s.kind === "CAVALLO" ? "Razza sconosciuta" : null), coat: s.coat?.name ?? null, image: imageUrl(s.coat?.imagePath),
           location: s.location, description: s.description, notes: s.notes,
           author: s.createdBy.displayName, createdAt: dateTime(s.createdAt), mine: s.createdById === user.id,
         }))}
-        breeds={breeds}
+        breeds={visibleBreeds}
         tiles={tiles}
         noteNames={noteNames && typeof noteNames === "object" ? noteNames : {}}
         perms={{ add: can(user.role, "map.add"), manage: can(user.role, "map.manage") }}

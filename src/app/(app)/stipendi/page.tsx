@@ -5,7 +5,7 @@ import { getSettings } from "@/lib/settings";
 import { payrollOverview } from "@/lib/payroll";
 import { money, dateTime, dateOnly, TZ } from "@/lib/format";
 import { weekLabel } from "@/lib/weeks";
-import { ROLE_LABELS } from "@/lib/permissions";
+import { roleLabel } from "@/lib/permissions";
 import { PageHeader, Card, StatTile, TableWrap, Empty } from "@/components/ui";
 import { PayButton } from "./PayrollControls";
 import { StaffTabs } from "../StaffTabs";
@@ -84,7 +84,7 @@ export default async function PayrollPage({ searchParams }: { searchParams: Prom
               <tbody>
                 {list.map((u) => (
                   <tr key={u.userId}>
-                    <td className="!pl-5"><Link href={`/stipendi/${u.userId}`} className="font-semibold hover:text-accent-text">{u.name}</Link><div className="text-[12.5px] text-fg-3">{ROLE_LABELS[u.role]}{!u.active ? " · disattivato" : ""}</div></td>
+                    <td className="!pl-5"><Link href={`/stipendi/${u.userId}`} className="font-semibold hover:text-accent-text">{u.name}</Link><div className="text-[12.5px] text-fg-3">{roleLabel(u.role)}{!u.active ? " · disattivato" : ""}</div></td>
                     <td className="text-[13px] whitespace-nowrap text-fg-2">S {u.percents.stable}% · B {u.percents.gov}% · O {u.percents.items}%{u.percents.custom && <span className="badge badge-info ml-1">personali</span>}</td>
                     <td className="whitespace-nowrap">{u.lastPaidAt ? dateOnly(u.lastPaidAt) : <span className="text-fg-3">mai</span>}</td>
                     <td>{u.arrears.length === 0 ? <span className="badge badge-ok">In regola</span> : <span className="badge badge-warn">{u.arrears.length} {u.arrears.length === 1 ? "settimana" : "settimane"}</span>}</td>

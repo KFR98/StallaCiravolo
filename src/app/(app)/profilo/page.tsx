@@ -1,6 +1,6 @@
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { ROLE_LABELS } from "@/lib/permissions";
+import { roleLabel } from "@/lib/permissions";
 import { PageHeader, Card } from "@/components/ui";
 import { UserTotalsCards, UserHistoryList, type HistorySearch } from "@/components/UserHistory";
 import { AccountForm } from "./AccountForm";
@@ -13,7 +13,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
   const user = await prisma.user.findUniqueOrThrow({ where: { id: me.id } });
   return (
     <>
-      <PageHeader eyebrow={ROLE_LABELS[user.role]} title={user.displayName} subtitle={`@${user.username}`} />
+      <PageHeader eyebrow={roleLabel(user.role)} title={user.displayName} subtitle={`@${user.username}`} />
       <UserTotalsCards userId={user.id} />
       <div className="grid gap-5 xl:grid-cols-[1.7fr_1fr]">
         <UserHistoryList userId={user.id} sp={sp} basePath="/profilo" />

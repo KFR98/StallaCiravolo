@@ -1,3 +1,4 @@
+import { canSeeBreed } from "@/lib/permissions";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { can } from "@/lib/permissions";
@@ -11,7 +12,8 @@ export const metadata = { title: "Catalogo" };
 
 export default async function CatalogPage() {
   const user = await requireUser("catalog.view");
-  const [{ meta, rows }, s] = await Promise.all([getCatalogRows(), getSettings()]);
+  const [{ meta, rows: all }, s] = await Promise.all([getCatalogRows(), getSettings()]);
+  const rows = all.filter((r) => canSeeBreed(user.role, r.breedId));
   return (
     <>
       <PageHeader

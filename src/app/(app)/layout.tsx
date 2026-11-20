@@ -1,11 +1,11 @@
 import { requireUser } from "@/lib/auth";
-import { can, ROLE_LABELS, type Permission } from "@/lib/permissions";
+import { can, roleLabel, type Permission } from "@/lib/permissions";
 import { getSetting } from "@/lib/settings";
 import { AppShell, type NavItem } from "@/components/Sidebar";
 import { logoutAction } from "../login/actions";
 
 const NAV: (NavItem & { perm: Permission })[] = [
-  { href: "/", label: "Ufficio", icon: "dashboard", perm: "catalog.view", match: ["/"], mobile: true },
+  { href: "/", label: "Ufficio", icon: "dashboard", perm: "dashboard.view", match: ["/"], mobile: true },
   { href: "/stalla", label: "Stalla", icon: "stable", perm: "horses.view", match: ["/stalla"], mobile: true },
   { href: "/vendite", label: "Vendite", icon: "sales", perm: "horses.view", match: ["/vendite"], mobile: true },
   { href: "/bottega", label: "Bottega", icon: "shop", perm: "shop.view", match: ["/bottega"] },
@@ -23,7 +23,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <AppShell
       items={items}
-      user={{ displayName: user.displayName, roleLabel: ROLE_LABELS[user.role] }}
+      user={{ displayName: user.displayName, roleLabel: roleLabel(user.role) }}
       stableName={stableName}
       canCapture={can(user.role, "horses.capture")}
       logout={logoutAction}
