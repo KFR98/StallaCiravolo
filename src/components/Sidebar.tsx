@@ -121,8 +121,9 @@ export function AppShell({
         </aside>
       </div>
 
-      <main className="pb-24 lg:pb-0 lg:pl-[248px]">
-        <div className="mx-auto max-w-[1680px] px-4 py-5 sm:px-6 sm:py-7">{children}</div>
+      {/* overflow-x-clip: rete di sicurezza, nessun contenuto può allargare la pagina oltre lo schermo */}
+      <main className="min-w-0 overflow-x-clip pb-24 lg:pb-0 lg:pl-[248px]">
+        <div className="mx-auto max-w-[1680px] min-w-0 px-4 py-5 sm:px-6 sm:py-7">{children}</div>
       </main>
 
       {/* Barra inferiore mobile: 4 voci principali */}
