@@ -299,8 +299,22 @@ input[type="radio"] {
   background: var(--bar-track);
 }
 .statbar > span {
-  @apply absolute inset-y-0 left-0 rounded-full transition-[width] duration-500;
+  @apply absolute inset-0 rounded-full;
   background: var(--bar-fill);
+  /* la barra resta piena e se ne mostra solo una parte: si anima senza ricalcolare il layout */
+  clip-path: inset(0 calc(100% - var(--pct, 0%)) 0 0 round 9999px);
+  transition: clip-path 400ms var(--ease-out);
+}
+
+/* Entrata del logo nella pagina di accesso (una volta sola) */
+@keyframes logo-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+  }
+}
+.logo-in {
+  animation: logo-in 280ms var(--ease-out) both;
 }
 
 /* Etichetta "INCINTA" che pulsa quando è ora del parto */

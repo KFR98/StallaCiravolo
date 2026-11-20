@@ -106,7 +106,7 @@ export function CompareTable({ rows, meta, labels }: { rows: CatalogRow[]; meta:
                 {r.stats.map((v, i) => (
                   <td key={i} className="num">
                     <div className="ml-auto flex w-[64px] items-center gap-1.5" title={`${meta[i].label}: ${v ?? "—"} su ${meta[i].max}`}>
-                      <div className="statbar !h-1.5"><span style={{ width: `${v != null && meta[i].max ? (v / meta[i].max) * 100 : 0}%` }} /></div>
+                      <div className="statbar !h-1.5"><span style={{ "--pct": `${v != null && meta[i].max ? (v / meta[i].max) * 100 : 0}%` } as React.CSSProperties} /></div>
                       <span className="w-6 text-right text-[13px] tabular-nums">{v ?? "—"}</span>
                     </div>
                   </td>

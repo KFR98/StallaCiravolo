@@ -15,9 +15,9 @@ export function PageHeader({ title, subtitle, actions, eyebrow }: { title: strin
   );
 }
 
-export function Card({ title, actions, children, className, pad = true }: { title?: ReactNode; actions?: ReactNode; children: ReactNode; className?: string; pad?: boolean }) {
+export function Card({ title, actions, children, className, pad = true, id }: { title?: ReactNode; actions?: ReactNode; children: ReactNode; className?: string; pad?: boolean; id?: string }) {
   return (
-    <section className={clsx("card fade-up", className)}>
+    <section id={id} className={clsx("card fade-up", className)}>
       {(title || actions) && (
         <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3 sm:px-5">
           {title && <h2 className="h-display text-[18px]">{title}</h2>}

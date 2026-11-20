@@ -68,6 +68,8 @@ export default async function HorsePage({ params }: { params: Promise<{ id: stri
             {inStable && <PregnancyBadge dueAt={horse.pregnancyDueAt} />}
           </div>
         </div>
+        {/* Su telefono il riquadro Vendi è in fondo: scorciatoia diretta */}
+        {inStable && isOwner && <a href="#vendi" className="btn btn-primary w-full sm:w-auto lg:hidden">Vendi</a>}
       </header>
 
       <div className="grid gap-5 lg:grid-cols-[1.15fr_1fr]">
@@ -98,7 +100,7 @@ export default async function HorsePage({ params }: { params: Promise<{ id: stri
                 <b>{formatAge(p.age)}</b>
                 <span className="text-fg-3">{Math.floor(p.age) + 1} anni tra {((1 - yearProgress / 100) * s.daysPerYear).toFixed(1)} giorni</span>
               </div>
-              <div className="statbar mt-2"><span style={{ width: `${yearProgress}%` }} /></div>
+              <div className="statbar mt-2"><span style={{ "--pct": `${yearProgress}%` } as React.CSSProperties} /></div>
               <p className="mt-2 text-[13.5px] text-fg-3">
                 {p.bracket === "TROPPO_GIOVANE" ? `Vendibile tra circa ${daysUntilAge(p.age, s.minSaleAge, s.daysPerYear).toFixed(1)} giorni (a ${s.minSaleAge} anni).` : `Fascia di prezzo: ${bracketLabel(p.bracket, s)}.`}
               </p>
@@ -125,7 +127,7 @@ export default async function HorsePage({ params }: { params: Promise<{ id: stri
 
         <div className="space-y-5">
           {inStable && (
-            <Card title="Vendi">
+            <Card title="Vendi" id="vendi" className="scroll-mt-20">
               {isOwner ? (
                 <SellForm
                   horseId={horse.id}

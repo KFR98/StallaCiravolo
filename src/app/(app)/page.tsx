@@ -101,7 +101,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         )}
       </div>
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-2">
+      <div className="mt-5 grid items-start gap-5 lg:grid-cols-2">
         <Card title={mine ? "Ultimi miei cavalli" : "Ultimi arrivati in stalla"} actions={<Link href="/stalla" className="btn btn-ghost btn-sm">Tutti</Link>}>
           {recentHorses.length === 0 ? <Empty>La stalla è vuota.</Empty> : (
             <ul className="divide-y divide-border">

@@ -10,7 +10,7 @@ export function StatBars({ stats, compact = false }: { stats: StatRow[]; compact
           <div key={s.label} className="grid grid-cols-[72px_1fr_32px] items-center gap-2.5">
             <dt className="truncate text-[12px] font-semibold tracking-wide text-fg-3 uppercase">{s.label}</dt>
             <div className="statbar" role="meter" aria-label={s.label} aria-valuemin={0} aria-valuemax={s.max} aria-valuenow={s.value ?? 0}>
-              <span style={{ width: `${pct}%` }} />
+              <span style={{ "--pct": `${pct}%` } as React.CSSProperties} />
             </div>
             <dd className="text-right text-[13.5px] font-semibold tabular-nums">{s.value == null ? <span className="text-fg-3">—</span> : s.value.toLocaleString("it-IT")}</dd>
           </div>
