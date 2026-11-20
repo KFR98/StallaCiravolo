@@ -92,7 +92,7 @@ export default async function StablePage({ searchParams }: { searchParams: Promi
     return {
       id: h.id, breed: h.breed.name, coat: h.coat.name, image: imageUrl(h.coat.imagePath), plate: h.plate ?? "—", sex: sexLabel(h.sex),
       ageText: formatAge(p.age), sellable: p.bracket !== "TROPPO_GIOVANE",
-      price: p.listPrice != null ? money(p.listPrice) : p.bracket === "LIBERO" ? "Prezzo libero" : "—",
+      price: p.basePrice != null ? money(p.basePrice) : p.bracket === "LIBERO" ? "Prezzo libero" : p.bracket === "TROPPO_GIOVANE" ? "" : "—",
       ownerId: h.ownerId, owner: h.owner.displayName, capturedBy: h.capturedBy.displayName,
       dueAt: h.pregnancyDueAt?.toISOString() ?? null, condition: h.condition, mine: h.ownerId === user.id,
     };

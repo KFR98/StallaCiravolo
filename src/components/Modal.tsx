@@ -43,7 +43,7 @@ export function Modal({ open, onClose, title, children, wide }: { open: boolean;
   return createPortal(
     <div className="fixed inset-0 z-[1000] flex items-end justify-center bg-black/60 backdrop-blur-[2px] sm:items-center sm:p-4" onMouseDown={() => closeRef.current()}>
       <div
-        className={`card fade-up max-h-[94dvh] w-full overflow-y-auto rounded-b-none sm:rounded-xl ${wide ? "sm:max-w-3xl" : "sm:max-w-lg"}`}
+        className={`card fade-up max-h-[94dvh] w-full overflow-y-auto overscroll-contain rounded-b-none sm:rounded-xl ${wide ? "sm:max-w-3xl" : "sm:max-w-lg"}`}
         onMouseDown={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"

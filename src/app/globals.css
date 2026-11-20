@@ -103,6 +103,26 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+/* Tocco su telefono: niente lampo grigio e niente attesa del doppio tap */
+a,
+button,
+label,
+summary,
+[role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+/* iOS ingrandisce la pagina se un campo ha il testo sotto i 16px: sui dispositivi touch li portiamo a 16 */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea,
+  .input {
+    font-size: 16px !important;
+  }
 }
 body {
   @apply bg-bg font-sans text-fg antialiased;
@@ -148,7 +168,13 @@ body {
 
 /* ───────── Pulsanti (altezza minima 40px) ───────── */
 .btn {
-  @apply inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border px-4 text-[14.5px] font-semibold whitespace-nowrap transition-colors duration-150 select-none disabled:cursor-not-allowed disabled:opacity-50;
+  @apply inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border px-4 text-[14.5px] font-semibold whitespace-nowrap select-none disabled:cursor-not-allowed disabled:opacity-50;
+  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease, transform 160ms var(--ease-out);
+}
+/* Risposta alla pressione: il pulsante "sente" il dito o il clic */
+.btn:active:not(:disabled),
+.chip:active {
+  transform: scale(0.97);
 }
 .btn-primary {
   @apply border-transparent bg-accent text-on-accent hover:bg-accent-hover;
@@ -210,8 +236,10 @@ input[type="radio"] {
 .tbl tbody tr:last-child td {
   border-bottom: 0;
 }
-.tbl tbody tr:hover td {
-  background: var(--surface-2);
+@media (hover: hover) and (pointer: fine) {
+  .tbl tbody tr:hover td {
+    background: var(--surface-2);
+  }
 }
 .tbl .num {
   @apply text-right whitespace-nowrap tabular-nums;
@@ -258,7 +286,8 @@ input[type="radio"] {
 
 /* Chip selezionabili */
 .chip {
-  @apply inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded-full border border-border-strong bg-surface px-3 text-[13.5px] font-medium text-fg-2 transition-colors hover:text-fg;
+  @apply inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded-full border border-border-strong bg-surface px-3 text-[13.5px] font-medium text-fg-2 select-none hover:text-fg;
+  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease, transform 160ms var(--ease-out);
 }
 .chip[aria-pressed="true"] {
   @apply border-fg bg-fg text-bg;
@@ -291,7 +320,7 @@ input[type="radio"] {
   }
 }
 .fade-up {
-  animation: fade-up 0.2s ease-out both;
+  animation: fade-up 0.2s var(--ease-out) both;
 }
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -347,8 +376,10 @@ input[type="radio"] {
   border-color: rgba(255, 255, 255, 0.12) !important;
   font-size: 20px !important;
 }
-.leaflet-control-zoom a:hover {
-  background: #0b0a09 !important;
+@media (hover: hover) and (pointer: fine) {
+  .leaflet-control-zoom a:hover {
+    background: #0b0a09 !important;
+  }
 }
 .rdr-map-image {
   image-rendering: auto;
@@ -361,6 +392,8 @@ input[type="radio"] {
 .tbl-compact tbody td {
   padding: 0.45rem 0.5rem;
 }
-.tbl-compact tbody tr:hover td.sticky {
-  background: var(--surface-2);
+@media (hover: hover) and (pointer: fine) {
+  .tbl-compact tbody tr:hover td.sticky {
+    background: var(--surface-2);
+  }
 }

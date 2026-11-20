@@ -5,7 +5,7 @@ import type { Settings } from "./settings";
 type HorseLike = {
   ageBase: unknown;
   ageCheckpointAt: Date;
-  coat: { salePriceA: unknown; salePriceB: unknown; governmentPrice: unknown };
+  coat: { salePriceA: unknown; salePriceB: unknown; governmentPrice: unknown; basePriceA?: unknown; basePriceB?: unknown };
 };
 
 export function horseAge(h: { ageBase: unknown; ageCheckpointAt: Date }, s: Settings, now = new Date()) {
@@ -21,7 +21,10 @@ export function horsePricing(h: HorseLike, s: Settings, now = new Date()) {
     salePriceB: h.coat.salePriceB == null ? null : Number(h.coat.salePriceB),
     governmentPrice: h.coat.governmentPrice == null ? null : Number(h.coat.governmentPrice),
   };
-  return { age, bracket, listPrice: listPriceFor(bracket, prices), prices };
+  const num = (v: unknown) => (v == null ? null : Number(v));
+  // prezzo base della fascia, senza addestramento (l'addestramento si aggiunge in vendita)
+  const basePrice = bracket === "A" ? num(h.coat.basePriceA) : bracket === "B" ? num(h.coat.basePriceB) : null;
+  return { age, bracket, listPrice: listPriceFor(bracket, prices), basePrice, prices };
 }
 
 /** Stato della gravidanza: null, "INCINTA" (prima della data prevista) o "PARTO" (data raggiunta). */

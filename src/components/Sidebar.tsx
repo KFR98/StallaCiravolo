@@ -98,7 +98,7 @@ export function AppShell({
       </aside>
 
       {/* Barra superiore mobile */}
-      <div className="sticky top-0 z-40 flex items-center justify-between gap-2 border-b border-white/5 bg-[#0b0a09] px-4 py-2.5 lg:hidden">
+      <div className="sticky top-0 z-40 flex items-center justify-between gap-2 border-b border-white/5 bg-[#0b0a09] px-4 pt-[max(0.625rem,env(safe-area-inset-top))] pb-2.5 lg:hidden">
         {brand}
         <div className="flex items-center gap-1">
           <ThemeToggle className="!text-neutral-300" />
@@ -109,8 +109,8 @@ export function AppShell({
       </div>
       {/* Drawer mobile */}
       <div className={clsx("fixed inset-0 z-50 lg:hidden", open ? "pointer-events-auto" : "pointer-events-none")} aria-hidden={!open}>
-        <div className={clsx("absolute inset-0 bg-black/60 transition-opacity", open ? "opacity-100" : "opacity-0")} onClick={() => setOpen(false)} />
-        <aside className={clsx("absolute inset-y-0 right-0 flex w-[290px] flex-col gap-4 bg-[#0b0a09] px-3 py-4 transition-transform", open ? "translate-x-0" : "translate-x-full")}>
+        <div className={clsx("absolute inset-0 bg-black/60 transition-opacity duration-300", open ? "opacity-100" : "opacity-0")} onClick={() => setOpen(false)} />
+        <aside className={clsx("absolute inset-y-0 right-0 flex w-[290px] flex-col gap-4 bg-[#0b0a09] px-3 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] transition-transform duration-300 ease-[var(--ease-drawer)]", open ? "translate-x-0" : "translate-x-full")}>
           <div className="flex items-center justify-between px-2">
             <span className="font-display text-[13px] font-semibold tracking-[0.2em] text-neutral-400 uppercase">Menu</span>
             <button onClick={() => setOpen(false)} aria-label="Chiudi menu" className="btn btn-ghost btn-icon !text-white"><X /></button>
