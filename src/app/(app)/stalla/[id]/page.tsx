@@ -265,7 +265,7 @@ export default async function HorsePage({ params }: { params: Promise<{ id: stri
             <details className="card">
               <summary className="card-pad cursor-pointer font-semibold">Correzione amministrativa</summary>
               <div className="card-pad !pt-0">
-                <CorrectHorseForm horseId={horse.id} breeds={breeds} coatId={horse.coatId} sex={horse.sex} age={Math.round(p.age * 100) / 100} capturedById={horse.capturedById} users={users} />
+                <CorrectHorseForm horseId={horse.id} breeds={breeds} coatId={horse.coatId} sex={horse.sex} age={Math.round(p.age * 100) / 100} capturedById={horse.capturedById} users={users} capturedAt={formatInTimeZone(horse.capturedAt, TZ, "yyyy-MM-dd'T'HH:mm")} />
                 {horse.status === "RIMOSSO" && <div className="mt-4"><RestoreHorseButton horseId={horse.id} /></div>}
               </div>
             </details>

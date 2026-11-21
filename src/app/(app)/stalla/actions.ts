@@ -10,10 +10,26 @@ import { audit } from "@/lib/audit";
 import { getSettings } from "@/lib/settings";
 import { horsePricing, horseAge } from "@/lib/horses";
 import { applyDiscount, bracketLabel, round2 } from "@/lib/pricing";
-import { fromZonedTime } from "date-fns-tz";
+import { fromZonedTime, formatInTimeZone } from "date-fns-tz";
 import { TZ } from "@/lib/format";
 
 const DAY = 86400_000;
+
+/**
+ * Data e ora della cattura scelte nel modulo (ora di Roma). Vuota = adesso.
+ * Si può retrodatare (es. cavallo registrato in ritardo), non mettere nel futuro.
+ * I dipendenti fino a 30 giorni indietro; chi corregge i dati (admin) fino a un anno.
+ */
+function parseCaptureDate(raw: string, wide: boolean): Date {
+  const now = new Date();
+  if (!raw) return now;
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(raw)) throw new UserError("Data della cattura non valida.");
+  const d = fromZonedTime(raw + ":00", TZ);
+  if (d.getTime() > now.getTime() + 2 * 60_000) throw new UserError("La data della cattura non può essere nel futuro.");
+  const maxDays = wide ? 365 : 30;
+  if (d.getTime() < now.getTime() - maxDays * DAY) throw new UserError(`La data della cattura può essere al massimo ${maxDays} giorni fa.`);
+  return d;
+}
 
 /** Solo chi ha il cavallo in carico (o admin/direttore) può venderlo, trasferirlo o gestirne la gravidanza. */
 function assertOwner(user: CurrentUser, horse: { ownerId: number }) {
@@ -59,11 +75,15 @@ export async function captureHorse(form: FormData) {
 
     const dup = await prisma.horse.findUnique({ where: { requestId: base.requestId } });
     if (dup) return { ok: true, message: "Registrazione già effettuata." };
+    // data di cattura: di base adesso, modificabile se il cavallo è stato registrato in ritardo
+    const capturedAt = parseCaptureDate(f.str("capturedAt"), can(user.role, "horses.correct"));
+    const backdated = Date.now() - capturedAt.getTime() > 5 * 60_000;
 
     const coat = await prisma.coat.findFirst({ where: { id: base.coatId, breedId: base.breedId, archived: false }, include: { breed: true } });
     if (!coat) throw new UserError("Il manto non appartiene alla razza selezionata.");
-    const now = new Date();
+    const now = capturedAt;
     const ip = await clientIp();
+    const late = backdated ? ` (cattura del ${formatInTimeZone(capturedAt, TZ, "dd/MM/yyyy HH:mm")}, registrata in ritardo)` : "";
 
     if (base.mode === "GOVERNO") {
       if (coat.governmentPrice == null) throw new UserError("Per questo manto non è impostato il prezzo di vendita al blip. Avvisa l'amministratore.");
@@ -82,7 +102,7 @@ export async function captureHorse(form: FormData) {
             sellerId: user.id, sellerName: user.displayName, notes: base.notes, soldAt: now,
           },
         });
-        await audit(user, "VENDITA_GOVERNO", "Vendita", sale.id, `${coat.breed.name} – ${coat.name} venduto al blip per ${Number(coat.governmentPrice)}`, { horseId: horse.id }, tx, ip);
+        await audit(user, "VENDITA_GOVERNO", "Vendita", sale.id, `${coat.breed.name} – ${coat.name} venduto al blip per ${Number(coat.governmentPrice)}${late}`, { horseId: horse.id }, tx, ip);
         return sale;
       });
       return { ok: true, message: `Venduto al blip per $${Number(sale.finalPrice)}.` };
@@ -98,7 +118,7 @@ export async function captureHorse(form: FormData) {
           depositedAt: now, requestId: base.requestId,
         },
       });
-      await audit(user, "DEPOSITO", "Cavallo", h.id, `${extra.rarity ? (extra.rarity === "RARO" ? "RARO " : "LEGGENDARIO ") : ""}${coat.breed.name} – ${coat.name} (${extra.plate}) depositato in stalla`, undefined, tx, ip);
+      await audit(user, "DEPOSITO", "Cavallo", h.id, `${extra.rarity ? (extra.rarity === "RARO" ? "RARO " : "LEGGENDARIO ") : ""}${coat.breed.name} – ${coat.name} (${extra.plate}) depositato in stalla${late}`, undefined, tx, ip);
       return h;
     });
     return { ok: true, message: "Cavallo depositato in stalla.", redirect: `/stalla/${horse.id}` };
@@ -362,6 +382,7 @@ export async function correctHorse(form: FormData) {
         capturedById: z.number().int().positive(),
       })
       .parse({ coatId: f.int("coatId"), sex: f.str("sex") || null, age: f.num("age"), capturedById: f.int("capturedById") });
+    const capturedRaw = f.str("capturedAt");
     const before = await prisma.horse.findUnique({ where: { id } });
     if (!before) throw new UserError("Cavallo non trovato.");
     const coat = await prisma.coat.findUnique({ where: { id: data.coatId } });
@@ -369,18 +390,33 @@ export async function correctHorse(form: FormData) {
     const s = await getSettings();
     const ageBefore = horseAge(before, s);
     const now = new Date();
+    // nuova data di cattura (se cambiata): si spostano anche deposito, punto di partenza dell'età
+    // (se l'età non era mai stata corretta) e, per le vendite al blip, la data della vendita
+    const newCaptured = capturedRaw ? parseCaptureDate(capturedRaw, true) : null;
+    const capChanged = newCaptured && Math.abs(newCaptured.getTime() - before.capturedAt.getTime()) > 60_000;
+    const same = (a: Date | null, b: Date) => !!a && Math.abs(a.getTime() - b.getTime()) < 1000;
+    const ageChanged = data.age != null && (ageBefore == null || Math.abs(data.age - ageBefore) > 0.0001);
     await prisma.$transaction(async (tx) => {
       await tx.horse.update({
         where: { id },
         data: {
           coatId: coat.id, breedId: coat.breedId, sex: data.sex, capturedById: data.capturedById,
-          ...(data.age != null && (ageBefore == null || Math.abs(data.age - ageBefore) > 0.0001) ? { ageBase: data.age, ageCheckpointAt: now } : {}),
+          ...(capChanged ? {
+            capturedAt: newCaptured,
+            ...(same(before.depositedAt, before.capturedAt) ? { depositedAt: newCaptured } : {}),
+            ...(!ageChanged && same(before.ageCheckpointAt, before.capturedAt) ? { ageCheckpointAt: newCaptured } : {}),
+            ...(before.status === "VENDUTO_GOVERNO" && same(before.exitedAt, before.capturedAt) ? { exitedAt: newCaptured } : {}),
+          } : {}),
+          ...(ageChanged ? { ageBase: data.age, ageCheckpointAt: now } : {}),
           version: { increment: 1 },
         },
       });
+      if (capChanged && before.status === "VENDUTO_GOVERNO") {
+        await tx.sale.updateMany({ where: { horseId: id, type: "GOVERNO" }, data: { soldAt: newCaptured } });
+      }
       await audit(user, "CORREZIONE_CAVALLO", "Cavallo", id, `Correzione amministrativa cavallo ${before.plate ?? "#" + id}`, {
-        prima: { coatId: before.coatId, sex: before.sex, eta: ageBefore == null ? null : round2(ageBefore), capturedById: before.capturedById },
-        dopo: { coatId: coat.id, sex: data.sex, eta: data.age, capturedById: data.capturedById },
+        prima: { coatId: before.coatId, sex: before.sex, eta: ageBefore == null ? null : round2(ageBefore), capturedById: before.capturedById, cattura: before.capturedAt },
+        dopo: { coatId: coat.id, sex: data.sex, eta: data.age, capturedById: data.capturedById, cattura: capChanged ? newCaptured : before.capturedAt },
       }, tx);
     });
     return { ok: true, message: "Correzione salvata." };

@@ -9,7 +9,8 @@ import { ActionForm } from "@/components/ActionForm";
 import { HorsePicker, buildHorseOptions, type HorseOption } from "@/components/HorsePicker";
 import { HorseThumb } from "@/components/ui";
 import type { BreedOption } from "@/lib/catalog";
-import { money } from "@/lib/format";
+import { money, TZ } from "@/lib/format";
+import { formatInTimeZone } from "date-fns-tz";
 import { captureHorse } from "./actions";
 
 const newId = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now());
@@ -45,6 +46,10 @@ function CaptureForm({ breeds, defaultAge, onDone }: { breeds: BreedOption[]; de
   const [rarity, setRarity] = useState<"" | "RARO" | "LEGGENDARIO">("");
   const [requestId, setRequestId] = useState("");
   useEffect(() => setRequestId(newId()), []);
+  // data e ora della cattura: di base adesso, modificabile se il cavallo è stato registrato in ritardo
+  const nowLocal = () => formatInTimeZone(new Date(), TZ, "yyyy-MM-dd'T'HH:mm");
+  const [capturedAt, setCapturedAt] = useState("");
+  useEffect(() => setCapturedAt(nowLocal()), []);
   const coat = sel?.coatId ? prices.get(sel.coatId) : undefined;
 
   return (
@@ -53,6 +58,7 @@ function CaptureForm({ breeds, defaultAge, onDone }: { breeds: BreedOption[]; de
       confirm={() => (mode === "GOVERNO" ? `Vendere ${sel?.breed} · ${sel?.coat} al blip per ${money(coat?.governmentPrice)}?` : null)}
       onSuccess={() => {
         setRequestId(newId());
+        setCapturedAt(nowLocal());
         onDone();
       }}
       className="space-y-4"
@@ -69,6 +75,15 @@ function CaptureForm({ breeds, defaultAge, onDone }: { breeds: BreedOption[]; de
       </div>
 
       <HorsePicker label="Razza e manto *" options={options} onChange={setSel} autoFocus required placeholder="Scrivi per cercare, es. arabo bianco…" />
+
+      <label className="block">
+        <span className="field-label">Data e ora della cattura</span>
+        <div className="flex gap-2">
+          <input type="datetime-local" name="capturedAt" value={capturedAt} max={nowLocal()} onChange={(e) => setCapturedAt(e.target.value)} className="input flex-1" required />
+          <button type="button" className="btn btn-ghost" onClick={() => setCapturedAt(nowLocal())} title="Rimetti la data e l'ora attuali">Adesso</button>
+        </div>
+        <span className="mt-1 block text-[12.5px] text-fg-3">Cambiala solo se il cavallo è stato catturato prima (es. registrato in ritardo): anche l&apos;età partirà da quel momento.</span>
+      </label>
 
       {sel && coat && (
         <div className="flex items-center gap-3 rounded-lg bg-surface-2 p-3 text-[14px]">

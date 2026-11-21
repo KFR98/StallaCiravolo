@@ -100,6 +100,7 @@ export function RestoreHorseButton({ horseId }: { horseId: number }) {
 
 export function CorrectHorseForm(props: {
   horseId: number; breeds: BreedOption[]; coatId: number; sex: "MASCHIO" | "FEMMINA" | null; age: number; capturedById: number; users: { id: number; displayName: string }[];
+  capturedAt: string;
 }) {
   const options = useMemo(() => buildHorseOptions(props.breeds), [props.breeds]);
   return (
@@ -111,11 +112,17 @@ export function CorrectHorseForm(props: {
           <select name="sex" className="input" defaultValue={props.sex ?? ""}><option value="">—</option><option value="MASCHIO">Maschio</option><option value="FEMMINA">Femmina</option></select>
         </label>
         <label className="block"><span className="field-label">Età attuale (anni)</span><input name="age" type="number" step="0.01" min="0" max="60" className="input" defaultValue={props.age} /></label>
+        <label className="block sm:col-span-2"><span className="field-label">Data e ora della cattura</span>
+          <input type="datetime-local" name="capturedAt" className="input" defaultValue={props.capturedAt} required />
+        </label>
         <label className="block sm:col-span-2"><span className="field-label">Catturato da</span>
           <select name="capturedById" className="input" defaultValue={props.capturedById}>{props.users.map((u) => <option key={u.id} value={u.id}>{u.displayName}</option>)}</select>
         </label>
       </div>
-      <p className="text-[13px] text-fg-3">Se cambi l&apos;età, da ora continuerà ad avanzare dal nuovo valore.</p>
+      <p className="text-[13px] text-fg-3">
+        Se cambi l&apos;età, da ora continuerà ad avanzare dal nuovo valore. Se cambi la data di cattura, si spostano anche il deposito in stalla,
+        il punto di partenza dell&apos;età (se non era già stata corretta) e, per le vendite al blip, la data della vendita.
+      </p>
       <button className="btn btn-secondary">Salva correzione</button>
     </ActionForm>
   );
