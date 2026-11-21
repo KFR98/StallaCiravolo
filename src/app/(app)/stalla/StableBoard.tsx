@@ -93,7 +93,7 @@ function HorseCard({ h }: { h: BoardHorse }) {
       <span className="relative shrink-0">
         <HorseThumb src={h.image} size={72} />
         {h.rarity && (
-          <span aria-hidden="true" className="absolute -top-1.5 -left-1.5 flex size-6 items-center justify-center rounded-full text-white shadow ring-2 ring-surface" style={{ background: h.rarity === "RARO" ? "#7c3aed" : "#c99a1c" }}>
+          <span aria-hidden="true" className="absolute -top-1.5 -left-1.5 flex size-6 items-center justify-center rounded-full text-white shadow ring-2 ring-surface" style={{ background: h.rarity === "RARO" ? "var(--rare)" : "var(--legend)" }}>
             <svg width="13" height="13" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6L2.5 9.4l6.6-.8Z" /></svg>
           </span>
         )}

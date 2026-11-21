@@ -1,12 +1,12 @@
 import { Trophy } from "lucide-react";
-import { weeklyRanking, SCORE_RULES } from "@/lib/stats";
+import { weeklyRanking, getScoreRules } from "@/lib/stats";
 import { addWeeks, weekStartOf, weekLabel } from "@/lib/weeks";
 import { money, TZ } from "@/lib/format";
 
 /** Stalliere della settimana (in corso) e vincitore della settimana scorsa. */
 export async function WeeklyChampion() {
   const week = weekStartOf(new Date(), TZ);
-  const [now, last] = await Promise.all([weeklyRanking(week, addWeeks(week, 1, TZ)), weeklyRanking(addWeeks(week, -1, TZ), week)]);
+  const [now, last, SCORE_RULES] = await Promise.all([weeklyRanking(week, addWeeks(week, 1, TZ)), weeklyRanking(addWeeks(week, -1, TZ), week), getScoreRules()]);
   const leader = now[0];
   const prev = last[0];
   return (

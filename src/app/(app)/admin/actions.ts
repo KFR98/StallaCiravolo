@@ -7,7 +7,7 @@ import { run, fd, UserError } from "@/lib/action";
 import { audit } from "@/lib/audit";
 import { DEFAULT_SETTINGS, getSettings, type Settings } from "@/lib/settings";
 import { currentAge } from "@/lib/age";
-import { saveImage, saveImageBuffer, deleteUpload } from "@/lib/uploads";
+import { saveImage, saveImageBuffer, deleteUpload, maxImageMB } from "@/lib/uploads";
 import { fetchRemoteImage } from "@/lib/remote-image";
 import { parseListino, type ParsedListino } from "@/lib/excel-import";
 import { applyListino } from "@/lib/catalog-import";
@@ -354,6 +354,24 @@ export async function saveSettings(form: FormData) {
         maxFoals: z.number({ message: "Indica i parti massimi" }).int("I parti massimi devono essere un numero intero").min(0).max(20),
         rareBasePrice: z.number({ message: "Indica il prezzo base dei rari" }).min(0).max(1_000_000),
         rareTrainingPrice: z.number({ message: "Indica l'addestramento dei rari" }).min(0).max(1_000_000),
+        rareColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Colore dei rari non valido"),
+        legendaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Colore dei leggendari non valido"),
+        captureBackdateDays: z.number({ message: "Indica i giorni di retrodatazione" }).int().min(0).max(3650),
+        captureBackdateDaysAdmin: z.number({ message: "Indica i giorni di retrodatazione" }).int().min(0).max(3650),
+        foalBirthMaxDays: z.number({ message: "Indica i giorni per la nascita" }).int().min(1).max(3650),
+        shoeClassicItemId: z.number().int().min(0),
+        shoeImprovedItemId: z.number().int().min(0),
+        scoreCapture: z.number().min(0).max(1000),
+        scoreStableSale: z.number().min(0).max(1000),
+        scoreGovSale: z.number().min(0).max(1000),
+        scoreItemSale: z.number().min(0).max(1000),
+        scorePer100: z.number().min(0).max(1000),
+        loginMaxAttempts: z.number().int().min(1, "Almeno 1 tentativo").max(1000),
+        loginLockMinutes: z.number().int().min(1).max(10080),
+        loginMaxAttemptsUser: z.number().int().min(1).max(10000),
+        loginUserLockMinutes: z.number().int().min(1).max(10080),
+        sessionDays: z.number().min(0.1, "Sessione troppo corta").max(365),
+        maxImageMB: z.number().min(0.5).max(50),
         backupDays: z.number({ message: "Indica per quanti giorni conservare i backup" }).int("I giorni di conservazione devono essere un numero intero").min(1).max(365),
         backupAuto: z.boolean(),
         backupEveryHours: z.number({ message: "Indica ogni quante ore fare il backup" }).int().min(1, "Minimo 1 ora").max(168, "Massimo 7 giorni (168 ore)"),
@@ -374,6 +392,24 @@ export async function saveSettings(form: FormData) {
         maxFoals: f.int("maxFoals"),
         rareBasePrice: f.num("rareBasePrice"),
         rareTrainingPrice: f.num("rareTrainingPrice"),
+        rareColor: f.str("rareColor"),
+        legendaryColor: f.str("legendaryColor"),
+        captureBackdateDays: f.int("captureBackdateDays"),
+        captureBackdateDaysAdmin: f.int("captureBackdateDaysAdmin"),
+        foalBirthMaxDays: f.int("foalBirthMaxDays"),
+        shoeClassicItemId: f.int("shoeClassicItemId") ?? 0,
+        shoeImprovedItemId: f.int("shoeImprovedItemId") ?? 0,
+        scoreCapture: f.num("scoreCapture"),
+        scoreStableSale: f.num("scoreStableSale"),
+        scoreGovSale: f.num("scoreGovSale"),
+        scoreItemSale: f.num("scoreItemSale"),
+        scorePer100: f.num("scorePer100"),
+        loginMaxAttempts: f.int("loginMaxAttempts"),
+        loginLockMinutes: f.int("loginLockMinutes"),
+        loginMaxAttemptsUser: f.int("loginMaxAttemptsUser"),
+        loginUserLockMinutes: f.int("loginUserLockMinutes"),
+        sessionDays: f.num("sessionDays"),
+        maxImageMB: f.num("maxImageMB"),
         backupDays: f.int("backupDays"),
         backupAuto: f.bool("backupAuto"),
         backupEveryHours: f.int("backupEveryHours"),
@@ -459,7 +495,7 @@ export async function importCoatPhotos(form: FormData) {
         ?? coats.find((c) => (norm(c.breed.name).startsWith(norm(breedName)) || norm(breedName).startsWith(norm(c.breed.name))) && norm(c.name) === norm(coatName));
       if (!coat) { errors.push(`${breedName} – ${coatName}: manto non trovato nel catalogo`); continue; }
       try {
-        const buf = await fetchRemoteImage(url);
+        const buf = await fetchRemoteImage(url, (await maxImageMB()) * 1024 * 1024);
         const rel = await saveImageBuffer(buf, "coats", String(coat.id));
         await prisma.coat.update({ where: { id: coat.id }, data: { imagePath: rel } });
         await deleteUpload(coat.imagePath);

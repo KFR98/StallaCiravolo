@@ -85,8 +85,8 @@ export default async function HorsePage({ params }: { params: Promise<{ id: stri
       </header>
 
       {inStable && horse.needsData && (
-        <div role="status" className={clsx("mb-5 flex gap-3 rounded-xl border p-4", horse.needsStaff ? "border-[#c99a1c] bg-[#c99a1c]/10" : "border-warn bg-warn-soft")}>
-          <AlertTriangle size={20} className={clsx("mt-0.5 shrink-0", horse.needsStaff ? "text-[#c99a1c]" : "text-warn")} />
+        <div role="status" className={clsx("mb-5 flex gap-3 rounded-xl border p-4", horse.needsStaff ? "border-[var(--legend)] bg-[color-mix(in_srgb,var(--legend)_10%,transparent)]" : "border-warn bg-warn-soft")}>
+          <AlertTriangle size={20} className={clsx("mt-0.5 shrink-0", horse.needsStaff ? "text-[var(--legend)]" : "text-warn")} />
           <div className="text-[14.5px]">
             {horse.needsStaff ? (
               <><b>Puledro di una cavalla {mother?.rarity === "LEGGENDARIO" ? "leggendaria" : "rara"}.</b> Razza, manto e rarità potrebbero essere diversi dalla madre: fai intervenire <b>direttore, gestore o admin</b> per completare i dati. Finché non sono a posto il puledro non si può vendere.</>
@@ -201,6 +201,8 @@ export default async function HorsePage({ params }: { params: Promise<{ id: stri
                   rarity={rarity}
                   rareBasePrice={s.rareBasePrice}
                   rareTrainingPrice={s.rareTrainingPrice}
+                  shoeClassicId={s.shoeClassicItemId}
+                  shoeImprovedId={s.shoeImprovedItemId}
                 />
               ) : (
                 <p className="text-fg-2">Questo cavallo è in carico a <b>{horse.owner.displayName}</b>: solo lui può venderlo o passarlo a un altro stalliere.</p>
@@ -255,7 +257,7 @@ export default async function HorsePage({ params }: { params: Promise<{ id: stri
             <details className="card">
               <summary className="card-pad cursor-pointer font-semibold">Modifica dati</summary>
               <div className="card-pad !pt-0 space-y-5">
-                <EditHorseForm horseId={horse.id} plate={horse.plate ?? ""} condition={horse.condition} notes={horse.notes} />
+                <EditHorseForm horseId={horse.id} plate={horse.plate ?? ""} condition={horse.condition} notes={horse.notes} foalCount={horse.sex === "FEMMINA" ? horse.foalCount : null} maxFoals={s.maxFoals} />
                 {inStable && <div className="border-t border-border pt-4"><RemoveHorseForm horseId={horse.id} /></div>}
               </div>
             </details>

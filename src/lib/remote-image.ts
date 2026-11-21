@@ -5,7 +5,7 @@ import net from "node:net";
  * Scarica un'immagine da un indirizzo https indicato dall'admin.
  * Protezioni: solo https, niente indirizzi interni (SSRF), massimo 8 MB, massimo 3 reindirizzamenti, 20 s.
  */
-const MAX = 8 * 1024 * 1024;
+const DEFAULT_MAX = 8 * 1024 * 1024;
 
 function privateIp(ip: string) {
   if (net.isIPv4(ip)) {
@@ -31,7 +31,7 @@ async function checkUrl(raw: string) {
   return u;
 }
 
-export async function fetchRemoteImage(raw: string): Promise<Buffer> {
+export async function fetchRemoteImage(raw: string, MAX = DEFAULT_MAX): Promise<Buffer> {
   let url = await checkUrl(raw.trim());
   for (let i = 0; i < 4; i++) {
     const res = await fetch(url, { redirect: "manual", signal: AbortSignal.timeout(20_000), headers: { "User-Agent": "Mozilla/5.0 (compatible; gestionale-stalla)", Accept: "image/*" } });
@@ -42,7 +42,7 @@ export async function fetchRemoteImage(raw: string): Promise<Buffer> {
       continue;
     }
     if (!res.ok) throw new Error(`il sito ha risposto ${res.status}`);
-    if (Number(res.headers.get("content-length") || 0) > MAX) throw new Error("immagine troppo grande (massimo 8 MB)");
+    if (Number(res.headers.get("content-length") || 0) > MAX) throw new Error(`immagine troppo grande (massimo ${Math.round(MAX / 1048576)} MB)`);
     const reader = res.body?.getReader();
     if (!reader) throw new Error("risposta vuota");
     const chunks: Uint8Array[] = [];
@@ -51,7 +51,7 @@ export async function fetchRemoteImage(raw: string): Promise<Buffer> {
       const { done, value } = await reader.read();
       if (done) break;
       n += value.length;
-      if (n > MAX) { await reader.cancel(); throw new Error("immagine troppo grande (massimo 8 MB)"); }
+      if (n > MAX) { await reader.cancel(); throw new Error(`immagine troppo grande (massimo ${Math.round(MAX / 1048576)} MB)`); }
       chunks.push(value);
     }
     return Buffer.concat(chunks);

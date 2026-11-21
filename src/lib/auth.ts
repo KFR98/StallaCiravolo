@@ -8,7 +8,11 @@ import { can, type Permission } from "./permissions";
 import { loadRoles } from "./roles";
 
 export const SESSION_COOKIE = "stalla_session";
-const SESSION_DAYS = 7;
+/** Durata della sessione in giorni: da Impostazioni (sessionDays) */
+async function sessionDays() {
+  const v = Number((await prisma.setting.findUnique({ where: { key: "sessionDays" } }))?.value ?? 7);
+  return Number.isFinite(v) && v > 0 ? Math.min(v, 365) : 7;
+}
 
 export type CurrentUser = {
   id: number;
@@ -60,7 +64,7 @@ function cookieSecure(h: Headers) {
 export async function createSession(userId: number) {
   const token = randomBytes(32).toString("base64url");
   const h = await headers();
-  const expiresAt = new Date(Date.now() + SESSION_DAYS * 86400_000);
+  const expiresAt = new Date(Date.now() + (await sessionDays()) * 86400_000);
   await prisma.session.create({
     data: {
       id: sha256(token),
@@ -106,11 +110,11 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     await prisma.session.deleteMany({ where: { id: session.id } });
     return null;
   }
-  // Rinnovo scorrevole: se mancano meno di 3 giorni, si estende la sessione
+  // Rinnovo scorrevole: se mancano meno di 3 giorni, si estende la sessione (durata da Impostazioni)
   if (session.expiresAt.getTime() - Date.now() < 3 * 86400_000) {
     await prisma.session.update({
       where: { id: session.id },
-      data: { expiresAt: new Date(Date.now() + SESSION_DAYS * 86400_000) },
+      data: { expiresAt: new Date(Date.now() + (await sessionDays()) * 86400_000) },
     });
   }
   const { id, username, displayName, role } = session.user;

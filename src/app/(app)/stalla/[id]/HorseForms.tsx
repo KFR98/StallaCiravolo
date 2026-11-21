@@ -66,7 +66,7 @@ export function PregnancyPanel({ horseId, canEdit, state, since, due, dueText, d
   );
 }
 
-export function EditHorseForm({ horseId, plate, condition, notes }: { horseId: number; plate: string; condition: string | null; notes: string | null }) {
+export function EditHorseForm({ horseId, plate, condition, notes, foalCount, maxFoals }: { horseId: number; plate: string; condition: string | null; notes: string | null; foalCount?: number | null; maxFoals?: number }) {
   return (
     <ActionForm action={updateHorse} className="space-y-3">
       <input type="hidden" name="horseId" value={horseId} />
@@ -77,6 +77,13 @@ export function EditHorseForm({ horseId, plate, condition, notes }: { horseId: n
           <input name="condition" defaultValue={condition ?? ""} className="input" list="conditions" maxLength={60} />
           <datalist id="conditions">{CONDITIONS.map((c) => <option key={c} value={c} />)}</datalist>
         </label>
+        {foalCount != null && (
+          <label className="block">
+            <span className="field-label">Parti avuti (massimo {maxFoals})</span>
+            <input name="foalCount" type="number" step="1" min="0" max={maxFoals} defaultValue={foalCount} className="input" required />
+            <span className="mt-1 block text-[12.5px] text-fg-3">Correggilo se un parto non è stato registrato nel gestionale.</span>
+          </label>
+        )}
       </div>
       <label className="block"><span className="field-label">Note</span><textarea name="notes" defaultValue={notes ?? ""} className="input" maxLength={2000} /></label>
       <button className="btn btn-secondary">Salva</button>

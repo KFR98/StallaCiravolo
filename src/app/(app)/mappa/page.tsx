@@ -2,7 +2,7 @@ import { requireUser } from "@/lib/auth";
 import { can, canSeeBreed, roleAccess } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
 import { getBreedOptions, imageUrl } from "@/lib/catalog";
-import { getSetting } from "@/lib/settings";
+import { getSetting, getSettings } from "@/lib/settings";
 import { getTilesMeta } from "@/lib/map-tiles";
 import { dateTime } from "@/lib/format";
 import { PageHeader } from "@/components/ui";
@@ -13,12 +13,13 @@ export const dynamic = "force-dynamic";
 
 export default async function MapPage() {
   const user = await requireUser("map.view");
-  const [spawns, breeds, noteNames, tilesMeta, extraZoom] = await Promise.all([
+  const [spawns, breeds, noteNames, tilesMeta, extraZoom, settings] = await Promise.all([
     prisma.spawn.findMany({ include: { breed: true, coat: true, createdBy: true }, orderBy: { createdAt: "desc" } }),
     getBreedOptions(),
     getSetting("mapNoteNames"),
     getTilesMeta(),
     getSetting("mapExtraZoom"),
+    getSettings(),
   ]);
   // Razze visibili per il ruolo (e rari/leggendari): il resto non arriva nemmeno al browser
   const access = roleAccess(user.role);
@@ -42,6 +43,7 @@ export default async function MapPage() {
         }))}
         breeds={visibleBreeds}
         tiles={tiles}
+        colors={{ rare: settings.rareColor, legendary: settings.legendaryColor }}
         noteNames={noteNames && typeof noteNames === "object" ? noteNames : {}}
         perms={{ add: can(user.role, "map.add"), manage: can(user.role, "map.manage"), exportImage: can(user.role, "map.exportImage"), backup: can(user.role, "map.backup") }}
       />

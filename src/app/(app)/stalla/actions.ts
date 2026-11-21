@@ -18,15 +18,14 @@ const DAY = 86400_000;
 /**
  * Data e ora della cattura scelte nel modulo (ora di Roma). Vuota = adesso.
  * Si può retrodatare (es. cavallo registrato in ritardo), non mettere nel futuro.
- * I dipendenti fino a 30 giorni indietro; chi corregge i dati (admin) fino a un anno.
+ * Quanti giorni indietro si può andare lo decide l'admin in Impostazioni (dipendenti / chi corregge i dati).
  */
-function parseCaptureDate(raw: string, wide: boolean): Date {
+function parseCaptureDate(raw: string, maxDays: number): Date {
   const now = new Date();
   if (!raw) return now;
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(raw)) throw new UserError("Data della cattura non valida.");
   const d = fromZonedTime(raw + ":00", TZ);
   if (d.getTime() > now.getTime() + 2 * 60_000) throw new UserError("La data della cattura non può essere nel futuro.");
-  const maxDays = wide ? 365 : 30;
   if (d.getTime() < now.getTime() - maxDays * DAY) throw new UserError(`La data della cattura può essere al massimo ${maxDays} giorni fa.`);
   return d;
 }
@@ -76,7 +75,8 @@ export async function captureHorse(form: FormData) {
     const dup = await prisma.horse.findUnique({ where: { requestId: base.requestId } });
     if (dup) return { ok: true, message: "Registrazione già effettuata." };
     // data di cattura: di base adesso, modificabile se il cavallo è stato registrato in ritardo
-    const capturedAt = parseCaptureDate(f.str("capturedAt"), can(user.role, "horses.correct"));
+    const cs = await getSettings();
+    const capturedAt = parseCaptureDate(f.str("capturedAt"), can(user.role, "horses.correct") ? cs.captureBackdateDaysAdmin : cs.captureBackdateDays);
     const backdated = Date.now() - capturedAt.getTime() > 5 * 60_000;
 
     const coat = await prisma.coat.findFirst({ where: { id: base.coatId, breedId: base.breedId, archived: false }, include: { breed: true } });
@@ -360,9 +360,17 @@ export async function updateHorse(form: FormData) {
       .parse({ condition: f.opt("condition"), notes: f.opt("notes"), plate: f.str("plate").toUpperCase() });
     const before = await prisma.horse.findUnique({ where: { id: id ?? 0 } });
     if (!before) throw new UserError("Cavallo non trovato.");
+    // parti avuti (solo cavalle): correggibili se ci si è dimenticati di segnare gravidanza e parto
+    const s = await getSettings();
+    const foalRaw = f.int("foalCount");
+    let foalCount: number | undefined;
+    if (before.sex === "FEMMINA" && foalRaw != null) {
+      if (foalRaw < 0 || foalRaw > s.maxFoals) throw new UserError(`I parti devono essere tra 0 e ${s.maxFoals} (massimo in Impostazioni).`);
+      foalCount = foalRaw;
+    }
     await prisma.$transaction(async (tx) => {
-      await tx.horse.update({ where: { id: before.id }, data: { ...data, version: { increment: 1 } } });
-      await audit(user, "MODIFICA_CAVALLO", "Cavallo", before.id, `Modificati dati del cavallo ${before.plate}`, { prima: { condition: before.condition, notes: before.notes, plate: before.plate }, dopo: data }, tx);
+      await tx.horse.update({ where: { id: before.id }, data: { ...data, ...(foalCount != null ? { foalCount } : {}), version: { increment: 1 } } });
+      await audit(user, "MODIFICA_CAVALLO", "Cavallo", before.id, `Modificati dati del cavallo ${before.plate}${foalCount != null && foalCount !== before.foalCount ? ` (parti: ${before.foalCount} → ${foalCount})` : ""}`, { prima: { condition: before.condition, notes: before.notes, plate: before.plate, parti: before.foalCount }, dopo: { ...data, parti: foalCount ?? before.foalCount } }, tx);
     });
     return { ok: true, message: "Scheda aggiornata." };
   });
@@ -392,7 +400,7 @@ export async function correctHorse(form: FormData) {
     const now = new Date();
     // nuova data di cattura (se cambiata): si spostano anche deposito, punto di partenza dell'età
     // (se l'età non era mai stata corretta) e, per le vendite al blip, la data della vendita
-    const newCaptured = capturedRaw ? parseCaptureDate(capturedRaw, true) : null;
+    const newCaptured = capturedRaw ? parseCaptureDate(capturedRaw, s.captureBackdateDaysAdmin) : null;
     const capChanged = newCaptured && Math.abs(newCaptured.getTime() - before.capturedAt.getTime()) > 60_000;
     const same = (a: Date | null, b: Date) => !!a && Math.abs(a.getTime() - b.getTime()) < 1000;
     const ageChanged = data.age != null && (ageBefore == null || Math.abs(data.age - ageBefore) > 0.0001);
@@ -533,7 +541,8 @@ export async function completeFoal(form: FormData) {
       if (horse.birthSetAt && !can(user.role, "horses.correct")) throw new UserError("Data e ora di nascita sono già state impostate: per cambiarle serve l'amministratore.");
       const born = fromZonedTime(data.birth + ":00", TZ);
       if (born.getTime() > Date.now() + 60_000) throw new UserError("La nascita non può essere nel futuro.");
-      if (born.getTime() < Date.now() - 365 * DAY) throw new UserError("Data di nascita troppo lontana.");
+      const fs = await getSettings();
+      if (born.getTime() < Date.now() - fs.foalBirthMaxDays * DAY) throw new UserError(`La nascita può essere al massimo ${fs.foalBirthMaxDays} giorni fa.`);
       Object.assign(upd, { bornAt: born, ageBase: 0, initialAge: 0, ageCheckpointAt: born, birthSetAt: new Date() });
     }
     // solo la direzione corregge razza, manto e rarità (puledri di madri rare)

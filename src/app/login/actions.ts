@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { createSession, destroySession, verifyPassword, clientIp, getCurrentUser } from "@/lib/auth";
 import { audit } from "@/lib/audit";
+import { getSettings } from "@/lib/settings";
 import { run, type ActionResult } from "@/lib/action";
 import { redirect } from "next/navigation";
 
@@ -22,12 +23,13 @@ export async function loginAction(form: FormData): Promise<ActionResult> {
       .parse({ username: form.get("username"), password: form.get("password") });
     const ip = (await clientIp()) ?? "?";
     const key = ip + "|" + data.username.toLowerCase();
-    // Due limiti: 5 errori per IP+utente, e 20 errori per utente da qualsiasi IP (contro chi cambia IP)
+    // Due limiti (configurabili in Impostazioni): errori per IP+utente, ed errori per utente da qualsiasi IP (contro chi cambia IP)
     const ukey = "*|" + data.username.toLowerCase();
     const a = attempts.get(key);
     const ua = attempts.get(ukey);
     const now = Date.now();
-    if ((a && a.n >= 5 && a.until > now) || (ua && ua.n >= 20 && ua.until > now)) {
+    const ls = await getSettings();
+    if ((a && a.n >= ls.loginMaxAttempts && a.until > now) || (ua && ua.n >= ls.loginMaxAttemptsUser && ua.until > now)) {
       return { ok: false, error: "Troppi tentativi. Riprova tra qualche minuto." };
     }
     if (attempts.size > 10_000) for (const [k, v] of attempts) if (v.until < now) attempts.delete(k);
@@ -40,8 +42,8 @@ export async function loginAction(form: FormData): Promise<ActionResult> {
         const cur = x && x.until > now ? x : { n: 0, until: 0 };
         attempts.set(k, { n: cur.n + 1, until: now + mins * 60_000 });
       };
-      bump(key, a);
-      bump(ukey, ua, 15);
+      bump(key, a, ls.loginLockMinutes);
+      bump(ukey, ua, ls.loginUserLockMinutes);
       await audit(null, "LOGIN_FALLITO", "Utente", user?.id ?? null, `Accesso fallito per "${data.username}"`, undefined, undefined, ip);
       return { ok: false, error: user && !user.active && pwOk ? "Account disattivato." : "Credenziali non valide." };
     }

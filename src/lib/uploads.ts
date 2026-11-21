@@ -3,6 +3,13 @@ import path from "node:path";
 import { mkdir, writeFile, unlink } from "node:fs/promises";
 import { randomBytes } from "node:crypto";
 
+/** Dimensione massima delle immagini (Impostazioni → maxImageMB) */
+export async function maxImageMB() {
+  const { prisma } = await import("./db");
+  const v = Number((await prisma.setting.findUnique({ where: { key: "maxImageMB" } }))?.value ?? 8);
+  return Number.isFinite(v) && v > 0 ? Math.min(v, 50) : 8;
+}
+
 export const UPLOAD_DIR = path.resolve(process.env.UPLOAD_DIR || "./data/uploads");
 
 const TYPES: Record<string, string> = {
@@ -38,7 +45,8 @@ function sniff(buf: Buffer): string | null {
 
 export async function saveImage(file: File, folder: string, prefix: string): Promise<string> {
   if (!file || file.size === 0) throw new Error("Nessun file selezionato.");
-  if (file.size > 8 * 1024 * 1024) throw new Error("Immagine troppo grande (massimo 8 MB).");
+  const mb = await maxImageMB();
+  if (file.size > mb * 1024 * 1024) throw new Error(`Immagine troppo grande (massimo ${mb} MB).`);
   return saveImageBuffer(Buffer.from(await file.arrayBuffer()), folder, prefix);
 }
 

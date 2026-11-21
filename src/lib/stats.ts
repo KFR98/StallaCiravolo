@@ -1,4 +1,5 @@
 import { prisma } from "./db";
+import { getSettings } from "./settings";
 import { TZ } from "./format";
 import { dayStartOf, weekStartOf, addWeeks } from "./weeks";
 import { formatInTimeZone } from "date-fns-tz";
@@ -104,23 +105,29 @@ export function periods(now = new Date()) {
   return { today, tomorrow: dayStartOf(tomorrow, TZ), week, nextWeek: addWeeks(week, 1, TZ) };
 }
 
-/** Punteggio dello "stalliere della settimana": premia sia le vendite sia l'attività. */
-export const SCORE_RULES = { capture: 1, stableSale: 3, govSale: 1, itemSale: 1, per100: 1 };
+/** Punteggio dello "stalliere della settimana": premia sia le vendite sia l'attività. I punti si decidono in Impostazioni. */
+export type ScoreRules = { capture: number; stableSale: number; govSale: number; itemSale: number; per100: number };
 
-export function activityScore(e: EmployeeStats) {
+export async function getScoreRules(): Promise<ScoreRules> {
+  const s = await getSettings();
+  return { capture: s.scoreCapture, stableSale: s.scoreStableSale, govSale: s.scoreGovSale, itemSale: s.scoreItemSale, per100: s.scorePer100 };
+}
+
+export function activityScore(e: EmployeeStats, r: ScoreRules) {
   return (
-    e.captures * SCORE_RULES.capture +
-    e.stableSales * SCORE_RULES.stableSale +
-    e.govSales * SCORE_RULES.govSale +
-    e.itemSales * SCORE_RULES.itemSale +
-    Math.floor((e.revenue + e.itemsRevenue) / 100) * SCORE_RULES.per100
+    e.captures * r.capture +
+    e.stableSales * r.stableSale +
+    e.govSales * r.govSale +
+    e.itemSales * r.itemSale +
+    Math.floor((e.revenue + e.itemsRevenue) / 100) * r.per100
   );
 }
 
 /** Classifica della settimana (esclusi gli account senza attività). */
 export async function weeklyRanking(from: Date, to: Date) {
+  const rules = await getScoreRules();
   return (await employeeStats(from, to))
-    .map((e) => ({ ...e, score: activityScore(e) }))
+    .map((e) => ({ ...e, score: activityScore(e, rules) }))
     .filter((e) => e.score > 0)
     .sort((a, b) => b.score - a.score || b.revenue - a.revenue);
 }

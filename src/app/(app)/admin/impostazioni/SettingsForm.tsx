@@ -13,7 +13,7 @@ const EVERY = [
   [168, "Una volta a settimana"],
 ] as const;
 
-export function SettingsForm({ s, inStable }: { s: Settings; inStable: number }) {
+export function SettingsForm({ s, inStable, shopItems }: { s: Settings; inStable: number; shopItems: { id: number; name: string }[] }) {
   const [auto, setAuto] = useState(s.backupAuto);
   const everyOptions = EVERY.some(([h]) => h === s.backupEveryHours) ? EVERY : [...EVERY, [s.backupEveryHours, `Ogni ${s.backupEveryHours} ore`] as const];
   return (
@@ -36,6 +36,11 @@ export function SettingsForm({ s, inStable }: { s: Settings; inStable: number })
         <Num name="minSaleAge" label="Età minima per vendere" value={s.minSaleAge} step="any" min="0" />
       </Section>
 
+      <Section title="Catture" hint="Data e ora della cattura sono di base il momento della registrazione, ma si possono retrodatare (es. cavallo registrato in ritardo). Qui scegli fino a quanti giorni indietro.">
+        <Num name="captureBackdateDays" label="Dipendenti: fino a (giorni fa)" value={s.captureBackdateDays} step="1" min="0" />
+        <Num name="captureBackdateDaysAdmin" label="Chi corregge i dati: fino a (giorni fa)" value={s.captureBackdateDaysAdmin} step="1" min="0" />
+      </Section>
+
       <Section title="Prezzi e sconti" hint="Oltre la seconda fascia il prezzo è libero. Direttore e admin non hanno limite di sconto.">
         <Num name="bracketAMax" label='Fascia "5-10": fino a (anni)' value={s.bracketAMax} step="1" min="0" />
         <Num name="bracketBMax" label='Fascia "11-16": fino a (anni)' value={s.bracketBMax} step="1" min="0" />
@@ -45,17 +50,49 @@ export function SettingsForm({ s, inStable }: { s: Settings; inStable: number })
       <Section title="Gravidanza e puledri" hint="Dopo questi giorni l'etichetta INCINTA diventa FAI PARTORIRE (anche con decimali, es. 2,5). Ogni parto crea un puledro in stalla.">
         <Num name="pregnancyDays" label="Giorni prima di “Fai partorire”" value={s.pregnancyDays} step="any" min="0.1" />
         <Num name="maxFoals" label="Parti massimi per cavalla" value={s.maxFoals} step="1" min="0" />
+        <Num name="foalBirthMaxDays" label="Nascita del puledro impostabile fino a (giorni fa)" value={s.foalBirthMaxDays} step="1" min="1" />
       </Section>
 
       <Section title="Cavalli rari e leggendari" hint="Si vendono a prezzo libero: questi sono i valori proposti nel modulo di vendita, che il venditore può cambiare.">
         <Num name="rareBasePrice" label="Prezzo base di riferimento $" value={s.rareBasePrice} step="any" min="0" />
         <Num name="rareTrainingPrice" label="Addestramento $" value={s.rareTrainingPrice} step="any" min="0" />
+        <Color name="rareColor" label="Colore dei rari" value={s.rareColor} />
+        <Color name="legendaryColor" label="Colore dei leggendari" value={s.legendaryColor} />
+      </Section>
+
+      <Section title="Vendita: ferri" hint="Gli oggetti della bottega proposti come “4 ferri normali” e “4 ferri migliorati” nel modulo di vendita del cavallo. “Automatico” li riconosce dal nome.">
+        {([["shoeClassicItemId", "4 ferri normali", s.shoeClassicItemId], ["shoeImprovedItemId", "4 ferri migliorati", s.shoeImprovedItemId]] as const).map(([n, l, v]) => (
+          <label key={n} className="block">
+            <span className="field-label">{l}</span>
+            <select name={n} defaultValue={v} className="input">
+              <option value={0}>Automatico (dal nome)</option>
+              {shopItems.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}
+            </select>
+          </label>
+        ))}
       </Section>
 
       <Section title="Stipendi (percentuali globali)" hint="Ogni tipo di vendita ha la sua percentuale. Quelle personali si impostano dalla scheda stipendi del dipendente. Le settimane già pagate non cambiano.">
         <Num name="pctStable" label="Vendite in stalla %" value={s.pctStable} step="any" min="0" max="100" />
         <Num name="pctGov" label="Vendite al blip %" value={s.pctGov} step="any" min="0" max="100" />
         <Num name="pctItems" label="Vendite oggetti %" value={s.pctItems} step="any" min="0" max="100" />
+      </Section>
+
+      <Section title="Stalliere della settimana (punti)" hint="Come si calcola la classifica: punti per ogni cattura e vendita, più punti per ogni $100 incassati (cavalli e oggetti).">
+        <Num name="scoreCapture" label="Per cattura" value={s.scoreCapture} step="any" min="0" />
+        <Num name="scoreStableSale" label="Per vendita in stalla" value={s.scoreStableSale} step="any" min="0" />
+        <Num name="scoreGovSale" label="Per vendita al blip" value={s.scoreGovSale} step="any" min="0" />
+        <Num name="scoreItemSale" label="Per vendita di oggetti" value={s.scoreItemSale} step="any" min="0" />
+        <Num name="scorePer100" label="Ogni $100 incassati" value={s.scorePer100} step="any" min="0" />
+      </Section>
+
+      <Section title="Sicurezza e accesso" hint="Blocco dei tentativi di accesso sbagliati (per chi prova a indovinare le password) e durata della sessione prima di dover rientrare.">
+        <Num name="loginMaxAttempts" label="Tentativi sbagliati (stesso IP e utente)" value={s.loginMaxAttempts} step="1" min="1" />
+        <Num name="loginLockMinutes" label="…poi blocco per (minuti)" value={s.loginLockMinutes} step="1" min="1" />
+        <Num name="loginMaxAttemptsUser" label="Tentativi sbagliati (stesso utente, qualsiasi IP)" value={s.loginMaxAttemptsUser} step="1" min="1" />
+        <Num name="loginUserLockMinutes" label="…poi blocco per (minuti)" value={s.loginUserLockMinutes} step="1" min="1" />
+        <Num name="sessionDays" label="Durata della sessione (giorni)" value={s.sessionDays} step="any" min="0.1" />
+        <Num name="maxImageMB" label="Dimensione massima delle foto (MB)" value={s.maxImageMB} step="any" min="0.5" max="50" />
       </Section>
 
       <Section title="Backup automatico" hint="Il gestionale salva da solo una copia completa del database. I backup più vecchi del periodo scelto vengono eliminati (resta sempre almeno l'ultimo).">
@@ -95,6 +132,19 @@ function Num({ name, label, value, step, min, max }: { name: string; label: stri
     <label className="block">
       <span className="field-label">{label}</span>
       <input name={name} type="number" inputMode="decimal" defaultValue={value} step={step} min={min} max={max} className="input" required />
+    </label>
+  );
+}
+
+function Color({ name, label, value }: { name: string; label: string; value: string }) {
+  const [v, setV] = useState(value);
+  return (
+    <label className="block">
+      <span className="field-label">{label}</span>
+      <span className="flex items-center gap-2">
+        <input type="color" value={v} onChange={(e) => setV(e.target.value)} className="h-10 w-14 cursor-pointer rounded-lg border border-border-strong bg-surface p-1" aria-label={label} />
+        <input name={name} value={v} onChange={(e) => setV(e.target.value)} pattern="#[0-9a-fA-F]{6}" className="input font-mono" required />
+      </span>
     </label>
   );
 }

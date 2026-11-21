@@ -123,7 +123,7 @@ function CaptureForm({ breeds, defaultAge, onDone }: { breeds: BreedOption[]; de
             <span className="field-label">Rarità</span>
             <input type="hidden" name="rarity" value={rarity} />
             <div className="grid grid-cols-3 gap-1 rounded-lg bg-surface-3 p-1" role="radiogroup" aria-label="Rarità">
-              {([["", "Normale", null], ["RARO", "★ Raro", "#7c3aed"], ["LEGGENDARIO", "★ Leggendario", "#c99a1c"]] as const).map(([k, l, c]) => (
+              {([["", "Normale", null], ["RARO", "★ Raro", "var(--rare)"], ["LEGGENDARIO", "★ Leggendario", "var(--legend)"]] as const).map(([k, l, c]) => (
                 <button key={k || "n"} type="button" role="radio" aria-checked={rarity === k} onClick={() => setRarity(k)}
                   className={clsx("min-h-10 rounded-md text-[14px] font-semibold transition-colors", rarity === k ? (c ? "text-white shadow-sm" : "bg-surface text-fg shadow-sm") : "text-fg-3 hover:text-fg")}
                   style={rarity === k && c ? { background: c } : undefined}>{l}</button>

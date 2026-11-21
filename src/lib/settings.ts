@@ -28,6 +28,32 @@ export const DEFAULT_SETTINGS = {
   /** Cavalli rari e leggendari: prezzo base di riferimento (il venditore lo può cambiare) e addestramento */
   rareBasePrice: 2000,
   rareTrainingPrice: 250,
+  /** Colori di rari e leggendari (card, badge, punti sulla mappa) */
+  rareColor: "#7c3aed",
+  legendaryColor: "#c99a1c",
+  /** Catture: di quanti giorni si può retrodatare (dipendenti / chi corregge i dati) */
+  captureBackdateDays: 30,
+  captureBackdateDaysAdmin: 365,
+  /** Puledri: quanto indietro si può impostare la data di nascita (giorni) */
+  foalBirthMaxDays: 365,
+  /** Vendita: oggetti della bottega usati come "4 ferri normali" e "4 ferri migliorati" (0 = riconosci dal nome) */
+  shoeClassicItemId: 0,
+  shoeImprovedItemId: 0,
+  /** Stalliere della settimana: punti */
+  scoreCapture: 1,
+  scoreStableSale: 3,
+  scoreGovSale: 1,
+  scoreItemSale: 1,
+  scorePer100: 1,
+  /** Sicurezza: tentativi di accesso sbagliati prima del blocco e durata del blocco */
+  loginMaxAttempts: 5,
+  loginLockMinutes: 5,
+  loginMaxAttemptsUser: 20,
+  loginUserLockMinutes: 15,
+  /** Sicurezza: durata della sessione (giorni), si rinnova da sola se usata */
+  sessionDays: 7,
+  /** Foto: dimensione massima delle immagini caricate (MB) */
+  maxImageMB: 8,
   /** Backup automatico attivo */
   backupAuto: true,
   /** Ogni quante ore viene creato un backup automatico */

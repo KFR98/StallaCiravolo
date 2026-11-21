@@ -26,11 +26,12 @@ export type SpawnPoint = {
   location: string | null; description: string | null; notes: string | null; author: string; createdAt: string; mine: boolean;
 };
 export type MapTiles = { v: string; k: number; offset: number; extra: number };
-export type SpawnMapProps = { spawns: SpawnPoint[]; breeds: BreedOption[]; perms: { add: boolean; manage: boolean; exportImage: boolean; backup: boolean }; noteNames: Record<string, string>; tiles: MapTiles | null };
+export type SpawnMapProps = { spawns: SpawnPoint[]; breeds: BreedOption[]; perms: { add: boolean; manage: boolean; exportImage: boolean; backup: boolean }; noteNames: Record<string, string>; tiles: MapTiles | null; colors: { rare: string; legendary: string } };
 
 const KIND_LABEL: Record<Kind, string> = { CAVALLO: "Cavalli", POSSIBILE: "Possibili cavalli", RARO: "Rari", LEGGENDARIO: "Leggendari", NOTA: "Note" };
-const RARE_COLOR = "#7c3aed";
-const LEGEND_COLOR = "#c99a1c";
+// colori di rari e leggendari: arrivano dalle Impostazioni (vedi SpawnMap)
+let RARE_COLOR = "#7c3aed";
+let LEGEND_COLOR = "#c99a1c";
 const isSpecial = (k: Kind) => k === "RARO" || k === "LEGGENDARIO";
 /** Nome mostrato per rari e leggendari: il nome libero, altrimenti la razza */
 const specialName = (s: SpawnPoint) => s.title?.trim() || s.breed || "Senza nome";
@@ -116,7 +117,9 @@ function markerIcon(s: SpawnPoint, opts: { selected?: boolean; num?: number; dra
   });
 }
 
-export default function SpawnMap({ spawns, breeds, perms, noteNames, tiles }: SpawnMapProps) {
+export default function SpawnMap({ spawns, breeds, perms, noteNames, tiles, colors }: SpawnMapProps) {
+  RARE_COLOR = safeColor(colors.rare);
+  LEGEND_COLOR = safeColor(colors.legendary);
   const router = useRouter();
   const wrapRef = useRef<HTMLDivElement>(null);
   const elRef = useRef<HTMLDivElement>(null);

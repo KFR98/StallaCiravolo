@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
+import { getSettings } from "@/lib/settings";
 import { Toaster } from "sonner";
 import "./globals.css";
 
@@ -24,12 +25,16 @@ const themeScript = `(function(){try{var t=localStorage.getItem('tema');var d=t?
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const nonce = (await headers()).get("x-nonce") ?? undefined;
+  // colori di rari e leggendari scelti in Impostazioni (usati da card, badge, moduli)
+  const st = await getSettings().catch(() => null);
+  const hex = (c: unknown, d: string) => (typeof c === "string" && /^#[0-9a-fA-F]{6}$/.test(c) ? c : d);
+  const themeVars = { "--rare": hex(st?.rareColor, "#7c3aed"), "--legend": hex(st?.legendaryColor, "#c99a1c") } as React.CSSProperties;
   return (
     <html lang="it" suppressHydrationWarning>
       <head>
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="min-h-dvh">
+      <body className="min-h-dvh" style={themeVars}>
         {children}
         <Toaster
           position="top-center"

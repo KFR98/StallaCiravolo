@@ -2,7 +2,8 @@ import clsx from "clsx";
 
 /** Stessi colori dei punti sulla mappa: viola per i rari, oro per i leggendari. */
 export type Rarity = "RARO" | "LEGGENDARIO";
-export const RARITY_COLOR: Record<Rarity, string> = { RARO: "#7c3aed", LEGGENDARIO: "#c99a1c" };
+/** Colori da Impostazioni (variabili CSS impostate nel layout): --rare e --legend */
+export const RARITY_COLOR: Record<Rarity, string> = { RARO: "var(--rare)", LEGGENDARIO: "var(--legend)" };
 export const RARITY_LABEL: Record<Rarity, string> = { RARO: "Raro", LEGGENDARIO: "Leggendario" };
 export const asRarity = (v: string | null | undefined): Rarity | null => (v === "RARO" || v === "LEGGENDARIO" ? v : null);
 

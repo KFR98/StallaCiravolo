@@ -22,6 +22,8 @@ export function SellForm(props: {
   basePriceA: number | null; basePriceB: number | null; trainingPrice: number | null;
   canOverride: boolean; canSellUnderage: boolean; maxDiscount: number; pregnant: boolean; shopItems: SellShopItem[];
   rarity?: "RARO" | "LEGGENDARIO" | null; rareBasePrice?: number; rareTrainingPrice?: number;
+  /** Oggetti della bottega scelti in Impostazioni come ferri (0 = riconosci dal nome) */
+  shoeClassicId?: number; shoeImprovedId?: number;
 }) {
   // rari e leggendari: prezzo libero (proposto dal valore di riferimento), fascia d'età non usata
   const rare = !!props.rarity;
@@ -37,8 +39,8 @@ export function SellForm(props: {
   const [dValue, setDValue] = useState("");
 
   const shoeItems = {
-    classici: props.shopItems.find((i) => isShoes(i.name, "classici")),
-    migliorati: props.shopItems.find((i) => isShoes(i.name, "migliorati")),
+    classici: props.shopItems.find((i) => (props.shoeClassicId ? i.id === props.shoeClassicId : isShoes(i.name, "classici"))),
+    migliorati: props.shopItems.find((i) => (props.shoeImprovedId ? i.id === props.shoeImprovedId : isShoes(i.name, "migliorati"))),
   };
   const otherItems = props.shopItems.filter((i) => i !== shoeItems.classici && i !== shoeItems.migliorati);
 
@@ -125,8 +127,8 @@ export function SellForm(props: {
 
       {/* 1. Fascia d'età (non per rari e leggendari: prezzo libero) */}
       {rare ? (
-        <div className="rounded-lg border px-3 py-2.5 text-[14px]" style={{ borderColor: props.rarity === "RARO" ? "#7c3aed" : "#c99a1c" }}>
-          <b style={{ color: props.rarity === "RARO" ? "#a78bfa" : "#e0b84a" }}>★ Cavallo {props.rarity === "RARO" ? "raro" : "leggendario"}</b>
+        <div className="rounded-lg border px-3 py-2.5 text-[14px]" style={{ borderColor: props.rarity === "RARO" ? "var(--rare)" : "var(--legend)" }}>
+          <b style={{ color: props.rarity === "RARO" ? "var(--rare)" : "var(--legend)" }}>★ Cavallo {props.rarity === "RARO" ? "raro" : "leggendario"}</b>
           <span className="text-fg-2"> · prezzo libero deciso da te. Proposto: {money(props.rareBasePrice ?? 0)} di base.</span>
           {computed == null && <p className="mt-1 text-[13px] text-warn">Età calcolata sotto i {props.minSaleAge} anni: vendi solo se l&apos;età è sbagliata.</p>}
         </div>
