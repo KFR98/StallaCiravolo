@@ -96,7 +96,7 @@ export default async function StablePage({ searchParams }: { searchParams: Promi
       id: h.id, breed: h.breed.name, coat: h.coat.name, image: imageUrl(h.coat.imagePath), plate: h.plate ?? "—", sex: sexLabel(h.sex),
       ageText: formatAge(p.age), sellable: p.bracket !== "TROPPO_GIOVANE" && !h.needsData,
       price: h.needsData ? "" : h.rarity ? "Prezzo libero" : shown != null ? money(shown) : p.bracket === "LIBERO" ? "Prezzo libero" : p.bracket === "TROPPO_GIOVANE" ? "" : "—",
-      rarity: h.rarity === "RARO" || h.rarity === "LEGGENDARIO" ? h.rarity : null, needsData: h.needsData, foal: h.motherId != null,
+      rarity: h.rarity === "RARO" || h.rarity === "LEGGENDARIO" ? h.rarity : null, needsData: h.needsData, foal: p.age < s.foalMaxAge,
       ownerId: h.ownerId, owner: h.owner.displayName, capturedBy: h.capturedBy.displayName,
       dueAt: h.pregnancyDueAt?.toISOString() ?? null, condition: h.condition, mine: h.ownerId === user.id,
       // valori grezzi per ordinare e filtrare

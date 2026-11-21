@@ -77,7 +77,7 @@ export default async function HorsePage({ params }: { params: Promise<{ id: stri
             {horse.plate && <span className="badge badge-neutral font-mono">{horse.plate}</span>}
             <StatusBadge status={horse.status} />
             <RarityBadge rarity={rarity} />
-            {horse.motherId && <span className="badge badge-neutral">Puledro</span>}
+            {inStable && p.age < s.foalMaxAge && <span className="badge badge-neutral">Puledro</span>}
             {horse.trained && <span className="badge badge-ok">Addestrato</span>}
             {horse.needsData && inStable && <span className="badge badge-warn">Da completare</span>}
             {inStable && <PregnancyBadge dueAt={horse.pregnancyDueAt} />}

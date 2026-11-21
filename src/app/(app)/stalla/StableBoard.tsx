@@ -261,7 +261,7 @@ function HorseCard({ h }: { h: BoardHorse }) {
           {h.needsData && <span className="badge badge-warn">Da completare</span>}
           <span className="text-fg-2">{h.sex} · {h.ageText}</span>
           <PregnancyBadge dueAt={h.dueAt} />
-          {!h.sellable && !h.needsData && <span className="badge badge-neutral">Troppo giovane</span>}
+          {h.tooYoung && !h.foal && !h.needsData && <span className="badge badge-neutral">Troppo giovane</span>}
         </div>
         <div className="mt-2 flex items-end justify-between gap-2 border-t border-border pt-2 text-[12.5px]">
           <div className="min-w-0 leading-tight">

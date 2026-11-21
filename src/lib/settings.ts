@@ -25,6 +25,8 @@ export const DEFAULT_SETTINGS = {
   pregnancyDays: 3,
   /** Parti massimi per cavalla */
   maxFoals: 3,
+  /** Un cavallo è "puledro" finché ha meno di questi anni (nato in stalla o catturato) */
+  foalMaxAge: 5,
   /** Cavalli rari e leggendari: prezzo base di riferimento (il venditore lo può cambiare) e addestramento */
   rareBasePrice: 2000,
   rareTrainingPrice: 250,

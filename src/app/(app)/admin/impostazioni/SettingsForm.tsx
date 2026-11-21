@@ -60,6 +60,7 @@ export function SettingsForm({ s, inStable, shopItems }: { s: Settings; inStable
       <Section title="Gravidanza e puledri" hint="Dopo questi giorni l'etichetta INCINTA diventa FAI PARTORIRE (anche con decimali, es. 2,5). Ogni parto crea un puledro in stalla.">
         <Num name="pregnancyDays" label="Giorni prima di “Fai partorire”" value={s.pregnancyDays} step="any" min="0.1" />
         <Num name="maxFoals" label="Parti massimi per cavalla" value={s.maxFoals} step="1" min="0" />
+        <Num name="foalMaxAge" label="Puledro fino a (anni, escluso)" value={s.foalMaxAge} step="any" min="0" />
         <Num name="foalBirthMaxDays" label="Nascita del puledro impostabile fino a (giorni fa)" value={s.foalBirthMaxDays} step="1" min="1" />
       </Section>
 
