@@ -43,8 +43,18 @@ function cspHeader(nonce: string) {
   ].join("; ");
 }
 
+/**
+ * Le Server Actions del gestionale hanno un identificativo esadecimale di 42 caratteri.
+ * I bot che scansionano internet in cerca di siti Next.js vulnerabili mandano valori finti
+ * (es. "Next-Action: x"): li rifiutiamo qui, prima che arrivino a Next, così non sporcano i log.
+ */
+const ACTION_ID = /^[0-9a-f]{40,64}$/;
+
 /** Filtro rapido: senza cookie di sessione si va al login. La verifica vera avviene sul server a ogni richiesta. */
 export function middleware(req: NextRequest) {
+  const action = req.headers.get("next-action");
+  if (action !== null && !ACTION_ID.test(action)) return new NextResponse(null, { status: 400 });
+
   const toHttps = httpsRedirect(req);
   if (toHttps) return toHttps;
 

@@ -20,7 +20,7 @@ export function SellForm(props: {
   horseId: number; version: number; bracket: Bracket; age: number;
   minSaleAge: number; bracketAMax: number; bracketBMax: number;
   basePriceA: number | null; basePriceB: number | null; trainingPrice: number | null;
-  canOverride: boolean; maxDiscount: number; pregnant: boolean; shopItems: SellShopItem[];
+  canOverride: boolean; canSellUnderage: boolean; maxDiscount: number; pregnant: boolean; shopItems: SellShopItem[];
   rarity?: "RARO" | "LEGGENDARIO" | null; rareBasePrice?: number; rareTrainingPrice?: number;
 }) {
   // rari e leggendari: prezzo libero (proposto dal valore di riferimento), fascia d'età non usata
@@ -54,11 +54,11 @@ export function SellForm(props: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shoes, extra, props.shopItems]);
   const tooYoung = computed == null;
-  if (tooYoung && !props.canOverride) {
+  if (tooYoung && !props.canSellUnderage) {
     return (
       <p className="text-fg-2">
         Secondo il calcolo il cavallo ha {props.age.toFixed(1)} anni: si vende dai {props.minSaleAge} anni.
-        Se l&apos;età è sbagliata, direttore o admin possono venderlo scegliendo la fascia giusta.
+        Se l&apos;età è sbagliata, direttore, gestore o admin possono venderlo scegliendo la fascia giusta.
       </p>
     );
   }

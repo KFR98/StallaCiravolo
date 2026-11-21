@@ -3,6 +3,8 @@ import { prisma } from "./db";
 import { ADMIN_ROLE, PERMISSION_KEYS, PERMISSIONS, SYSTEM_ROLES, defaultPermissionsFor } from "./permissions";
 
 const KNOWN_KEY = "permessi_conosciuti";
+/** Permessi aggiunti dopo l'introduzione di questo meccanismo (vanno assegnati ai ruoli di base esistenti). */
+const ADDED_LATER = ["map.exportImage", "map.backup", "horses.sellUnderage"];
 
 export async function ensureSystemRoles() {
   for (const [i, r] of SYSTEM_ROLES.entries()) {
@@ -35,7 +37,7 @@ async function grantNewPermissions() {
     // prima volta che questo controllo gira: si parte dai permessi che esistevano prima di
     // introdurlo; quelli aggiunti dopo (qui sotto) vengono assegnati ai ruoli di base
     await prisma.setting.upsert({ where: { key: KNOWN_KEY }, create: { key: KNOWN_KEY, value: JSON.stringify(PERMISSION_KEYS) }, update: {} });
-    known = PERMISSION_KEYS.filter((k) => !["map.exportImage", "map.backup"].includes(k));
+    known = PERMISSION_KEYS.filter((k) => !ADDED_LATER.includes(k));
     if (row) return;
   }
   const fresh = PERMISSION_KEYS.filter((k) => !known!.includes(k));

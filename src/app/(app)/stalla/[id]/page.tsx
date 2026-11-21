@@ -194,6 +194,7 @@ export default async function HorsePage({ params }: { params: Promise<{ id: stri
                   basePriceB={horse.coat.basePriceB == null ? null : Number(horse.coat.basePriceB)}
                   trainingPrice={horse.coat.trainingPrice == null ? null : Number(horse.coat.trainingPrice)}
                   canOverride={can(user.role, "sales.overridePrice")}
+                  canSellUnderage={can(user.role, "horses.sellUnderage")}
                   maxDiscount={s.maxDiscountPercent}
                   pregnant={preg != null}
                   shopItems={shopItems}

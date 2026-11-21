@@ -29,7 +29,8 @@ export const PERMISSIONS = {
   "horses.manageAll": { group: "Stalla e vendite", label: "Vendere e gestire anche i cavalli degli altri", defaults: TOP },
   "horses.edit": { group: "Stalla e vendite", label: "Modificare note, condizione, targa, uscite", defaults: BOSS },
   "horses.correct": { group: "Stalla e vendite", label: "Correggere età, razza, manto e catturatore", defaults: ["ADMIN"] },
-  "sales.overridePrice": { group: "Stalla e vendite", label: "Cambiare il prezzo di listino e superare lo sconto massimo", hint: "Permette anche di vendere un cavallo che risulta troppo giovane", defaults: TOP },
+  "sales.overridePrice": { group: "Stalla e vendite", label: "Cambiare il prezzo di listino e superare lo sconto massimo", defaults: TOP },
+  "horses.sellUnderage": { group: "Stalla e vendite", label: "Vendere cavalli che risultano troppo giovani", hint: "Per quando l'età calcolata è sbagliata (vale anche per rari e leggendari)", defaults: BOSS },
   "sales.viewAll": { group: "Stalla e vendite", label: "Vedere le vendite di tutti", defaults: BOSS },
   "sales.correct": { group: "Stalla e vendite", label: "Correggere e annullare vendite", defaults: ["ADMIN"] },
 

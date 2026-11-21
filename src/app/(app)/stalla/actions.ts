@@ -158,8 +158,8 @@ export async function sellHorse(form: FormData) {
     const { age, bracket: computed } = horsePricing(horse, s, now);
     const override = can(user.role, "sales.overridePrice");
     const rare = horse.rarity === "RARO" || horse.rarity === "LEGGENDARIO";
-    if (computed === "TROPPO_GIOVANE" && !override) {
-      throw new UserError(`Il cavallo ha ${age.toFixed(1)} anni: si può vendere solo dai ${s.minSaleAge} anni. Se l'età è sbagliata chiedi a direttore o admin.`);
+    if (computed === "TROPPO_GIOVANE" && !can(user.role, "horses.sellUnderage")) {
+      throw new UserError(`Il cavallo ha ${age.toFixed(1)} anni: si può vendere solo dai ${s.minSaleAge} anni. Se l'età è sbagliata chiedi a direttore, gestore o admin.`);
     }
     // rari e leggendari: prezzo libero deciso dal venditore (fascia d'età non usata)
     const bracket = rare ? "LIBERO" : data.bracket;
