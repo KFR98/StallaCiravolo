@@ -23,6 +23,11 @@ export const DEFAULT_SETTINGS = {
   maxDiscountPercent: 100,
   /** Giorni di gravidanza prima dello stato "Fai partorire" */
   pregnancyDays: 3,
+  /** Parti massimi per cavalla */
+  maxFoals: 3,
+  /** Cavalli rari e leggendari: prezzo base di riferimento (il venditore lo può cambiare) e addestramento */
+  rareBasePrice: 2000,
+  rareTrainingPrice: 250,
   /** Backup automatico attivo */
   backupAuto: true,
   /** Ogni quante ore viene creato un backup automatico */

@@ -36,7 +36,7 @@ export async function userHistory(userId: number, opts: Range & { types?: Histor
   const dr = inRange(opts);
   const take = opts.limit ?? 500;
   const [captures, sales, items, payments, transfers, reimb] = await Promise.all([
-    want("CATTURA") ? prisma.horse.findMany({ where: { capturedById: userId, ...(dr ? { capturedAt: dr } : {}) }, include: { breed: true, coat: true }, orderBy: { capturedAt: "desc" }, take }) : [],
+    want("CATTURA") ? prisma.horse.findMany({ where: { capturedById: userId, motherId: null, ...(dr ? { capturedAt: dr } : {}) }, include: { breed: true, coat: true }, orderBy: { capturedAt: "desc" }, take }) : [],
     want("VENDITA") || want("BLIP")
       ? prisma.sale.findMany({ where: { sellerId: userId, ...(dr ? { soldAt: dr } : {}) }, include: { horse: { include: { coat: { select: { imagePath: true } } } } }, orderBy: { soldAt: "desc" }, take })
       : [],
@@ -72,8 +72,8 @@ export async function userHistory(userId: number, opts: Range & { types?: Histor
 export async function userTotals(userId: number) {
   const [user, captures, deposits, sales, items, payments, reimb, transfersIn, transfersOut] = await Promise.all([
     prisma.user.findUniqueOrThrow({ where: { id: userId } }),
-    prisma.horse.count({ where: { capturedById: userId } }),
-    prisma.horse.count({ where: { capturedById: userId, depositedAt: { not: null } } }),
+    prisma.horse.count({ where: { capturedById: userId, motherId: null } }),
+    prisma.horse.count({ where: { capturedById: userId, depositedAt: { not: null }, motherId: null } }),
     prisma.sale.groupBy({ by: ["type"], where: { sellerId: userId, voided: false }, _count: true, _sum: { finalPrice: true } }),
     prisma.itemSale.aggregate({ where: { sellerId: userId, voided: false }, _count: true, _sum: { total: true } }),
     prisma.payment.groupBy({ by: ["action"], where: { userId }, _sum: { amount: true } }),

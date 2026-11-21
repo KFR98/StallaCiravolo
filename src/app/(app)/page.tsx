@@ -29,7 +29,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
       orderBy: { capturedAt: "desc" },
       include: { breed: true, coat: { select: { imagePath: true, name: true } }, owner: { select: { displayName: true } } },
     }),
-    prisma.horse.count({ where: { capturedAt: { gte: p.week }, ...(mine ? { capturedById: mine } : {}) } }),
+    prisma.horse.count({ where: { capturedAt: { gte: p.week }, motherId: null, ...(mine ? { capturedById: mine } : {}) } }),
     salesSummary(p.today, p.tomorrow, mine),
     salesSummary(p.week, p.nextWeek, mine),
     dailyTrend(14, mine),

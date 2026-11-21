@@ -21,14 +21,18 @@ export function SellForm(props: {
   minSaleAge: number; bracketAMax: number; bracketBMax: number;
   basePriceA: number | null; basePriceB: number | null; trainingPrice: number | null;
   canOverride: boolean; maxDiscount: number; pregnant: boolean; shopItems: SellShopItem[];
+  rarity?: "RARO" | "LEGGENDARIO" | null; rareBasePrice?: number; rareTrainingPrice?: number;
 }) {
-  const computed: Choice | null = props.bracket === "TROPPO_GIOVANE" ? null : props.bracket;
-  const [choice, setChoice] = useState<Choice | null>(computed);
+  // rari e leggendari: prezzo libero (proposto dal valore di riferimento), fascia d'età non usata
+  const rare = !!props.rarity;
+  const computed: Choice | null = props.bracket === "TROPPO_GIOVANE" ? null : rare ? "LIBERO" : props.bracket;
+  // per i rari la fascia è sempre "prezzo libero" (anche se l'età risulta bassa e vende la direzione)
+  const [choice, setChoice] = useState<Choice | null>(rare ? "LIBERO" : computed);
   const [training, setTraining] = useState(false);
   const [shoes, setShoes] = useState<"" | "classici" | "migliorati">("");
   const [extra, setExtra] = useState<Map<number, number>>(new Map());
   const [pick, setPick] = useState("");
-  const [manual, setManual] = useState("");
+  const [manual, setManual] = useState(rare && props.rareBasePrice != null ? String(props.rareBasePrice) : "");
   const [dType, setDType] = useState<"" | "PERCENTUALE" | "IMPORTO">("");
   const [dValue, setDValue] = useState("");
 
@@ -60,10 +64,11 @@ export function SellForm(props: {
   }
 
   const listBase = choice === "A" ? props.basePriceA : choice === "B" ? props.basePriceB : null;
-  const needsManual = choice === "LIBERO" || (choice != null && listBase == null);
+  const needsManual = rare || choice === "LIBERO" || (choice != null && listBase == null);
   const manualNum = manual !== "" ? Number(manual.replace(",", ".")) : null;
   const base = needsManual || (props.canOverride && manualNum != null) ? manualNum ?? 0 : listBase ?? 0;
-  const trainingCost = training && props.trainingPrice != null ? props.trainingPrice : 0;
+  const trainingRef = rare ? props.rareTrainingPrice ?? null : props.trainingPrice;
+  const trainingCost = training && trainingRef != null ? trainingRef : 0;
   const horsePrice = round2((Number.isFinite(base) ? base : 0) + trainingCost);
   const horseFinal = applyDiscount(horsePrice, dType || null, dValue ? Number(dValue.replace(",", ".")) : null);
 
@@ -118,7 +123,14 @@ export function SellForm(props: {
         </div>
       )}
 
-      {/* 1. Fascia d'età */}
+      {/* 1. Fascia d'età (non per rari e leggendari: prezzo libero) */}
+      {rare ? (
+        <div className="rounded-lg border px-3 py-2.5 text-[14px]" style={{ borderColor: props.rarity === "RARO" ? "#7c3aed" : "#c99a1c" }}>
+          <b style={{ color: props.rarity === "RARO" ? "#a78bfa" : "#e0b84a" }}>★ Cavallo {props.rarity === "RARO" ? "raro" : "leggendario"}</b>
+          <span className="text-fg-2"> · prezzo libero deciso da te. Proposto: {money(props.rareBasePrice ?? 0)} di base.</span>
+          {computed == null && <p className="mt-1 text-[13px] text-warn">Età calcolata sotto i {props.minSaleAge} anni: vendi solo se l&apos;età è sbagliata.</p>}
+        </div>
+      ) : (
       <div>
         <span className="field-label">Fascia d&apos;età · calcolata: {props.age.toFixed(1)} anni</span>
         <div className="grid grid-cols-3 gap-1 rounded-lg bg-surface-3 p-1" role="radiogroup" aria-label="Fascia di prezzo">
@@ -129,12 +141,13 @@ export function SellForm(props: {
         {tooYoung && <p className="mt-1.5 text-[13px] text-warn">Età calcolata sotto i {props.minSaleAge} anni: scegli la fascia giusta solo se l&apos;età è sbagliata.</p>}
         {!tooYoung && choice !== computed && <p className="mt-1.5 text-[13px] text-warn">Fascia cambiata a mano: verrà indicato nelle note della vendita.</p>}
       </div>
+      )}
 
       {choice && (
         <>
           {(needsManual || props.canOverride) && (
             <label className="block">
-              <span className="field-label">{needsManual ? "Prezzo base deciso dallo stalliere *" : "Prezzo base diverso dal listino"}</span>
+              <span className="field-label">{rare ? "Prezzo del cavallo (libero) *" : needsManual ? "Prezzo base deciso dallo stalliere *" : "Prezzo base diverso dal listino"}</span>
               <input name="manualPrice" type="number" step="0.01" min="0" className="input" required={needsManual} value={manual} onChange={(e) => setManual(e.target.value)} placeholder={listBase != null ? String(listBase) : ""} />
             </label>
           )}
@@ -142,10 +155,10 @@ export function SellForm(props: {
           {/* 2. Addestramento */}
           <label className={clsx("flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5", training ? "border-accent bg-accent-soft" : "border-border")}>
             <span className="flex items-center gap-2.5">
-              <input type="checkbox" checked={training} disabled={props.trainingPrice == null} onChange={(e) => setTraining(e.target.checked)} className="size-4" />
+              <input type="checkbox" checked={training} disabled={trainingRef == null} onChange={(e) => setTraining(e.target.checked)} className="size-4" />
               <span className="font-semibold">Con addestramento</span>
             </span>
-            <span className="tabular-nums text-fg-2">{props.trainingPrice != null ? `+ ${money(props.trainingPrice)}` : "non in listino"}</span>
+            <span className="tabular-nums text-fg-2">{trainingRef != null ? `+ ${money(trainingRef)}` : "non in listino"}</span>
           </label>
 
           {/* 3. Ferri */}

@@ -42,6 +42,7 @@ function CaptureForm({ breeds, defaultAge, onDone }: { breeds: BreedOption[]; de
   const [mode, setMode] = useState<"DEPOSITA" | "GOVERNO">("DEPOSITA");
   const [sel, setSel] = useState<HorseOption | null>(null);
   const [sex, setSex] = useState<"" | "MASCHIO" | "FEMMINA">("");
+  const [rarity, setRarity] = useState<"" | "RARO" | "LEGGENDARIO">("");
   const [requestId, setRequestId] = useState("");
   useEffect(() => setRequestId(newId()), []);
   const coat = sel?.coatId ? prices.get(sel.coatId) : undefined;
@@ -102,6 +103,18 @@ function CaptureForm({ breeds, defaultAge, onDone }: { breeds: BreedOption[]; de
                 </button>
               ))}
             </div>
+          </div>
+          <div>
+            <span className="field-label">Rarità</span>
+            <input type="hidden" name="rarity" value={rarity} />
+            <div className="grid grid-cols-3 gap-1 rounded-lg bg-surface-3 p-1" role="radiogroup" aria-label="Rarità">
+              {([["", "Normale", null], ["RARO", "★ Raro", "#7c3aed"], ["LEGGENDARIO", "★ Leggendario", "#c99a1c"]] as const).map(([k, l, c]) => (
+                <button key={k || "n"} type="button" role="radio" aria-checked={rarity === k} onClick={() => setRarity(k)}
+                  className={clsx("min-h-10 rounded-md text-[14px] font-semibold transition-colors", rarity === k ? (c ? "text-white shadow-sm" : "bg-surface text-fg shadow-sm") : "text-fg-3 hover:text-fg")}
+                  style={rarity === k && c ? { background: c } : undefined}>{l}</button>
+              ))}
+            </div>
+            {rarity && <p className="mt-1.5 text-[13px] text-fg-3">I cavalli {rarity === "RARO" ? "rari" : "leggendari"} si vendono a prezzo libero, deciso dal venditore.</p>}
           </div>
           <label className="block"><span className="field-label">Note</span><textarea name="notes" className="input" maxLength={2000} placeholder="Facoltative" /></label>
           <button className="btn btn-primary w-full" disabled={!requestId}>Deposita in stalla</button>

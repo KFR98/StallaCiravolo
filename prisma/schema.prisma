@@ -229,6 +229,20 @@ model Horse {
   /// Gravidanza: data dell'accoppiamento e data prevista per il parto (modificabile)
   pregnantSince  DateTime?
   pregnancyDueAt DateTime?
+  /// Parti avuti (massimo 3)
+  foalCount      Int       @default(0)
+
+  /// Rarità: null = normale, "RARO" o "LEGGENDARIO" (prezzo libero in vendita)
+  rarity     String?
+  /// Puledro nato in stalla: id della madre e momento della nascita
+  motherId   Int?
+  bornAt     DateTime?
+  /// Dati da completare (targa, sesso): il puledro non si può vendere finché non sono a posto
+  needsData  Boolean   @default(false)
+  /// Puledro di madre rara/leggendaria: i dati li deve sistemare direttore, gestore o admin
+  needsStaff Boolean   @default(false)
+  /// Quando il proprietario ha impostato data e ora esatte di nascita (si può fare una sola volta)
+  birthSetAt DateTime?
 
   capturedById Int
   capturedBy   User     @relation("HorseCapturedBy", fields: [capturedById], references: [id], onDelete: Restrict)

@@ -67,8 +67,9 @@ export async function employeeStats(from?: Date, to?: Date): Promise<EmployeeSta
   const range = from && to ? { gte: from, lt: to } : undefined;
   const [users, caps, deps, sales, items] = await Promise.all([
     prisma.user.findMany({ orderBy: { displayName: "asc" } }),
-    prisma.horse.groupBy({ by: ["capturedById"], where: range ? { capturedAt: range } : {}, _count: true }),
-    prisma.horse.groupBy({ by: ["capturedById"], where: { depositedAt: range ?? { not: null } }, _count: true }),
+    // i puledri nati in stalla (motherId) non sono catture
+    prisma.horse.groupBy({ by: ["capturedById"], where: range ? { capturedAt: range, motherId: null } : { motherId: null }, _count: true }),
+    prisma.horse.groupBy({ by: ["capturedById"], where: { depositedAt: range ?? { not: null }, motherId: null }, _count: true }),
     prisma.sale.groupBy({ by: ["sellerId", "type"], where: { voided: false, ...(range ? { soldAt: range } : {}) }, _count: true, _sum: { finalPrice: true } }),
     prisma.itemSale.groupBy({ by: ["sellerId"], where: { voided: false, ...(range ? { soldAt: range } : {}) }, _count: true, _sum: { total: true } }),
   ]);

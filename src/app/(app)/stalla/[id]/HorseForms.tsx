@@ -21,20 +21,30 @@ export function TransferForm({ horseId, users }: { horseId: number; users: { id:
   );
 }
 
-export function PregnancyPanel({ horseId, canEdit, state, since, due, dueText, days }: {
+export function PregnancyPanel({ horseId, canEdit, state, since, due, dueText, days, foalCount, maxFoals }: {
   horseId: number; canEdit: boolean; state: "INCINTA" | "PARTO" | null; since: string | null; due: string | null; dueText: string | null; days: number;
+  foalCount: number; maxFoals: number;
 }) {
+  const counter = (
+    <p className="text-[13.5px] text-fg-2">
+      Parti: <b className={foalCount >= maxFoals ? "text-accent-text" : "text-fg"}>{foalCount}/{maxFoals}</b>
+      {foalCount >= maxFoals && " · non può più avere puledri"}
+    </p>
+  );
   if (!state) {
+    if (foalCount >= maxFoals) return counter;
     return canEdit ? (
       <ActionForm action={setPregnant} confirm="Segnare la cavalla come incinta (accoppiata ora)?" className="space-y-2">
         <input type="hidden" name="horseId" value={horseId} />
+        {counter}
         <p className="text-[14px] text-fg-3">Dopo l&apos;accoppiamento in stalla, segnala qui. Dopo {days} giorni lo stato passa a “Fai partorire”.</p>
         <button className="btn btn-secondary">Segna incinta</button>
       </ActionForm>
-    ) : <p className="text-fg-3">Non incinta.</p>;
+    ) : <div className="space-y-1">{counter}<p className="text-fg-3">Non incinta.</p></div>;
   }
   return (
     <div className="space-y-3">
+      {counter}
       <p className="text-[14.5px]">
         {state === "PARTO" ? <b className="text-warn">È ora di farla partorire.</b> : <>Incinta dal {since}. Parto previsto: <b>{dueText}</b>.</>}
       </p>
@@ -47,7 +57,7 @@ export function PregnancyPanel({ horseId, canEdit, state, since, due, dueText, d
           </ActionForm>
           <div className="flex flex-wrap gap-2">
             {state === "INCINTA" && <ActionButton action={updatePregnancy} fields={{ horseId, op: "parto_ora" }} label="Pronta a partorire" className="btn btn-secondary btn-sm" />}
-            <ActionButton action={updatePregnancy} fields={{ horseId, op: "chiudi", reason: "Partorito" }} label="Ha partorito" className="btn btn-primary btn-sm" confirm="Registrare il parto? Lo stato INCINTA verrà rimosso." />
+            <ActionButton action={updatePregnancy} fields={{ horseId, op: "chiudi", reason: "Partorito" }} label="Ha partorito" className="btn btn-primary btn-sm" confirm="Registrare il parto? Nascerà un puledro in stalla, uguale alla madre, da completare con targa e sesso." />
             <ActionButton action={updatePregnancy} fields={{ horseId, op: "chiudi", reason: "Annullata" }} label="Annulla gravidanza" className="btn btn-ghost btn-sm" confirm="Annullare la gravidanza?" />
           </div>
         </>

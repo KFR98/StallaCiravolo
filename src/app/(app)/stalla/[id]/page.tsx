@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { formatInTimeZone } from "date-fns-tz";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, AlertTriangle } from "lucide-react";
+import clsx from "clsx";
 import { requireUser } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
@@ -15,6 +16,8 @@ import { Card, HorseThumb } from "@/components/ui";
 import { StatBars } from "@/components/StatBars";
 import { StatusBadge, SaleTypeBadge, PregnancyBadge } from "@/components/StatusBadge";
 import { SellForm } from "./SellForm";
+import { FoalForm } from "./FoalForm";
+import { RarityBadge, rarityStyle, asRarity } from "@/components/Rarity";
 import { EditHorseForm, CorrectHorseForm, RemoveHorseForm, RestoreHorseButton, TransferForm, PregnancyPanel } from "./HorseForms";
 
 export const metadata = { title: "Scheda cavallo" };
@@ -42,10 +45,16 @@ export default async function HorsePage({ params }: { params: Promise<{ id: stri
   const yearProgress = (p.age - Math.floor(p.age)) * 100;
   const preg = pregnancyState(horse);
   const isAdmin = can(user.role, "horses.correct");
-  const [users, breeds] = await Promise.all([
+  const staff = can(user.role, "horses.edit");
+  const rarity = asRarity(horse.rarity);
+  const [users, breeds, mother, foals] = await Promise.all([
     inStable && isOwner || isAdmin ? prisma.user.findMany({ where: { active: true }, orderBy: { displayName: "asc" }, select: { id: true, displayName: true } }) : Promise.resolve([]),
-    isAdmin ? getBreedOptions() : Promise.resolve([]),
+    isAdmin || (horse.needsData && staff) ? getBreedOptions() : Promise.resolve([]),
+    horse.motherId ? prisma.horse.findUnique({ where: { id: horse.motherId }, select: { id: true, plate: true, rarity: true } }) : Promise.resolve(null),
+    horse.sex === "FEMMINA" ? prisma.horse.findMany({ where: { motherId: horse.id }, select: { id: true, plate: true, status: true, bornAt: true }, orderBy: { bornAt: "asc" } }) : Promise.resolve([]),
   ]);
+  // chi può completare i dati del puledro: il proprietario, oppure la direzione (obbligatoria se la madre è rara)
+  const canCompleteFoal = inStable && horse.needsData && (horse.needsStaff ? staff : isOwner || staff);
   const img = imageUrl(horse.coat.imagePath);
   // Oggetti della bottega vendibili insieme al cavallo (prima quelli della categoria Cavalli)
   const shopItems = inStable && isOwner
@@ -58,23 +67,39 @@ export default async function HorsePage({ params }: { params: Promise<{ id: stri
     <>
       <Link href={inStable ? "/stalla" : "/stalla?vista=storico"} className="btn btn-ghost btn-sm mb-3 -ml-2"><ArrowLeft size={16} /> Stalla</Link>
       <header className="mb-5 flex flex-wrap items-center gap-4">
-        <HorseThumb src={img} size={64} />
+        <span className="relative rounded-md" style={rarityStyle(rarity)}><HorseThumb src={img} size={64} /></span>
         <div className="min-w-0 flex-1">
           <h1 className="h-display text-[30px] sm:text-[34px]">{horse.breed.name}</h1>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-fg-2">
             <span>{horse.coat.name}</span>
             {horse.plate && <span className="badge badge-neutral font-mono">{horse.plate}</span>}
             <StatusBadge status={horse.status} />
+            <RarityBadge rarity={rarity} />
+            {horse.motherId && <span className="badge badge-neutral">Puledro</span>}
+            {horse.needsData && inStable && <span className="badge badge-warn">Da completare</span>}
             {inStable && <PregnancyBadge dueAt={horse.pregnancyDueAt} />}
           </div>
         </div>
         {/* Su telefono il riquadro Vendi è in fondo: scorciatoia diretta */}
-        {inStable && isOwner && <a href="#vendi" className="btn btn-primary w-full sm:w-auto lg:hidden">Vendi</a>}
+        {inStable && isOwner && !horse.needsData && <a href="#vendi" className="btn btn-primary w-full sm:w-auto lg:hidden">Vendi</a>}
       </header>
+
+      {inStable && horse.needsData && (
+        <div role="status" className={clsx("mb-5 flex gap-3 rounded-xl border p-4", horse.needsStaff ? "border-[#c99a1c] bg-[#c99a1c]/10" : "border-warn bg-warn-soft")}>
+          <AlertTriangle size={20} className={clsx("mt-0.5 shrink-0", horse.needsStaff ? "text-[#c99a1c]" : "text-warn")} />
+          <div className="text-[14.5px]">
+            {horse.needsStaff ? (
+              <><b>Puledro di una cavalla {mother?.rarity === "LEGGENDARIO" ? "leggendaria" : "rara"}.</b> Razza, manto e rarità potrebbero essere diversi dalla madre: fai intervenire <b>direttore, gestore o admin</b> per completare i dati. Finché non sono a posto il puledro non si può vendere.</>
+            ) : (
+              <><b>Puledro appena nato: dati da completare.</b> Aggiungi targa e sesso; se vuoi, imposta anche data e ora esatte di nascita (una sola volta). Finché non sono a posto il puledro non si può vendere.</>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-5 lg:grid-cols-[1.15fr_1fr]">
         <div className="space-y-5">
-          <Card pad={false} className="overflow-hidden">
+          <Card pad={false} className="overflow-hidden" style={rarityStyle(rarity)}>
             <div className="grid sm:grid-cols-[1.1fr_1fr]">
               <div className="flex items-center justify-center bg-surface-3">
                 {img ? (
@@ -87,12 +112,36 @@ export default async function HorsePage({ params }: { params: Promise<{ id: stri
                 <dt className="text-fg-3">Catturato da</dt><dd className="text-right">{horse.capturedBy.displayName}</dd>
                 <dt className="text-fg-3">Sesso</dt><dd className="text-right">{sexLabel(horse.sex)}</dd>
                 <dt className="text-fg-3">Età</dt><dd className="text-right font-semibold">{inStable ? formatAge(p.age) : horse.initialAge != null ? formatAge(Number(horse.initialAge)) + " (alla cattura)" : "—"}</dd>
-                <dt className="text-fg-3">Registrato</dt><dd className="text-right">{dateTime(horse.capturedAt)}</dd>
+                {horse.bornAt ? (
+                  <><dt className="text-fg-3">Nato il</dt><dd className="text-right">{dateTime(horse.bornAt)}{horse.birthSetAt ? "" : " (circa)"}</dd></>
+                ) : (
+                  <><dt className="text-fg-3">Registrato</dt><dd className="text-right">{dateTime(horse.capturedAt)}</dd></>
+                )}
+                {mother && <><dt className="text-fg-3">Madre</dt><dd className="text-right"><Link href={`/stalla/${mother.id}`} className="underline">{mother.plate ?? `#${mother.id}`}</Link></dd></>}
+                {foals.length > 0 && (
+                  <><dt className="text-fg-3">Puledri</dt><dd className="text-right">{foals.map((x, i) => <span key={x.id}>{i > 0 && ", "}<Link href={`/stalla/${x.id}`} className="underline">{x.plate ?? "da completare"}</Link></span>)}</dd></>
+                )}
                 {horse.condition && <><dt className="text-fg-3">Condizione</dt><dd className="text-right">{horse.condition}</dd></>}
                 {horse.exitedAt && <><dt className="text-fg-3">Uscita</dt><dd className="text-right">{dateTime(horse.exitedAt)}</dd></>}
               </dl>
             </div>
           </Card>
+
+          {canCompleteFoal && (
+            <Card title="Dati del puledro">
+              <FoalForm
+                horseId={horse.id}
+                plate={horse.plate}
+                sex={horse.sex}
+                birth={horse.bornAt ? formatInTimeZone(horse.bornAt, TZ, "yyyy-MM-dd'T'HH:mm") : null}
+                canSetBirth={!horse.birthSetAt || isAdmin}
+                staff={staff}
+                breeds={breeds}
+                coatId={horse.coatId}
+                rarity={horse.rarity}
+              />
+            </Card>
+          )}
 
           {inStable && (
             <Card title="Età">
@@ -117,6 +166,8 @@ export default async function HorsePage({ params }: { params: Promise<{ id: stri
                 due={horse.pregnancyDueAt ? formatInTimeZone(horse.pregnancyDueAt, TZ, "yyyy-MM-dd'T'HH:mm") : null}
                 dueText={horse.pregnancyDueAt ? dateTime(horse.pregnancyDueAt) : null}
                 days={s.pregnancyDays}
+                foalCount={horse.foalCount}
+                maxFoals={s.maxFoals}
               />
             </Card>
           )}
@@ -128,7 +179,9 @@ export default async function HorsePage({ params }: { params: Promise<{ id: stri
         <div className="space-y-5">
           {inStable && (
             <Card title="Vendi" id="vendi" className="scroll-mt-20">
-              {isOwner ? (
+              {horse.needsData ? (
+                <p className="text-fg-2">Prima di venderlo completa i dati del puledro (targa e sesso).</p>
+              ) : isOwner ? (
                 <SellForm
                   horseId={horse.id}
                   version={horse.version}
@@ -144,6 +197,9 @@ export default async function HorsePage({ params }: { params: Promise<{ id: stri
                   maxDiscount={s.maxDiscountPercent}
                   pregnant={preg != null}
                   shopItems={shopItems}
+                  rarity={rarity}
+                  rareBasePrice={s.rareBasePrice}
+                  rareTrainingPrice={s.rareTrainingPrice}
                 />
               ) : (
                 <p className="text-fg-2">Questo cavallo è in carico a <b>{horse.owner.displayName}</b>: solo lui può venderlo o passarlo a un altro stalliere.</p>

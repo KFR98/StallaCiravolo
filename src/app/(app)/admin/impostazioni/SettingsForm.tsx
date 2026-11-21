@@ -42,8 +42,14 @@ export function SettingsForm({ s, inStable }: { s: Settings; inStable: number })
         <Num name="maxDiscountPercent" label="Sconto massimo dipendenti %" value={s.maxDiscountPercent} step="any" min="0" max="100" />
       </Section>
 
-      <Section title="Gravidanza" hint="Dopo questi giorni l'etichetta INCINTA diventa FAI PARTORIRE. Puoi usare anche decimali (es. 2,5).">
+      <Section title="Gravidanza e puledri" hint="Dopo questi giorni l'etichetta INCINTA diventa FAI PARTORIRE (anche con decimali, es. 2,5). Ogni parto crea un puledro in stalla.">
         <Num name="pregnancyDays" label="Giorni prima di “Fai partorire”" value={s.pregnancyDays} step="any" min="0.1" />
+        <Num name="maxFoals" label="Parti massimi per cavalla" value={s.maxFoals} step="1" min="0" />
+      </Section>
+
+      <Section title="Cavalli rari e leggendari" hint="Si vendono a prezzo libero: questi sono i valori proposti nel modulo di vendita, che il venditore può cambiare.">
+        <Num name="rareBasePrice" label="Prezzo base di riferimento $" value={s.rareBasePrice} step="any" min="0" />
+        <Num name="rareTrainingPrice" label="Addestramento $" value={s.rareTrainingPrice} step="any" min="0" />
       </Section>
 
       <Section title="Stipendi (percentuali globali)" hint="Ogni tipo di vendita ha la sua percentuale. Quelle personali si impostano dalla scheda stipendi del dipendente. Le settimane già pagate non cambiano.">

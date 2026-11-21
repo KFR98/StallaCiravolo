@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { assertPermission, clientIp, type CurrentUser } from "@/lib/auth";
 import { can } from "@/lib/permissions";
@@ -44,11 +45,13 @@ export async function captureHorse(form: FormData) {
     // Per la vendita al blip bastano razza e manto; il resto è facoltativo
     const extra = z
       .object({
+        rarity: z.enum(["RARO", "LEGGENDARIO"]).nullable(),
         age: base.mode === "DEPOSITA" ? z.number({ message: "Indica l'età" }).min(0, "Età non valida").max(60, "Età non valida") : z.number().min(0).max(60).nullable(),
         sex: base.mode === "DEPOSITA" ? z.enum(["MASCHIO", "FEMMINA"], { message: "Indica il sesso" }) : z.enum(["MASCHIO", "FEMMINA"]).nullable(),
         plate: base.mode === "DEPOSITA" ? z.string().trim().min(1, "Inserisci la targa").max(40) : z.string().trim().max(40).nullable(),
       })
       .parse({
+        rarity: base.mode === "DEPOSITA" ? f.str("rarity") || null : null,
         age: f.num("age") ?? (base.mode === "DEPOSITA" ? undefined : null),
         sex: f.str("sex") || (base.mode === "DEPOSITA" ? undefined : null),
         plate: f.str("plate").toUpperCase() || (base.mode === "DEPOSITA" ? "" : null),
@@ -90,12 +93,12 @@ export async function captureHorse(form: FormData) {
     const horse = await prisma.$transaction(async (tx) => {
       const h = await tx.horse.create({
         data: {
-          breedId: coat.breedId, coatId: coat.id, sex: extra.sex, plate: extra.plate, status: "IN_STALLA", condition: "Sano", notes: base.notes,
+          breedId: coat.breedId, coatId: coat.id, sex: extra.sex, plate: extra.plate, status: "IN_STALLA", condition: "Sano", notes: base.notes, rarity: extra.rarity,
           ageBase: extra.age, initialAge: extra.age, ageCheckpointAt: now, capturedById: user.id, ownerId: user.id, capturedAt: now,
           depositedAt: now, requestId: base.requestId,
         },
       });
-      await audit(user, "DEPOSITO", "Cavallo", h.id, `${coat.breed.name} – ${coat.name} (${extra.plate}) depositato in stalla`, undefined, tx, ip);
+      await audit(user, "DEPOSITO", "Cavallo", h.id, `${extra.rarity ? (extra.rarity === "RARO" ? "RARO " : "LEGGENDARIO ") : ""}${coat.breed.name} – ${coat.name} (${extra.plate}) depositato in stalla`, undefined, tx, ip);
       return h;
     });
     return { ok: true, message: "Cavallo depositato in stalla.", redirect: `/stalla/${horse.id}` };
@@ -150,16 +153,19 @@ export async function sellHorse(form: FormData) {
     if (horse.status !== "IN_STALLA") throw new UserError("Il cavallo non è più disponibile in stalla.");
     assertOwner(user, horse);
 
+    if (horse.needsData) throw new UserError("Prima completa i dati del puledro (targa e sesso).");
     const now = new Date();
     const { age, bracket: computed } = horsePricing(horse, s, now);
     const override = can(user.role, "sales.overridePrice");
+    const rare = horse.rarity === "RARO" || horse.rarity === "LEGGENDARIO";
     if (computed === "TROPPO_GIOVANE" && !override) {
       throw new UserError(`Il cavallo ha ${age.toFixed(1)} anni: si può vendere solo dai ${s.minSaleAge} anni. Se l'età è sbagliata chiedi a direttore o admin.`);
     }
-    const bracket = data.bracket;
-    const bracketChanged = bracket !== computed;
+    // rari e leggendari: prezzo libero deciso dal venditore (fascia d'età non usata)
+    const bracket = rare ? "LIBERO" : data.bracket;
+    const bracketChanged = !rare && bracket !== computed;
 
-    const listBase = bracket === "A" ? horse.coat.basePriceA : bracket === "B" ? horse.coat.basePriceB : null;
+    const listBase = rare ? null : bracket === "A" ? horse.coat.basePriceA : bracket === "B" ? horse.coat.basePriceB : null;
     const basePrice = listBase == null ? null : Number(listBase);
     let base: number;
     if (basePrice == null) {
@@ -169,8 +175,8 @@ export async function sellHorse(form: FormData) {
       if (!override) throw new UserError("Solo direttore e admin possono cambiare il prezzo di listino. Usa lo sconto.");
       base = data.manualPrice;
     } else base = basePrice;
-    if (data.withTraining && horse.coat.trainingPrice == null) throw new UserError("Per questo manto non c'è un prezzo di addestramento nel listino.");
-    const training = data.withTraining ? Number(horse.coat.trainingPrice) : 0;
+    if (!rare && data.withTraining && horse.coat.trainingPrice == null) throw new UserError("Per questo manto non c'è un prezzo di addestramento nel listino.");
+    const training = !data.withTraining ? 0 : rare ? s.rareTrainingPrice : Number(horse.coat.trainingPrice);
     const horsePrice = round2(base + training);
 
     if (data.discountType && data.discountValue) {
@@ -219,7 +225,7 @@ export async function sellHorse(form: FormData) {
       const created = await tx.sale.create({
         data: {
           horseId: horse.id, type: "STALLA", breedName: horse.breed.name, coatName: horse.coat.name, sex: horse.sex, plate: horse.plate,
-          ageAtSale: round2(age), priceBracket: bracketLabel(bracket, s), listPrice: horsePrice, basePrice: base,
+          ageAtSale: round2(age), priceBracket: rare ? (horse.rarity === "RARO" ? "Raro · prezzo libero" : "Leggendario · prezzo libero") : bracketLabel(bracket, s), listPrice: horsePrice, basePrice: base,
           trainingPrice: training || null, itemsTotal: lines.length ? itemsTotal : null, itemSaleId,
           discountType: data.discountValue ? data.discountType : null, discountValue: data.discountValue || null, finalPrice,
           sellerId: user.id, sellerName: user.displayName, buyerName: data.buyerName,
@@ -278,6 +284,7 @@ export async function setPregnant(form: FormData) {
     if (!horse || horse.status !== "IN_STALLA") throw new UserError("Si può segnare incinta solo una cavalla presente in stalla.");
     if (horse.sex !== "FEMMINA") throw new UserError("Solo le femmine possono essere segnate incinte.");
     assertOwner(user, horse);
+    if (horse.foalCount >= s.maxFoals) throw new UserError(`Questa cavalla ha già partorito ${horse.foalCount} volte: il massimo è ${s.maxFoals}.`);
     const sinceStr = f.str("since");
     const since = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(sinceStr) ? fromZonedTime(sinceStr + ":00", TZ) : new Date();
     const dueAt = new Date(since.getTime() + s.pregnancyDays * DAY);
@@ -305,10 +312,13 @@ export async function updatePregnancy(form: FormData) {
       return { ok: true, message: "Stato aggiornato: FAI PARTORIRE." };
     }
     if (op === "chiudi") {
-      const reason = f.str("reason") || "Partorito";
-      await prisma.horse.update({ where: { id: horseId }, data: { pregnantSince: null, pregnancyDueAt: null } });
-      await audit(user, "GRAVIDANZA", "Cavallo", horseId, `Cavalla ${horse.plate}: gravidanza chiusa (${reason})`);
-      return { ok: true, message: reason === "Partorito" ? "Parto registrato." : "Gravidanza annullata." };
+      const reason = f.str("reason") === "Partorito" ? "Partorito" : "Annullata";
+      if (reason === "Annullata") {
+        await prisma.horse.update({ where: { id: horseId }, data: { pregnantSince: null, pregnancyDueAt: null } });
+        await audit(user, "GRAVIDANZA", "Cavallo", horseId, `Cavalla ${horse.plate}: gravidanza annullata`);
+        return { ok: true, message: "Gravidanza annullata." };
+      }
+      return giveBirth(user, horseId);
     }
     const dueStr = f.str("dueAt");
     if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(dueStr)) throw new UserError("Data del parto non valida.");
@@ -407,5 +417,100 @@ export async function restoreHorse(form: FormData) {
       await audit(user, "RIPRISTINO_CAVALLO", "Cavallo", id, `Cavallo ${h.plate} riportato in stalla`, undefined, tx);
     });
     return { ok: true, message: "Cavallo riportato in stalla." };
+  });
+}
+
+/**
+ * Parto: la madre torna non incinta, il contatore dei parti sale e nasce un puledro in stalla.
+ * Il puledro è uguale alla madre (razza e manto), in carico allo stesso stalliere, età 0 da adesso,
+ * e "da completare" (targa e sesso). Se la madre è rara o leggendaria i dati li sistema la direzione.
+ */
+async function giveBirth(user: CurrentUser, motherId: number) {
+  const s = await getSettings();
+  const now = new Date();
+  const ip = await clientIp();
+  const result = await prisma.$transaction(async (tx) => {
+    const mother = await tx.horse.findUnique({ where: { id: motherId }, include: { breed: true, coat: true } });
+    if (!mother || mother.status !== "IN_STALLA" || !mother.pregnantSince) throw new UserError("La cavalla non risulta incinta in stalla.");
+    if (mother.foalCount >= s.maxFoals) throw new UserError(`Questa cavalla ha già partorito ${mother.foalCount} volte: il massimo è ${s.maxFoals}.`);
+    // blocco contro il doppio clic: aggiorna solo se è ancora incinta
+    const locked = await tx.horse.updateMany({
+      where: { id: motherId, pregnantSince: { not: null } },
+      data: { pregnantSince: null, pregnancyDueAt: null, foalCount: { increment: 1 }, version: { increment: 1 } },
+    });
+    if (locked.count !== 1) throw new UserError("Il parto è già stato registrato.");
+    const rareMother = mother.rarity === "RARO" || mother.rarity === "LEGGENDARIO";
+    const foal = await tx.horse.create({
+      data: {
+        breedId: mother.breedId, coatId: mother.coatId, status: "IN_STALLA", condition: "Sano",
+        ageBase: 0, initialAge: 0, ageCheckpointAt: now, bornAt: now,
+        ownerId: mother.ownerId, capturedById: mother.ownerId, capturedAt: now, depositedAt: now,
+        motherId: mother.id, needsData: true, needsStaff: rareMother,
+        notes: `Nato in stalla da ${mother.plate ?? "cavalla #" + mother.id} (${mother.breed.name} – ${mother.coat.name}).`,
+      },
+    });
+    await audit(user, "PARTO", "Cavallo", foal.id, `Parto di ${mother.plate}: nato un puledro ${mother.breed.name} – ${mother.coat.name} (parto ${mother.foalCount + 1}/${s.maxFoals})`, { madre: mother.id, puledro: foal.id }, tx, ip);
+    return { foal, rareMother, count: mother.foalCount + 1 };
+  });
+  return {
+    ok: true,
+    message: result.rareMother
+      ? `Parto registrato (${result.count}/${s.maxFoals}). È nato un puledro: la madre è rara, chiedi a direttore, gestore o admin di completarne i dati.`
+      : `Parto registrato (${result.count}/${s.maxFoals}). È nato un puledro: aggiungi la targa e il sesso.`,
+    redirect: `/stalla/${result.foal.id}`,
+  };
+}
+
+const foalSchema = z.object({
+  horseId: z.number().int().positive(),
+  plate: z.string().trim().min(1, "Inserisci la targa").max(40),
+  sex: z.enum(["MASCHIO", "FEMMINA"], { message: "Indica il sesso" }),
+  birth: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/).nullable(),
+  breedId: z.number().int().positive().nullable(),
+  coatId: z.number().int().positive().nullable(),
+  rarity: z.enum(["RARO", "LEGGENDARIO"]).nullable(),
+});
+
+/**
+ * Completa i dati di un puledro nato in stalla: targa, sesso e (una sola volta) data e ora di nascita.
+ * Per i puledri di madri rare/leggendarie servono direttore, gestore o admin (permesso "horses.edit"),
+ * che possono anche correggere razza, manto e rarità.
+ */
+export async function completeFoal(form: FormData) {
+  return run(async () => {
+    const user = await assertPermission("horses.view");
+    const f = fd(form);
+    const data = foalSchema.parse({
+      horseId: f.int("horseId"), plate: f.str("plate").toUpperCase(), sex: f.str("sex") || undefined,
+      birth: f.str("birth") || null, breedId: f.int("breedId"), coatId: f.int("coatId"), rarity: f.str("rarity") || null,
+    });
+    const horse = await prisma.horse.findUnique({ where: { id: data.horseId } });
+    if (!horse || horse.motherId == null) throw new UserError("Puledro non trovato.");
+    const staff = can(user.role, "horses.edit");
+    if (horse.needsStaff && !staff) throw new UserError("Puledro di madre rara: i dati li deve completare direttore, gestore o admin.");
+    if (!staff) assertOwner(user, horse);
+    if (horse.status !== "IN_STALLA") throw new UserError("Il puledro non è più in stalla.");
+
+    const upd: Prisma.HorseUpdateInput = { plate: data.plate, sex: data.sex, needsData: false, needsStaff: false, version: { increment: 1 } };
+    // data e ora di nascita esatte: il proprietario le può impostare una volta sola
+    if (data.birth) {
+      if (horse.birthSetAt && !can(user.role, "horses.correct")) throw new UserError("Data e ora di nascita sono già state impostate: per cambiarle serve l'amministratore.");
+      const born = fromZonedTime(data.birth + ":00", TZ);
+      if (born.getTime() > Date.now() + 60_000) throw new UserError("La nascita non può essere nel futuro.");
+      if (born.getTime() < Date.now() - 365 * DAY) throw new UserError("Data di nascita troppo lontana.");
+      Object.assign(upd, { bornAt: born, ageBase: 0, initialAge: 0, ageCheckpointAt: born, birthSetAt: new Date() });
+    }
+    // solo la direzione corregge razza, manto e rarità (puledri di madri rare)
+    if (staff && data.breedId && data.coatId) {
+      const ok = await prisma.coat.count({ where: { id: data.coatId, breedId: data.breedId } });
+      if (!ok) throw new UserError("Il manto non appartiene alla razza scelta.");
+      Object.assign(upd, { breed: { connect: { id: data.breedId } }, coat: { connect: { id: data.coatId } } });
+    }
+    if (staff) upd.rarity = data.rarity;
+    const samePlate = await prisma.horse.findFirst({ where: { plate: data.plate, status: "IN_STALLA", NOT: { id: horse.id } } });
+    if (samePlate) throw new UserError(`In stalla c'è già un cavallo con targa ${data.plate}.`);
+    await prisma.horse.update({ where: { id: horse.id }, data: upd });
+    await audit(user, "DATI_PULEDRO", "Cavallo", horse.id, `Completati i dati del puledro ${data.plate}`, { ...data });
+    return { ok: true, message: "Dati del puledro salvati." };
   });
 }

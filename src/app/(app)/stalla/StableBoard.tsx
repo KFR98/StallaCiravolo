@@ -7,10 +7,12 @@ import { Search, Users, LayoutGrid } from "lucide-react";
 import { HorseThumb, Empty } from "@/components/ui";
 import { PregnancyBadge } from "@/components/StatusBadge";
 import { matchHorse } from "@/components/HorsePicker";
+import { RarityBadge, rarityStyle } from "@/components/Rarity";
 
 export type BoardHorse = {
   id: number; breed: string; coat: string; image: string | null; plate: string; sex: string; ageText: string; sellable: boolean;
   price: string; ownerId: number; owner: string; capturedBy: string; dueAt: string | null; condition: string | null; mine: boolean;
+  rarity: "RARO" | "LEGGENDARIO" | null; needsData: boolean; foal: boolean;
 };
 
 export function StableBoard({ horses, meId }: { horses: BoardHorse[]; meId: number }) {
@@ -87,8 +89,15 @@ export function StableBoard({ horses, meId }: { horses: BoardHorse[]; meId: numb
 
 function HorseCard({ h }: { h: BoardHorse }) {
   return (
-    <Link href={`/stalla/${h.id}`} className={clsx("card flex gap-3 p-3 transition-colors hover:border-border-strong", h.mine && "ring-1 ring-accent/30")}>
-      <HorseThumb src={h.image} size={72} />
+    <Link href={`/stalla/${h.id}`} style={rarityStyle(h.rarity)} className={clsx("card flex gap-3 p-3 transition-colors hover:border-border-strong", h.mine && !h.rarity && "ring-1 ring-accent/30")}>
+      <span className="relative shrink-0">
+        <HorseThumb src={h.image} size={72} />
+        {h.rarity && (
+          <span aria-hidden="true" className="absolute -top-1.5 -left-1.5 flex size-6 items-center justify-center rounded-full text-white shadow ring-2 ring-surface" style={{ background: h.rarity === "RARO" ? "#7c3aed" : "#c99a1c" }}>
+            <svg width="13" height="13" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6L2.5 9.4l6.6-.8Z" /></svg>
+          </span>
+        )}
+      </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
@@ -98,9 +107,12 @@ function HorseCard({ h }: { h: BoardHorse }) {
           <span className="badge badge-neutral font-mono">{h.plate}</span>
         </div>
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[13px]">
+          <RarityBadge rarity={h.rarity} />
+          {h.foal && <span className="badge badge-neutral">Puledro</span>}
+          {h.needsData && <span className="badge badge-warn">Da completare</span>}
           <span className="text-fg-2">{h.sex} · {h.ageText}</span>
           <PregnancyBadge dueAt={h.dueAt} />
-          {!h.sellable && <span className="badge badge-neutral">Troppo giovane</span>}
+          {!h.sellable && !h.needsData && <span className="badge badge-neutral">Troppo giovane</span>}
         </div>
         <div className="mt-2 flex items-end justify-between gap-2 border-t border-border pt-2 text-[12.5px]">
           <div className="min-w-0 leading-tight">
