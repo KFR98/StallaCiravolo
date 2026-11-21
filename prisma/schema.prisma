@@ -234,6 +234,10 @@ model Horse {
 
   /// Rarità: null = normale, "RARO" o "LEGGENDARIO" (prezzo libero in vendita)
   rarity     String?
+  /// Già addestrato in stalla: il prezzo base include l'addestramento (in vendita non si aggiunge di nuovo)
+  trained     Boolean   @default(false)
+  trainedAt   DateTime?
+  trainedById Int?
   /// Puledro nato in stalla: id della madre e momento della nascita
   motherId   Int?
   bornAt     DateTime?

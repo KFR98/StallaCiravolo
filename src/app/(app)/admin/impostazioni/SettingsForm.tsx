@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ActionForm } from "@/components/ActionForm";
+import { STABLE_SORTS } from "../../stalla/sorts";
 import { saveSettings } from "../actions";
 import type { Settings } from "@/lib/settings";
 
@@ -34,6 +35,15 @@ export function SettingsForm({ s, inStable, shopItems }: { s: Settings; inStable
         <Num name="daysPerYear" label="Giorni reali per 1 anno" value={s.daysPerYear} step="any" min="0.01" />
         <Num name="defaultCaptureAge" label="Età proposta alla cattura" value={s.defaultCaptureAge} step="any" min="0" />
         <Num name="minSaleAge" label="Età minima per vendere" value={s.minSaleAge} step="any" min="0" />
+      </Section>
+
+      <Section title="Stalla" hint="Come si presenta l'elenco dei cavalli all'apertura. Ognuno può cambiare ordine e filtri, e il suo browser se li ricorda.">
+        <label className="block">
+          <span className="field-label">Ordinamento predefinito</span>
+          <select name="stableDefaultSort" defaultValue={s.stableDefaultSort} className="input">
+            {STABLE_SORTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+          </select>
+        </label>
       </Section>
 
       <Section title="Catture" hint="Data e ora della cattura sono di base il momento della registrazione, ma si possono retrodatare (es. cavallo registrato in ritardo). Qui scegli fino a quanti giorni indietro.">

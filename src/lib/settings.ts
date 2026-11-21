@@ -54,6 +54,8 @@ export const DEFAULT_SETTINGS = {
   sessionDays: 7,
   /** Foto: dimensione massima delle immagini caricate (MB) */
   maxImageMB: 8,
+  /** Stalla: ordinamento proposto all'apertura (ognuno può cambiarlo, e il browser lo ricorda) */
+  stableDefaultSort: "recenti",
   /** Backup automatico attivo */
   backupAuto: true,
   /** Ogni quante ore viene creato un backup automatico */

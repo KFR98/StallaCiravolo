@@ -26,6 +26,7 @@ export const PERMISSIONS = {
   "horses.view": { group: "Stalla e vendite", label: "Vedere la stalla e le vendite", defaults: ALL },
   "horses.capture": { group: "Stalla e vendite", label: "Registrare catture", defaults: ALL },
   "horses.sell": { group: "Stalla e vendite", label: "Vendere i propri cavalli", defaults: ALL },
+  "horses.train": { group: "Stalla e vendite", label: "Segnare un cavallo come addestrato (o togliere la spunta)", hint: "Il prezzo base mostrato include l'addestramento", defaults: ALL },
   "horses.manageAll": { group: "Stalla e vendite", label: "Vendere e gestire anche i cavalli degli altri", defaults: TOP },
   "horses.edit": { group: "Stalla e vendite", label: "Modificare note, condizione, targa, uscite", defaults: BOSS },
   "horses.correct": { group: "Stalla e vendite", label: "Correggere età, razza, manto e catturatore", defaults: ["ADMIN"] },

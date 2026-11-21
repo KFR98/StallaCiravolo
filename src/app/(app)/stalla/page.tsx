@@ -89,13 +89,20 @@ export default async function StablePage({ searchParams }: { searchParams: Promi
   const now = new Date();
   const board: BoardHorse[] = horses.map((h) => {
     const p = horsePricing(h, s, now);
+    // già addestrato: il prezzo base mostrato include l'addestramento
+    const train = h.trained && p.basePrice != null && h.coat.trainingPrice != null ? Number(h.coat.trainingPrice) : 0;
+    const shown = p.basePrice != null ? p.basePrice + train : null;
     return {
       id: h.id, breed: h.breed.name, coat: h.coat.name, image: imageUrl(h.coat.imagePath), plate: h.plate ?? "—", sex: sexLabel(h.sex),
       ageText: formatAge(p.age), sellable: p.bracket !== "TROPPO_GIOVANE" && !h.needsData,
-      price: h.needsData ? "" : h.rarity ? "Prezzo libero" : p.basePrice != null ? money(p.basePrice) : p.bracket === "LIBERO" ? "Prezzo libero" : p.bracket === "TROPPO_GIOVANE" ? "" : "—",
+      price: h.needsData ? "" : h.rarity ? "Prezzo libero" : shown != null ? money(shown) : p.bracket === "LIBERO" ? "Prezzo libero" : p.bracket === "TROPPO_GIOVANE" ? "" : "—",
       rarity: h.rarity === "RARO" || h.rarity === "LEGGENDARIO" ? h.rarity : null, needsData: h.needsData, foal: h.motherId != null,
       ownerId: h.ownerId, owner: h.owner.displayName, capturedBy: h.capturedBy.displayName,
       dueAt: h.pregnancyDueAt?.toISOString() ?? null, condition: h.condition, mine: h.ownerId === user.id,
+      // valori grezzi per ordinare e filtrare
+      sexCode: h.sex, age: p.age, capturedAt: h.capturedAt.toISOString(), tooYoung: p.bracket === "TROPPO_GIOVANE",
+      priceValue: h.needsData || h.rarity ? null : shown,
+      trained: h.trained,
     };
   });
   return (
@@ -105,7 +112,7 @@ export default async function StablePage({ searchParams }: { searchParams: Promi
       {board.length === 0 ? (
         <Card><Empty>La stalla è vuota. Registra la prima cattura.</Empty></Card>
       ) : (
-        <StableBoard horses={board} meId={user.id} />
+        <StableBoard horses={board} meId={user.id} defaultSort={s.stableDefaultSort} />
       )}
       <p className="mt-6 text-[13px] text-fg-3">Cerca un cavallo già venduto? <Link href="/stalla?vista=storico" className="underline">Apri lo storico catture</Link>.</p>
     </>

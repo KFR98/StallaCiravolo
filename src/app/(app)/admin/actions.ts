@@ -12,6 +12,7 @@ import { fetchRemoteImage } from "@/lib/remote-image";
 import { parseListino, type ParsedListino } from "@/lib/excel-import";
 import { applyListino } from "@/lib/catalog-import";
 import { ADMIN_ROLE } from "@/lib/permissions";
+import { STABLE_SORTS } from "../stalla/sorts";
 
 // ─────────────────────────── UTENTI ───────────────────────────
 
@@ -372,6 +373,7 @@ export async function saveSettings(form: FormData) {
         loginUserLockMinutes: z.number().int().min(1).max(10080),
         sessionDays: z.number().min(0.1, "Sessione troppo corta").max(365),
         maxImageMB: z.number().min(0.5).max(50),
+        stableDefaultSort: z.enum(STABLE_SORTS.map(([k]) => k) as [string, ...string[]]),
         backupDays: z.number({ message: "Indica per quanti giorni conservare i backup" }).int("I giorni di conservazione devono essere un numero intero").min(1).max(365),
         backupAuto: z.boolean(),
         backupEveryHours: z.number({ message: "Indica ogni quante ore fare il backup" }).int().min(1, "Minimo 1 ora").max(168, "Massimo 7 giorni (168 ore)"),
@@ -410,6 +412,7 @@ export async function saveSettings(form: FormData) {
         loginUserLockMinutes: f.int("loginUserLockMinutes"),
         sessionDays: f.num("sessionDays"),
         maxImageMB: f.num("maxImageMB"),
+        stableDefaultSort: f.str("stableDefaultSort"),
         backupDays: f.int("backupDays"),
         backupAuto: f.bool("backupAuto"),
         backupEveryHours: f.int("backupEveryHours"),

@@ -17,6 +17,8 @@ import { StatBars } from "@/components/StatBars";
 import { StatusBadge, SaleTypeBadge, PregnancyBadge } from "@/components/StatusBadge";
 import { SellForm } from "./SellForm";
 import { FoalForm } from "./FoalForm";
+import { ActionButton } from "@/components/ActionForm";
+import { setTrained } from "../actions";
 import { RarityBadge, rarityStyle, asRarity } from "@/components/Rarity";
 import { EditHorseForm, CorrectHorseForm, RemoveHorseForm, RestoreHorseButton, TransferForm, PregnancyPanel } from "./HorseForms";
 
@@ -76,11 +78,21 @@ export default async function HorsePage({ params }: { params: Promise<{ id: stri
             <StatusBadge status={horse.status} />
             <RarityBadge rarity={rarity} />
             {horse.motherId && <span className="badge badge-neutral">Puledro</span>}
+            {horse.trained && <span className="badge badge-ok">Addestrato</span>}
             {horse.needsData && inStable && <span className="badge badge-warn">Da completare</span>}
             {inStable && <PregnancyBadge dueAt={horse.pregnancyDueAt} />}
           </div>
         </div>
         {/* Su telefono il riquadro Vendi è in fondo: scorciatoia diretta */}
+        {inStable && can(user.role, "horses.train") && (
+          <ActionButton
+            action={setTrained}
+            fields={{ horseId: horse.id, on: horse.trained ? "0" : "1" }}
+            label={horse.trained ? "✓ Addestrato · togli" : "Segna come addestrato"}
+            className={clsx("btn w-full sm:w-auto", horse.trained ? "btn-secondary" : "btn-secondary")}
+            confirm={horse.trained ? "Togliere la spunta “addestrato”? Il prezzo base tornerà senza addestramento." : "Segnare il cavallo come già addestrato? Il prezzo base includerà l'addestramento e in vendita non si potrà aggiungere di nuovo."}
+          />
+        )}
         {inStable && isOwner && !horse.needsData && <a href="#vendi" className="btn btn-primary w-full sm:w-auto lg:hidden">Vendi</a>}
       </header>
 
@@ -203,6 +215,7 @@ export default async function HorsePage({ params }: { params: Promise<{ id: stri
                   rareTrainingPrice={s.rareTrainingPrice}
                   shoeClassicId={s.shoeClassicItemId}
                   shoeImprovedId={s.shoeImprovedItemId}
+                  trained={horse.trained}
                 />
               ) : (
                 <p className="text-fg-2">Questo cavallo è in carico a <b>{horse.owner.displayName}</b>: solo lui può venderlo o passarlo a un altro stalliere.</p>
@@ -220,7 +233,7 @@ export default async function HorsePage({ params }: { params: Promise<{ id: stri
             <dl className="grid grid-cols-2 gap-y-1.5 text-[14.5px]">
               <dt className="text-fg-3">Base {s.minSaleAge}-{s.bracketAMax} anni</dt><dd className="text-right font-semibold">{money(horse.coat.basePriceA)}</dd>
               <dt className="text-fg-3">Base {s.bracketAMax + 1}-{s.bracketBMax} anni</dt><dd className="text-right font-semibold">{money(horse.coat.basePriceB)}</dd>
-              <dt className="text-fg-3">Addestramento (facoltativo)</dt><dd className="text-right font-semibold">+ {money(horse.coat.trainingPrice)}</dd>
+              <dt className="text-fg-3">Addestramento {horse.trained ? "(già fatto)" : "(facoltativo)"}</dt><dd className="text-right font-semibold">{horse.trained ? "compreso" : `+ ${money(horse.coat.trainingPrice)}`}</dd>
               <dt className="text-fg-3">Oltre {s.bracketBMax} anni</dt><dd className="text-right">Prezzo libero</dd>
               <dt className="text-fg-3">Vendita al blip</dt><dd className="text-right font-semibold">{money(horse.coat.governmentPrice)}</dd>
             </dl>

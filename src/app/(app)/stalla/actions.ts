@@ -195,8 +195,10 @@ export async function sellHorse(form: FormData) {
       if (!override) throw new UserError("Solo direttore e admin possono cambiare il prezzo di listino. Usa lo sconto.");
       base = data.manualPrice;
     } else base = basePrice;
-    if (!rare && data.withTraining && horse.coat.trainingPrice == null) throw new UserError("Per questo manto non c'è un prezzo di addestramento nel listino.");
-    const training = !data.withTraining ? 0 : rare ? s.rareTrainingPrice : Number(horse.coat.trainingPrice);
+    // già addestrato in stalla: l'addestramento è compreso nel prezzo e non si può aggiungere di nuovo
+    const withTraining = horse.trained || data.withTraining;
+    if (!rare && withTraining && horse.coat.trainingPrice == null) throw new UserError("Per questo manto non c'è un prezzo di addestramento nel listino.");
+    const training = !withTraining ? 0 : rare ? s.rareTrainingPrice : Number(horse.coat.trainingPrice);
     const horsePrice = round2(base + training);
 
     if (data.discountType && data.discountValue) {
@@ -557,5 +559,23 @@ export async function completeFoal(form: FormData) {
     await prisma.horse.update({ where: { id: horse.id }, data: upd });
     await audit(user, "DATI_PULEDRO", "Cavallo", horse.id, `Completati i dati del puledro ${data.plate}`, { ...data });
     return { ok: true, message: "Dati del puledro salvati." };
+  });
+}
+
+/** Spunta "Addestrato": il cavallo è già addestrato in stalla (il prezzo base mostrato include l'addestramento). */
+export async function setTrained(form: FormData) {
+  return run(async () => {
+    const user = await assertPermission("horses.train");
+    const f = fd(form);
+    const id = f.int("horseId") ?? 0;
+    const on = f.str("on") === "1";
+    const horse = await prisma.horse.findUnique({ where: { id }, include: { breed: true, coat: true } });
+    if (!horse || horse.status !== "IN_STALLA") throw new UserError("Si può segnare solo un cavallo presente in stalla.");
+    if (horse.trained === on) return { ok: true, message: on ? "Già segnato come addestrato." : "Già senza addestramento." };
+    await prisma.$transaction(async (tx) => {
+      await tx.horse.update({ where: { id }, data: { trained: on, trainedAt: on ? new Date() : null, trainedById: on ? user.id : null, version: { increment: 1 } } });
+      await audit(user, "ADDESTRAMENTO", "Cavallo", id, `${horse.breed.name} – ${horse.coat.name} (${horse.plate ?? "#" + id}): ${on ? "segnato come addestrato" : "tolta la spunta addestrato"}`, undefined, tx);
+    });
+    return { ok: true, message: on ? "Segnato come addestrato: il prezzo base ora include l'addestramento." : "Tolta la spunta addestrato." };
   });
 }

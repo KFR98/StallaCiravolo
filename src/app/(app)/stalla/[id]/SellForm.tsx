@@ -24,13 +24,15 @@ export function SellForm(props: {
   rarity?: "RARO" | "LEGGENDARIO" | null; rareBasePrice?: number; rareTrainingPrice?: number;
   /** Oggetti della bottega scelti in Impostazioni come ferri (0 = riconosci dal nome) */
   shoeClassicId?: number; shoeImprovedId?: number;
+  /** Già addestrato in stalla: addestramento compreso, non si può togliere né aggiungere di nuovo */
+  trained?: boolean;
 }) {
   // rari e leggendari: prezzo libero (proposto dal valore di riferimento), fascia d'età non usata
   const rare = !!props.rarity;
   const computed: Choice | null = props.bracket === "TROPPO_GIOVANE" ? null : rare ? "LIBERO" : props.bracket;
   // per i rari la fascia è sempre "prezzo libero" (anche se l'età risulta bassa e vende la direzione)
   const [choice, setChoice] = useState<Choice | null>(rare ? "LIBERO" : computed);
-  const [training, setTraining] = useState(false);
+  const [training, setTraining] = useState(!!props.trained);
   const [shoes, setShoes] = useState<"" | "classici" | "migliorati">("");
   const [extra, setExtra] = useState<Map<number, number>>(new Map());
   const [pick, setPick] = useState("");
@@ -116,7 +118,7 @@ export function SellForm(props: {
       <input type="hidden" name="version" value={props.version} />
       <input type="hidden" name="bracket" value={choice ?? ""} />
       <input type="hidden" name="items" value={JSON.stringify(lines.map((l) => ({ id: l.item.id, qty: l.qty })))} />
-      {training && <input type="hidden" name="withTraining" value="on" />}
+      {(training || props.trained) && <input type="hidden" name="withTraining" value="on" />}
 
       {props.pregnant && (
         <div className="flex gap-2 rounded-lg bg-warn-soft p-3 text-[14px] text-warn" role="alert">
@@ -157,8 +159,8 @@ export function SellForm(props: {
           {/* 2. Addestramento */}
           <label className={clsx("flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5", training ? "border-accent bg-accent-soft" : "border-border")}>
             <span className="flex items-center gap-2.5">
-              <input type="checkbox" checked={training} disabled={trainingRef == null} onChange={(e) => setTraining(e.target.checked)} className="size-4" />
-              <span className="font-semibold">Con addestramento</span>
+              <input type="checkbox" checked={training || !!props.trained} disabled={trainingRef == null || !!props.trained} onChange={(e) => setTraining(e.target.checked)} className="size-4" />
+              <span className="font-semibold">{props.trained ? "Già addestrato (compreso nel prezzo)" : "Con addestramento"}</span>
             </span>
             <span className="tabular-nums text-fg-2">{trainingRef != null ? `+ ${money(trainingRef)}` : "non in listino"}</span>
           </label>
