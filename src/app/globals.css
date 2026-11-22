@@ -96,7 +96,9 @@
   --color-warn-soft: var(--warn-soft);
   --color-info: var(--info);
   --color-info-soft: var(--info-soft);
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  /* i caratteri delle emoji di ogni sistema in coda: senza, alcuni browser (es. Windows) non le mostrano nei campi */
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --font-display: "Barlow Condensed", "Inter", sans-serif;
   --font-brand: "Rye", Georgia, serif;
 }
