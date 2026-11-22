@@ -46,6 +46,10 @@ export function SettingsForm({ s, inStable, shopItems }: { s: Settings; inStable
         </label>
       </Section>
 
+      <Section title="Strillone" hint="L'annuncio personale che ognuno salva nell'Ufficio e copia in gioco quando la stalla è aperta.">
+        <Num name="shoutMaxLength" label="Lunghezza massima (caratteri)" value={s.shoutMaxLength} step="1" min="20" />
+      </Section>
+
       <Section title="Catture" hint="Data e ora della cattura sono di base il momento della registrazione, ma si possono retrodatare (es. cavallo registrato in ritardo). Qui scegli fino a quanti giorni indietro.">
         <Num name="captureBackdateDays" label="Dipendenti: fino a (giorni fa)" value={s.captureBackdateDays} step="1" min="0" />
         <Num name="captureBackdateDaysAdmin" label="Chi corregge i dati: fino a (giorni fa)" value={s.captureBackdateDaysAdmin} step="1" min="0" />

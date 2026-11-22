@@ -14,6 +14,7 @@ import { PageHeader, Card, StatTile, Empty, HorseName } from "@/components/ui";
 import { SaleTypeBadge, PregnancyBadge } from "@/components/StatusBadge";
 import { SalesTrendChart } from "@/components/Charts";
 import { WeeklyChampion } from "@/components/WeeklyChampion";
+import { Shout } from "@/components/Shout";
 
 export default async function Dashboard({ searchParams }: { searchParams: Promise<{ negato?: string }> }) {
   const user = await requireUser("dashboard.view");
@@ -42,9 +43,14 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const top = overview ? (await employeeStats(p.week, p.nextWeek)).filter((e) => e.sales || e.captures).sort((a, b) => b.revenue - a.revenue || b.captures - a.captures).slice(0, 5) : [];
   const recentHorses = (mine ? myHorses : stable).slice(0, 6);
 
+  // Strillone personale (se il ruolo può usarlo)
+  const shout = can(user.role, "dashboard.shout")
+    ? { text: (await prisma.user.findUnique({ where: { id: user.id }, select: { shoutText: true } }))?.shoutText ?? null, max: (await getSettings()).shoutMaxLength }
+    : null;
   return (
     <>
       <PageHeader eyebrow={`${roleLabel(user.role)} · settimana ${weekLabel(p.week, TZ)}`} title={overview ? "Ufficio" : `Ciao, ${user.displayName}`} />
+      {shout && <div className="mb-5"><Shout text={shout.text} maxLength={shout.max} /></div>}
       {sp.negato && <div className="card mb-4 border-accent p-3 text-accent-text">Non hai i permessi per accedere a quella pagina.</div>}
 
       {toFoal.length > 0 && (

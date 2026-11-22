@@ -4,7 +4,7 @@ import { ADMIN_ROLE, PERMISSION_KEYS, PERMISSIONS, SYSTEM_ROLES, defaultPermissi
 
 const KNOWN_KEY = "permessi_conosciuti";
 /** Permessi aggiunti dopo l'introduzione di questo meccanismo (vanno assegnati ai ruoli di base esistenti). */
-const ADDED_LATER = ["map.exportImage", "map.backup", "horses.sellUnderage", "horses.train"];
+const ADDED_LATER = ["map.exportImage", "map.backup", "horses.sellUnderage", "horses.train", "dashboard.shout"];
 
 export async function ensureSystemRoles() {
   for (const [i, r] of SYSTEM_ROLES.entries()) {

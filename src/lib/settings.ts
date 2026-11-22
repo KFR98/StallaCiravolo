@@ -56,6 +56,8 @@ export const DEFAULT_SETTINGS = {
   sessionDays: 7,
   /** Foto: dimensione massima delle immagini caricate (MB) */
   maxImageMB: 8,
+  /** Strillone: lunghezza massima dell'annuncio (caratteri) */
+  shoutMaxLength: 500,
   /** Stalla: ordinamento proposto all'apertura (ognuno può cambiarlo, e il browser lo ricorda) */
   stableDefaultSort: "recenti",
   /** Backup automatico attivo */
