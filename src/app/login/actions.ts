@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import { createSession, destroySession, verifyPassword, ipFrom, getCurrentUser } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { getSettings } from "@/lib/settings";
+import { getSecret, loginCaptcha, verifyToken } from "@/lib/recaptcha";
 import { run, type ActionResult } from "@/lib/action";
 import { redirect } from "next/navigation";
 
@@ -37,6 +38,21 @@ export async function loginAction(form: FormData): Promise<ActionResult> {
       return { ok: false, error: "Troppi tentativi. Riprova tra qualche minuto." };
     }
     if (attempts.size > 10_000) for (const [k, v] of attempts) if (v.until < now) attempts.delete(k);
+
+    // reCAPTCHA (se attivo): si controlla PRIMA della password, così i robot non possono provarle
+    const captcha = await loginCaptcha();
+    if (captcha) {
+      const secret = await getSecret();
+      const check = secret
+        ? await verifyToken({ token: String(form.get("captcha") ?? ""), secret, version: captcha.version, minScore: ls.recaptchaMinScore, ip, action: "login" })
+        : ({ ok: false, reason: "chiave segreta mancante" } as const);
+      if (!check.ok) {
+        const cur = a && a.until > now ? a : { n: 0, until: 0 };
+        attempts.set(key, { n: cur.n + 1, until: now + ls.loginLockMinutes * 60_000 });
+        await audit(null, "LOGIN_CAPTCHA_FALLITO", "Utente", null, `Verifica anti-robot non superata per "${data.username}" (${check.reason})`, browser, undefined, ip);
+        return { ok: false, error: "unavailable" in check && check.unavailable ? "Verifica anti-robot non disponibile in questo momento. Riprova tra poco." : "Verifica anti-robot non superata. Riprova." };
+      }
+    }
     const user = await prisma.user.findUnique({ where: { username: data.username } });
     // Verifica sempre una password (anche se l'utente non esiste): i tempi di risposta non rivelano quali nomi esistono
     const pwOk = await verifyPassword(user?.passwordHash ?? DUMMY_HASH, data.password);

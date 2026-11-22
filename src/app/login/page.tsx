@@ -1,4 +1,6 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
+import { loginCaptcha } from "@/lib/recaptcha";
 import { getCurrentUser } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { discordLink } from "@/lib/discord";
@@ -13,6 +15,8 @@ export default async function LoginPage() {
   const settings = await getSettings();
   const name = settings.stableName;
   const discord = discordLink(settings.discordUrl);
+  const captcha = await loginCaptcha();
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <main className="relative flex min-h-dvh items-center justify-center bg-[#0b0a09] p-4">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(900px_500px_at_50%_0%,rgba(200,22,29,0.18),transparent_70%)]" />
@@ -24,7 +28,7 @@ export default async function LoginPage() {
           <div className="font-brand text-[30px] leading-none">{name}</div>
           <div className="mt-2 font-display text-[12px] font-semibold tracking-[0.3em] text-accent-text uppercase">Gestionale stalla</div>
         </div>
-        <LoginForm />
+        <LoginForm captcha={captcha} nonce={nonce} />
         <p className="mt-6 text-center text-[13px] text-fg-3">Gli account vengono creati dall&apos;amministrazione.</p>
         {discord && (
           <div className="mt-4 border-t border-border pt-4">

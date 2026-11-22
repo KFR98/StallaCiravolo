@@ -73,6 +73,14 @@ export const DEFAULT_SETTINGS = {
   auditFailBurstMinutes: 15,
   /** Registro attività: segnala l'accesso di un utente da un IP che non aveva mai usato */
   auditNewIpLogin: true,
+  /** reCAPTCHA di Google sulla pagina di accesso (la chiave segreta è salvata a parte, mai mandata al browser) */
+  recaptchaEnabled: false,
+  /** "v2" = casella "Non sono un robot"; "v3" = invisibile, con punteggio */
+  recaptchaVersion: "v2" as "v2" | "v3",
+  /** Chiave pubblica (del sito) */
+  recaptchaSiteKey: "",
+  /** Solo v3: punteggio minimo per entrare (0 = robot sicuro, 1 = persona sicura) */
+  recaptchaMinScore: 0.5,
   /** Sicurezza: durata della sessione (giorni), si rinnova da sola se usata */
   sessionDays: 7,
   /** Foto: dimensione massima delle immagini caricate (MB) */

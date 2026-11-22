@@ -25,6 +25,7 @@ export const AUDIT_ACTIONS: Record<string, ActionDef> = {
   LOGOUT: { label: "Uscita", level: "info", group: "Accessi" },
   LOGIN_NUOVO_IP: { label: "Accesso da un IP mai visto", level: "warn", group: "Accessi" },
   LOGIN_FALLITO: { label: "Accesso fallito", level: "warn", group: "Accessi" },
+  LOGIN_CAPTCHA_FALLITO: { label: "Verifica anti-robot non superata", level: "warn", group: "Accessi" },
   LOGIN_FALLITO_RIPETUTO: { label: "Tentativi di accesso ripetuti", level: "alarm", group: "Accessi" },
   MODIFICA_PROFILO: { label: "Profilo modificato", level: "info", group: "Accessi" },
   // Stalla e vendite
@@ -96,6 +97,7 @@ export const AUDIT_ACTIONS: Record<string, ActionDef> = {
   CREA_UTENTE: { label: "Nuovo utente", level: "warn", group: "Amministrazione" },
   MODIFICA_UTENTE: { label: "Utente modificato", level: "alarm", group: "Amministrazione" },
   RESET_PASSWORD: { label: "Password reimpostata", level: "alarm", group: "Amministrazione" },
+  RECAPTCHA: { label: "Protezione reCAPTCHA cambiata", level: "alarm", group: "Amministrazione" },
   IMPOSTAZIONI: { label: "Impostazioni cambiate", level: "alarm", group: "Amministrazione" },
   DOWNLOAD_BACKUP: { label: "Backup scaricato", level: "alarm", group: "Amministrazione" },
   CREA_RUOLO: { label: "Nuovo ruolo", level: "critical", group: "Amministrazione" },

@@ -473,3 +473,8 @@ input[type="radio"] {
     background: var(--surface-2);
   }
 }
+
+/* reCAPTCHA v2: la casella di Google è larga 304px; sui telefoni stretti la rimpiccioliamo */
+@media (max-width: 380px) {
+  .rc-box > div { transform: scale(0.86); transform-origin: center top; }
+}

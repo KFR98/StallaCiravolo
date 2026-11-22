@@ -27,10 +27,15 @@ function httpsRedirect(req: NextRequest) {
  * script del tema); uno script iniettato da un attaccante non ha il nonce e il browser lo blocca.
  * Niente più 'unsafe-inline' sugli script.
  */
-function cspHeader(nonce: string) {
+/** Solo dove serve il reCAPTCHA di Google (accesso e prova nelle impostazioni) si aprono i suoi indirizzi. */
+const RECAPTCHA_PAGES = ["/login", "/admin/impostazioni"];
+
+function cspHeader(nonce: string, recaptcha: boolean) {
+  const g = recaptcha ? " https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/" : "";
   return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}'`,
+    `script-src 'self' 'nonce-${nonce}'${g}`,
+    `frame-src 'self'${recaptcha ? " https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/" : ""}`,
     // gli stili in linea (style={...}, Tailwind) sono tanti e a basso rischio: restano consentiti
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
@@ -62,7 +67,7 @@ export function middleware(req: NextRequest) {
   if (toHttps) return toHttps;
 
   const nonce = crypto.randomUUID().replace(/-/g, "");
-  const csp = cspHeader(nonce);
+  const csp = cspHeader(nonce, RECAPTCHA_PAGES.some((p) => req.nextUrl.pathname === p || req.nextUrl.pathname.startsWith(p + "/")));
   // Next.js legge il nonce dall'header CSP sulla richiesta e lo mette sui suoi script
   const reqHeaders = new Headers(req.headers);
   reqHeaders.set("x-nonce", nonce);

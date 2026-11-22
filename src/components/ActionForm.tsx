@@ -16,6 +16,8 @@ export function ActionForm({
   className,
   resetOnSuccess = false,
   onSuccess,
+  onError,
+  prepare,
   successMessage,
 }: {
   action: (fd: FormData) => Promise<ActionResult>;
@@ -24,6 +26,10 @@ export function ActionForm({
   className?: string;
   resetOnSuccess?: boolean;
   onSuccess?: (r: ActionResult) => void;
+  /** chiamata quando l'azione non riesce (es. per azzerare il captcha) */
+  onError?: (r: ActionResult) => void;
+  /** passo asincrono prima dell'invio (es. captcha): può aggiungere campi o annullare (false) */
+  prepare?: (fd: FormData) => Promise<boolean>;
   successMessage?: string;
 }) {
   const [pending, start] = useTransition();
@@ -45,6 +51,7 @@ export function ActionForm({
         const msg = typeof confirm === "function" ? confirm(data) : confirm;
         if (msg && !window.confirm(msg)) return;
         start(async () => {
+          if (prepare && !(await prepare(data))) return;
           const r = await action(data);
           if (r.ok) {
             toast.success(r.message ?? successMessage ?? "Operazione registrata.");
@@ -54,6 +61,7 @@ export function ActionForm({
             else router.refresh();
           } else {
             toast.error(r.error ?? "Operazione non riuscita.");
+            onError?.(r);
           }
         });
       }}
