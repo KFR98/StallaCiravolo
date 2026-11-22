@@ -200,6 +200,22 @@ body {
   @apply min-h-10 min-w-10 px-0;
 }
 
+/* ───────── Link al server Discord ───────── */
+/* nel menu scuro: riga discreta che si accende col viola di Discord */
+.discord-link-full {
+  @apply flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-[15px] font-medium text-neutral-400 transition-colors duration-150 hover:bg-[#5865f2]/15 hover:text-white;
+}
+.discord-link-full svg {
+  @apply shrink-0 text-[#8b93ff];
+}
+/* nella pagina di accesso: pulsante pieno */
+.discord-link-card {
+  @apply justify-center border border-[#5865f2]/40 bg-[#5865f2]/10 text-fg hover:bg-[#5865f2] hover:text-white;
+}
+.discord-link-card:hover svg {
+  @apply text-white;
+}
+
 /* ───────── Campi ───────── */
 .field-label {
   @apply mb-1.5 block text-[13px] font-semibold text-fg-2;

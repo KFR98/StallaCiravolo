@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { assertPermission, hashPassword } from "@/lib/auth";
 import { run, fd, UserError } from "@/lib/action";
 import { audit } from "@/lib/audit";
+import { isDiscordInvite } from "@/lib/discord";
 import { DEFAULT_SETTINGS, getSettings, type Settings } from "@/lib/settings";
 import { currentAge } from "@/lib/age";
 import { saveImage, saveImageBuffer, deleteUpload, maxImageMB } from "@/lib/uploads";
@@ -361,6 +362,11 @@ export async function saveSettings(form: FormData) {
     const next = z
       .object({
         stableName: z.string().trim().min(2).max(60),
+        discordUrl: z
+          .string()
+          .trim()
+          .max(200)
+          .refine((u) => u === "" || isDiscordInvite(u), { message: "Il link Discord deve essere un invito https://discord.gg/… oppure https://discord.com/invite/…" }),
         daysPerYear: z.number().positive("I giorni per anno devono essere maggiori di zero").max(365),
         minSaleAge: z.number().min(0).max(60),
         bracketAMax: z.number().int().min(0).max(60),
@@ -402,6 +408,7 @@ export async function saveSettings(form: FormData) {
       .refine((s) => s.bracketBMax > s.bracketAMax, { message: "La fascia 11-16 deve terminare dopo la fascia 5-10." })
       .parse({
         stableName: f.str("stableName"),
+        discordUrl: f.str("discordUrl"),
         daysPerYear: f.num("daysPerYear"),
         minSaleAge: f.num("minSaleAge"),
         bracketAMax: f.int("bracketAMax"),

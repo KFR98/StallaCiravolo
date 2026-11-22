@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { getSetting } from "@/lib/settings";
+import { getSettings } from "@/lib/settings";
+import { discordLink } from "@/lib/discord";
+import { DiscordLink } from "@/components/DiscordLink";
 import { LoginForm } from "./LoginForm";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -8,7 +10,9 @@ export const metadata = { title: "Accesso" };
 
 export default async function LoginPage() {
   if (await getCurrentUser()) redirect("/");
-  const name = await getSetting("stableName");
+  const settings = await getSettings();
+  const name = settings.stableName;
+  const discord = discordLink(settings.discordUrl);
   return (
     <main className="relative flex min-h-dvh items-center justify-center bg-[#0b0a09] p-4">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(900px_500px_at_50%_0%,rgba(200,22,29,0.18),transparent_70%)]" />
@@ -22,6 +26,11 @@ export default async function LoginPage() {
         </div>
         <LoginForm />
         <p className="mt-6 text-center text-[13px] text-fg-3">Gli account vengono creati dall&apos;amministrazione.</p>
+        {discord && (
+          <div className="mt-4 border-t border-border pt-4">
+            <DiscordLink href={discord} label className="discord-link-card" />
+          </div>
+        )}
       </div>
     </main>
   );

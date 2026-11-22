@@ -3,6 +3,8 @@ import { prisma } from "./db";
 /** Impostazioni globali con valori predefiniti. Tutte modificabili dall'admin. */
 export const DEFAULT_SETTINGS = {
   stableName: "Stalla Ciravolo",
+  /** Link d'invito al server Discord (logo nel menu e nella pagina di accesso). Vuoto = logo nascosto */
+  discordUrl: "https://discord.com/invite/fkf4nVN2Fm",
   /** Giorni reali necessari per far avanzare l'età di un anno */
   daysPerYear: 4,
   /** Età minima per vendere un cavallo dalla stalla */

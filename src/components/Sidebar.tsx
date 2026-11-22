@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import clsx from "clsx";
 import { LayoutDashboard, Warehouse, Receipt, Store, Map, BookOpen, NotebookPen, Users, Shield, LogOut, Menu, X, Plus } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
+import { DiscordLink } from "./DiscordLink";
 
 const ICONS = { dashboard: LayoutDashboard, stable: Warehouse, sales: Receipt, shop: Store, map: Map, catalog: BookOpen, notes: NotebookPen, staff: Users, admin: Shield };
 
@@ -16,6 +17,7 @@ export function AppShell({
   user,
   stableName,
   canCapture,
+  discordUrl,
   logout,
   children,
 }: {
@@ -23,6 +25,7 @@ export function AppShell({
   user: { displayName: string; roleLabel: string };
   stableName: string;
   canCapture: boolean;
+  discordUrl: string | null;
   logout: () => Promise<void>;
   children: React.ReactNode;
 }) {
@@ -66,6 +69,8 @@ export function AppShell({
     </Link>
   );
 
+  const discord = discordUrl && <div className="px-1"><DiscordLink href={discordUrl} label /></div>;
+
   const userBox = (
     <div className="flex items-center gap-2 border-t border-white/10 px-3 pt-3">
       <Link href="/profilo" className="min-w-0 flex-1 rounded-md px-1 py-0.5 hover:bg-white/5" title="Il mio profilo e storico">
@@ -94,6 +99,7 @@ export function AppShell({
         <div className="px-2">{brand}</div>
         <div className="px-1">{cta}</div>
         <nav className="flex-1 overflow-y-auto" aria-label="Menu principale">{links}</nav>
+        {discord}
         {userBox}
       </aside>
 
@@ -117,6 +123,7 @@ export function AppShell({
           </div>
           <div className="px-1">{cta}</div>
           <nav className="flex-1 overflow-y-auto" aria-label="Menu principale">{links}</nav>
+          {discord}
           {userBox}
         </aside>
       </div>

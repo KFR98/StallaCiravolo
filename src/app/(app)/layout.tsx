@@ -1,6 +1,7 @@
 import { requireUser } from "@/lib/auth";
 import { can, roleLabel, type Permission } from "@/lib/permissions";
-import { getSetting } from "@/lib/settings";
+import { getSettings } from "@/lib/settings";
+import { discordLink } from "@/lib/discord";
 import { AppShell, type NavItem } from "@/components/Sidebar";
 import { logoutAction } from "../login/actions";
 
@@ -18,7 +19,7 @@ const NAV: (NavItem & { perm: Permission })[] = [
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
-  const stableName = await getSetting("stableName");
+  const { stableName, discordUrl } = await getSettings();
   const items = NAV.filter((n) => can(user.role, n.perm)).map(({ perm: _p, ...rest }) => rest);
   return (
     <AppShell
@@ -26,6 +27,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       user={{ displayName: user.displayName, roleLabel: roleLabel(user.role) }}
       stableName={stableName}
       canCapture={can(user.role, "horses.capture")}
+      discordUrl={discordLink(discordUrl)}
       logout={logoutAction}
     >
       {children}

@@ -29,6 +29,11 @@ export function SettingsForm({ s, inStable, shopItems }: { s: Settings; inStable
     >
       <Section title="Generale">
         <label className="block sm:col-span-2"><span className="field-label">Nome della stalla</span><input name="stableName" defaultValue={s.stableName} className="input" required /></label>
+        <label className="block sm:col-span-2">
+          <span className="field-label">Link d&apos;invito al server Discord</span>
+          <input name="discordUrl" defaultValue={s.discordUrl} className="input" inputMode="url" placeholder="https://discord.gg/…" maxLength={200} />
+          <span className="mt-1 block text-[13px] text-fg-3">Il logo Discord compare nel menu e nella pagina di accesso. Lascia vuoto per nasconderlo.</span>
+        </label>
       </Section>
 
       <Section title="Età dei cavalli" hint="L'età avanza da sola dalla data di inserimento. Se cambi il ritmo, l'età già maturata non si azzera.">
