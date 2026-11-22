@@ -56,6 +56,8 @@ export const DEFAULT_SETTINGS = {
   loginLockMinutes: 5,
   loginMaxAttemptsUser: 20,
   loginUserLockMinutes: 15,
+  /** Sicurezza: registra l'IP anche per tutte le operazioni (gli accessi lo registrano sempre) */
+  auditIpAll: true,
   /** Sicurezza: durata della sessione (giorni), si rinnova da sola se usata */
   sessionDays: 7,
   /** Foto: dimensione massima delle immagini caricate (MB) */

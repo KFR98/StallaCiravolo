@@ -1,5 +1,23 @@
 import { prisma } from "./db";
 import type { Prisma } from "@prisma/client";
+import { getSettings } from "./settings";
+
+/**
+ * IP di chi sta facendo l'operazione, letto dalla richiesta in corso (stessa logica del login:
+ * X-Real-IP impostato da nginx). Fuori da una richiesta (script, backup automatico) non c'è: null.
+ */
+async function requestIp(): Promise<string | null> {
+  try {
+    if (!(await getSettings()).auditIpAll) return null;
+    const { headers } = await import("next/headers");
+    const h = await headers();
+    const real = h.get("x-real-ip")?.trim();
+    const xff = h.get("x-forwarded-for")?.split(",").map((s) => s.trim()).filter(Boolean);
+    return (real || xff?.[xff.length - 1] || "").slice(0, 64) || null;
+  } catch {
+    return null;
+  }
+}
 
 type Actor = { id: number; username: string } | null;
 
@@ -14,6 +32,8 @@ export async function audit(
   ip?: string | null,
 ) {
   const client = tx ?? prisma;
+  // Se non viene passato, l'IP si prende dalla richiesta (se attivo in Impostazioni → Sicurezza)
+  if (ip === undefined) ip = await requestIp();
   await client.auditLog.create({
     data: {
       userId: actor?.id ?? null,

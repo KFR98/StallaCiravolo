@@ -404,6 +404,7 @@ export async function saveSettings(form: FormData) {
         stableDefaultSort: z.enum(STABLE_SORTS.map(([k]) => k) as [string, ...string[]]),
         backupDays: z.number({ message: "Indica per quanti giorni conservare i backup" }).int("I giorni di conservazione devono essere un numero intero").min(1).max(365),
         backupAuto: z.boolean(),
+        auditIpAll: z.boolean(),
         backupEveryHours: z.number({ message: "Indica ogni quante ore fare il backup" }).int().min(1, "Minimo 1 ora").max(168, "Massimo 7 giorni (168 ore)"),
       })
       .refine((s) => s.bracketBMax > s.bracketAMax, { message: "La fascia 11-16 deve terminare dopo la fascia 5-10." })
@@ -447,6 +448,7 @@ export async function saveSettings(form: FormData) {
         stableDefaultSort: f.str("stableDefaultSort"),
         backupDays: f.int("backupDays"),
         backupAuto: f.bool("backupAuto"),
+        auditIpAll: f.bool("auditIpAll"),
         backupEveryHours: f.int("backupEveryHours"),
       }) satisfies Partial<Settings>;
     const prev = await getSettings();

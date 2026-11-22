@@ -121,6 +121,13 @@ export function SettingsForm({ s, inStable, shopItems }: { s: Settings; inStable
         <Num name="loginUserLockMinutes" label="…poi blocco per (minuti)" value={s.loginUserLockMinutes} step="1" min="1" />
         <Num name="sessionDays" label="Durata della sessione (giorni)" value={s.sessionDays} step="any" min="0.1" />
         <Num name="maxImageMB" label="Dimensione massima delle foto (MB)" value={s.maxImageMB} step="any" min="0.5" max="50" />
+        <label className="flex min-h-10 items-start gap-3 rounded-lg border border-border px-3 py-2.5 sm:col-span-2">
+          <input type="checkbox" name="auditIpAll" defaultChecked={s.auditIpAll} className="mt-1" />
+          <span>
+            <span className="block font-semibold">Registra l&apos;IP per ogni operazione</span>
+            <span className="block text-[13px] text-fg-3">Gli accessi (riusciti e falliti) registrano sempre IP e browser. Con questa opzione l&apos;IP viene salvato anche per vendite, modifiche, eliminazioni… così puoi confrontare il registro con i log del server.</span>
+          </span>
+        </label>
       </Section>
 
       <Section title="Backup automatico" hint="Il gestionale salva da solo una copia completa del database. I backup più vecchi del periodo scelto vengono eliminati (resta sempre almeno l'ultimo).">

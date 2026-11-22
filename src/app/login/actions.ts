@@ -2,7 +2,8 @@
 
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { createSession, destroySession, verifyPassword, clientIp, getCurrentUser } from "@/lib/auth";
+import { headers } from "next/headers";
+import { createSession, destroySession, verifyPassword, ipFrom, getCurrentUser } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { getSettings } from "@/lib/settings";
 import { run, type ActionResult } from "@/lib/action";
@@ -21,7 +22,10 @@ export async function loginAction(form: FormData): Promise<ActionResult> {
         password: z.string().min(1, "Inserisci la password").max(200),
       })
       .parse({ username: form.get("username"), password: form.get("password") });
-    const ip = (await clientIp()) ?? "?";
+    const h = await headers();
+    const ip = ipFrom(h) ?? "?";
+    // Browser e sistema usati per l'accesso: con l'IP aiutano a confrontare il registro con i log del server
+    const browser = { browser: h.get("user-agent")?.slice(0, 300) ?? null };
     const key = ip + "|" + data.username.toLowerCase();
     // Due limiti (configurabili in Impostazioni): errori per IP+utente, ed errori per utente da qualsiasi IP (contro chi cambia IP)
     const ukey = "*|" + data.username.toLowerCase();
@@ -44,13 +48,13 @@ export async function loginAction(form: FormData): Promise<ActionResult> {
       };
       bump(key, a, ls.loginLockMinutes);
       bump(ukey, ua, ls.loginUserLockMinutes);
-      await audit(null, "LOGIN_FALLITO", "Utente", user?.id ?? null, `Accesso fallito per "${data.username}"`, undefined, undefined, ip);
+      await audit(null, "LOGIN_FALLITO", "Utente", user?.id ?? null, `Accesso fallito per "${data.username}"`, browser, undefined, ip);
       return { ok: false, error: user && !user.active && pwOk ? "Account disattivato." : "Credenziali non valide." };
     }
     attempts.delete(key);
     await createSession(user.id);
     await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
-    await audit({ id: user.id, username: user.username }, "LOGIN", "Utente", user.id, `Accesso di ${user.username}`, undefined, undefined, ip);
+    await audit({ id: user.id, username: user.username }, "LOGIN", "Utente", user.id, `Accesso di ${user.username}`, browser, undefined, ip);
     return { ok: true, message: `Benvenuto, ${user.displayName}.`, redirect: "/" };
   });
 }

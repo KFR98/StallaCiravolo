@@ -42,7 +42,11 @@ export async function verifyPassword(hashStr: string, pw: string) {
  * scrivere chiunque e servirebbe ad aggirare il limite ai tentativi di accesso.
  */
 export async function clientIp() {
-  const h = await headers();
+  return ipFrom(await headers());
+}
+
+/** Come clientIp, ma dagli header già letti. */
+export function ipFrom(h: Headers) {
   const real = h.get("x-real-ip")?.trim();
   const xff = h.get("x-forwarded-for")?.split(",").map((s) => s.trim()).filter(Boolean);
   return (real || xff?.[xff.length - 1] || "").slice(0, 64) || null;

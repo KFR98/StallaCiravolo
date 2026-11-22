@@ -54,6 +54,7 @@ export const PERMISSIONS = {
   "payroll.manage": { group: "Personale", label: "Gestire e pagare gli stipendi", defaults: TOP },
 
   "audit.view": { group: "Amministrazione", label: "Aprire l'Amministrazione e il registro attività", defaults: TOP },
+  "audit.ip": { group: "Amministrazione", label: "Vedere gli indirizzi IP e i browser nel registro attività", hint: "Dati personali: dallo solo a chi controlla la sicurezza", defaults: ["ADMIN"] },
   "users.manage": { group: "Amministrazione", label: "Creare e modificare utenti", defaults: ["ADMIN"] },
   "users.delete": { group: "Amministrazione", label: "Eliminare utenti e tutti i loro dati", defaults: ["ADMIN"] },
   "settings.manage": { group: "Amministrazione", label: "Impostazioni, mappa in alta definizione, azzeramento dati", defaults: ["ADMIN"] },
