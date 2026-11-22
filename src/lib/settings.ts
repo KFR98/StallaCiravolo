@@ -5,6 +5,8 @@ export const DEFAULT_SETTINGS = {
   stableName: "Stalla Ciravolo",
   /** Link d'invito al server Discord (logo nel menu e nella pagina di accesso). Vuoto = logo nascosto */
   discordUrl: "https://discord.com/invite/fkf4nVN2Fm",
+  /** Colore della pennellata del pulsante Discord: "avorio", "rossa" o "nera" */
+  discordStyle: "avorio" as "avorio" | "rossa" | "nera",
   /** Giorni reali necessari per far avanzare l'età di un anno */
   daysPerYear: 4,
   /** Età minima per vendere un cavallo dalla stalla */

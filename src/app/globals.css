@@ -200,21 +200,36 @@ body {
   @apply min-h-10 min-w-10 px-0;
 }
 
-/* ───────── Link al server Discord ───────── */
-/* nel menu scuro: riga discreta che si accende col viola di Discord */
-.discord-link-full {
-  @apply flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-[15px] font-medium text-neutral-400 transition-colors duration-150 hover:bg-[#5865f2]/15 hover:text-white;
+/* ───────── Link al server Discord: pennellata in stile Red Dead ───────── */
+.discord-link {
+  --dc-bg: #efe6d2;
+  --dc-fg: #0b0a09;
+  @apply relative isolate flex items-center gap-3 font-display font-bold tracking-[0.16em] uppercase;
 }
-.discord-link-full svg {
-  @apply shrink-0 text-[#8b93ff];
+.discord-link[data-style="rossa"] { --dc-bg: #c8161d; --dc-fg: #ffffff; }
+.discord-link[data-style="nera"] { --dc-bg: #000000; --dc-fg: #ffffff; }
+.discord-brush {
+  @apply pointer-events-none absolute inset-0 -z-10 h-full w-full;
+  fill: var(--dc-bg);
 }
-/* nella pagina di accesso: pulsante pieno */
-.discord-link-card {
-  @apply justify-center border border-[#5865f2]/40 bg-[#5865f2]/10 text-fg hover:bg-[#5865f2] hover:text-white;
+/* menu (sempre scuro): a riposo una traccia leggera, passandoci sopra la pennellata piena */
+.discord-menu {
+  @apply min-h-11 px-3.5 text-[16px] text-neutral-300;
 }
-.discord-link-card:hover svg {
-  @apply text-white;
+.discord-menu .discord-brush { @apply opacity-[0.13] transition-opacity duration-200; }
+.discord-menu .discord-icon { color: var(--dc-bg); @apply shrink-0 transition-colors duration-200; }
+.discord-menu[data-style="nera"] .discord-brush { @apply opacity-0; }
+.discord-menu[data-style="nera"] .discord-icon { @apply text-neutral-400; }
+.discord-menu:hover, .discord-menu:focus-visible { color: var(--dc-fg); }
+.discord-menu:hover .discord-brush, .discord-menu:focus-visible .discord-brush { @apply opacity-100; }
+.discord-menu:hover .discord-icon, .discord-menu:focus-visible .discord-icon { color: var(--dc-fg); }
+/* pagina di accesso: pulsante pieno; col tema chiaro l'avorio si confonde col fondo, quindi diventa nero */
+.discord-login {
+  @apply min-h-12 justify-center text-[17px] transition-[filter] duration-200 hover:brightness-110;
+  color: var(--dc-fg);
 }
+:root:not(.dark) .discord-login[data-style="avorio"] { --dc-bg: #0b0a09; --dc-fg: #ffffff; }
+.discord-link:focus-visible { @apply outline-2 outline-offset-2 outline-[#ff5d55]; }
 
 /* ───────── Campi ───────── */
 .field-label {

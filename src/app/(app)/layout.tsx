@@ -19,7 +19,7 @@ const NAV: (NavItem & { perm: Permission })[] = [
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
-  const { stableName, discordUrl } = await getSettings();
+  const { stableName, discordUrl, discordStyle } = await getSettings();
   const items = NAV.filter((n) => can(user.role, n.perm)).map(({ perm: _p, ...rest }) => rest);
   return (
     <AppShell
@@ -28,6 +28,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       stableName={stableName}
       canCapture={can(user.role, "horses.capture")}
       discordUrl={discordLink(discordUrl)}
+      discordStyle={discordStyle}
       logout={logoutAction}
     >
       {children}

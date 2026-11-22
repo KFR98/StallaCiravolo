@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ActionForm } from "@/components/ActionForm";
 import { STABLE_SORTS } from "../../stalla/sorts";
 import { saveSettings } from "../actions";
+import { DISCORD_STYLES } from "@/components/DiscordLink";
 import type { Settings } from "@/lib/settings";
 
 const EVERY = [
@@ -33,6 +34,13 @@ export function SettingsForm({ s, inStable, shopItems }: { s: Settings; inStable
           <span className="field-label">Link d&apos;invito al server Discord</span>
           <input name="discordUrl" defaultValue={s.discordUrl} className="input" inputMode="url" placeholder="https://discord.gg/…" maxLength={200} />
           <span className="mt-1 block text-[13px] text-fg-3">Il logo Discord compare nel menu e nella pagina di accesso. Lascia vuoto per nasconderlo.</span>
+        </label>
+        <label className="block">
+          <span className="field-label">Colore del pulsante Discord</span>
+          <select name="discordStyle" defaultValue={s.discordStyle} className="input">
+            {DISCORD_STYLES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+          </select>
+          <span className="mt-1 block text-[13px] text-fg-3">Con il tema chiaro, nella pagina di accesso l&apos;avorio diventa nero per leggersi meglio.</span>
         </label>
       </Section>
 

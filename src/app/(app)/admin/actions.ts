@@ -362,6 +362,7 @@ export async function saveSettings(form: FormData) {
     const next = z
       .object({
         stableName: z.string().trim().min(2).max(60),
+        discordStyle: z.enum(["avorio", "rossa", "nera"], { message: "Scegli il colore del pulsante Discord" }),
         discordUrl: z
           .string()
           .trim()
@@ -409,6 +410,7 @@ export async function saveSettings(form: FormData) {
       .parse({
         stableName: f.str("stableName"),
         discordUrl: f.str("discordUrl"),
+        discordStyle: f.str("discordStyle"),
         daysPerYear: f.num("daysPerYear"),
         minSaleAge: f.num("minSaleAge"),
         bracketAMax: f.int("bracketAMax"),

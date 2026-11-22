@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { discordLink } from "@/lib/discord";
-import { DiscordLink } from "@/components/DiscordLink";
+import { DiscordBrushDefs, DiscordLink } from "@/components/DiscordLink";
 import { LoginForm } from "./LoginForm";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -28,7 +28,8 @@ export default async function LoginPage() {
         <p className="mt-6 text-center text-[13px] text-fg-3">Gli account vengono creati dall&apos;amministrazione.</p>
         {discord && (
           <div className="mt-4 border-t border-border pt-4">
-            <DiscordLink href={discord} label className="discord-link-card" />
+            <DiscordBrushDefs />
+            <DiscordLink href={discord} style={settings.discordStyle} variant="login" />
           </div>
         )}
       </div>

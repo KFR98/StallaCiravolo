@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import clsx from "clsx";
 import { LayoutDashboard, Warehouse, Receipt, Store, Map, BookOpen, NotebookPen, Users, Shield, LogOut, Menu, X, Plus } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
-import { DiscordLink } from "./DiscordLink";
+import { DiscordBrushDefs, DiscordLink, type DiscordStyle } from "./DiscordLink";
 
 const ICONS = { dashboard: LayoutDashboard, stable: Warehouse, sales: Receipt, shop: Store, map: Map, catalog: BookOpen, notes: NotebookPen, staff: Users, admin: Shield };
 
@@ -18,6 +18,7 @@ export function AppShell({
   stableName,
   canCapture,
   discordUrl,
+  discordStyle,
   logout,
   children,
 }: {
@@ -26,6 +27,7 @@ export function AppShell({
   stableName: string;
   canCapture: boolean;
   discordUrl: string | null;
+  discordStyle: DiscordStyle;
   logout: () => Promise<void>;
   children: React.ReactNode;
 }) {
@@ -69,7 +71,7 @@ export function AppShell({
     </Link>
   );
 
-  const discord = discordUrl && <div className="px-1"><DiscordLink href={discordUrl} label /></div>;
+  const discord = discordUrl && <div className="px-1"><DiscordLink href={discordUrl} style={discordStyle} variant="menu" /></div>;
 
   const userBox = (
     <div className="flex items-center gap-2 border-t border-white/10 px-3 pt-3">
@@ -94,6 +96,7 @@ export function AppShell({
 
   return (
     <div className="min-h-dvh">
+      {discordUrl && <DiscordBrushDefs />}
       {/* Sidebar desktop: sempre scura, come l'intestazione del sito Rockstar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[248px] flex-col gap-5 border-r border-white/5 bg-[#0b0a09] px-3 py-5 lg:flex">
         <div className="px-2">{brand}</div>
