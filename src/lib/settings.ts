@@ -58,6 +58,21 @@ export const DEFAULT_SETTINGS = {
   loginUserLockMinutes: 15,
   /** Sicurezza: registra l'IP anche per tutte le operazioni (gli accessi lo registrano sempre) */
   auditIpAll: true,
+  /** Registro attività: livello scelto dall'admin per le singole azioni (es. "VENDITA": "warn"); le altre usano la proposta */
+  auditLevelOverrides: {} as Record<string, string>,
+  /** Registro attività: nome e colore di ogni livello di pericolosità */
+  auditLevelStyle: {
+    info: { name: "Info", color: "#64748b" },
+    warn: { name: "Warn", color: "#d97706" },
+    alarm: { name: "Alarm", color: "#dc2626" },
+    critical: { name: "Critico", color: "#a21caf" },
+  } as Record<"info" | "warn" | "alarm" | "critical", { name: string; color: string }>,
+  /** Registro attività: dopo quanti accessi falliti dallo stesso IP… */
+  auditFailBurst: 5,
+  /** …in quanti minuti la voce diventa "Tentativi di accesso ripetuti" */
+  auditFailBurstMinutes: 15,
+  /** Registro attività: segnala l'accesso di un utente da un IP che non aveva mai usato */
+  auditNewIpLogin: true,
   /** Sicurezza: durata della sessione (giorni), si rinnova da sola se usata */
   sessionDays: 7,
   /** Foto: dimensione massima delle immagini caricate (MB) */

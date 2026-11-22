@@ -200,6 +200,32 @@ body {
   @apply min-h-10 min-w-10 px-0;
 }
 
+/* ───────── Registro attività: livelli di pericolosità (colori scelti dall'admin, in --lv) ───────── */
+.audit-row {
+  @apply relative border-b border-border py-3 pr-4 pl-5 last:border-b-0 sm:pr-5 sm:pl-6;
+  box-shadow: inset 4px 0 0 var(--lv);
+}
+.audit-row-alarm { background: color-mix(in srgb, var(--lv) 7%, transparent); }
+.audit-row-critical { background: color-mix(in srgb, var(--lv) 12%, transparent); box-shadow: inset 6px 0 0 var(--lv); }
+.audit-row-info { box-shadow: inset 4px 0 0 color-mix(in srgb, var(--lv) 45%, transparent); }
+.audit-badge {
+  @apply inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-display text-[12.5px] font-bold tracking-[0.08em] uppercase;
+  color: var(--lv);
+  background: color-mix(in srgb, var(--lv) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--lv) 35%, transparent);
+}
+.audit-row-alarm .audit-badge, .audit-row-critical .audit-badge { @apply text-white; background: var(--lv); border-color: var(--lv); }
+.audit-old { @apply rounded px-1 line-through decoration-1; background: color-mix(in srgb, #dc2626 12%, transparent); }
+.audit-new { @apply rounded px-1 font-semibold; background: color-mix(in srgb, #16a34a 14%, transparent); }
+.audit-tile {
+  @apply block rounded-xl border border-border bg-surface p-3.5 transition-colors duration-150 hover:bg-surface-2;
+  box-shadow: inset 0 3px 0 color-mix(in srgb, var(--lv) 55%, transparent);
+}
+.audit-tile .audit-tile-icon, .audit-tile .audit-lv-name { color: var(--lv); }
+.audit-lv-name { @apply font-display text-[14px] font-bold tracking-[0.1em] uppercase; }
+.audit-tile-hot { border-color: color-mix(in srgb, var(--lv) 45%, transparent); background: color-mix(in srgb, var(--lv) 8%, var(--surface)); }
+.audit-tile-on { @apply ring-2; --tw-ring-color: var(--lv); }
+
 /* ───────── Link al server Discord: pennellata in stile Red Dead ───────── */
 .discord-link {
   --dc-bg: #efe6d2;

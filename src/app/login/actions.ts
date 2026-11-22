@@ -48,13 +48,33 @@ export async function loginAction(form: FormData): Promise<ActionResult> {
       };
       bump(key, a, ls.loginLockMinutes);
       bump(ukey, ua, ls.loginUserLockMinutes);
-      await audit(null, "LOGIN_FALLITO", "Utente", user?.id ?? null, `Accesso fallito per "${data.username}"`, browser, undefined, ip);
+      // Molti errori dallo stesso IP in poco tempo: probabile tentativo di indovinare le password (soglie in Impostazioni)
+      const recentFails = ip === "?" ? 0 : await prisma.auditLog.count({
+        where: { ip, action: { in: ["LOGIN_FALLITO", "LOGIN_FALLITO_RIPETUTO"] }, createdAt: { gte: new Date(now - ls.auditFailBurstMinutes * 60_000) } },
+      });
+      const burst = recentFails + 1 >= ls.auditFailBurst;
+      await audit(
+        null, burst ? "LOGIN_FALLITO_RIPETUTO" : "LOGIN_FALLITO", "Utente", user?.id ?? null,
+        burst ? `Accesso fallito per "${data.username}" (${recentFails + 1} errori dallo stesso IP in ${ls.auditFailBurstMinutes} min)` : `Accesso fallito per "${data.username}"`,
+        browser, undefined, ip,
+      );
       return { ok: false, error: user && !user.active && pwOk ? "Account disattivato." : "Credenziali non valide." };
     }
     attempts.delete(key);
     await createSession(user.id);
     await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
-    await audit({ id: user.id, username: user.username }, "LOGIN", "Utente", user.id, `Accesso di ${user.username}`, browser, undefined, ip);
+    // Primo accesso da un IP mai usato da questo utente (ma non il suo primissimo accesso): da tenere d'occhio
+    let newIp = false;
+    if (ls.auditNewIpLogin && ip !== "?") {
+      const seen = await prisma.auditLog.findFirst({ where: { userId: user.id, action: { in: ["LOGIN", "LOGIN_NUOVO_IP"] }, ip }, select: { id: true } });
+      const any = seen ? null : await prisma.auditLog.findFirst({ where: { userId: user.id, action: { in: ["LOGIN", "LOGIN_NUOVO_IP"] } }, select: { id: true } });
+      newIp = !seen && !!any;
+    }
+    await audit(
+      { id: user.id, username: user.username }, newIp ? "LOGIN_NUOVO_IP" : "LOGIN", "Utente", user.id,
+      newIp ? `Accesso di ${user.username} da un IP che non aveva mai usato` : `Accesso di ${user.username}`,
+      browser, undefined, ip,
+    );
     return { ok: true, message: `Benvenuto, ${user.displayName}.`, redirect: "/" };
   });
 }
