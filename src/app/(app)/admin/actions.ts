@@ -11,7 +11,7 @@ import { saveImage, saveImageBuffer, deleteUpload, maxImageMB } from "@/lib/uplo
 import { fetchRemoteImage } from "@/lib/remote-image";
 import { parseListino, type ParsedListino } from "@/lib/excel-import";
 import { applyListino } from "@/lib/catalog-import";
-import { ADMIN_ROLE } from "@/lib/permissions";
+import { ADMIN_ROLE, roleWithin } from "@/lib/permissions";
 import { STABLE_SORTS } from "../stalla/sorts";
 
 // ─────────────────────────── UTENTI ───────────────────────────
@@ -22,6 +22,13 @@ const pwSchema = z.string().min(8, "La password deve avere almeno 8 caratteri").
 async function checkAssignableRole(actor: { role: string }, role: string) {
   if (!(await prisma.appRole.findUnique({ where: { key: role } }))) throw new UserError("Ruolo inesistente.");
   if (role === ADMIN_ROLE && actor.role !== ADMIN_ROLE) throw new UserError("Solo un amministratore può dare il ruolo di amministratore.");
+  if (!roleWithin(actor.role, role)) throw new UserError("Puoi assegnare solo ruoli che non hanno più permessi del tuo.");
+}
+
+/** Chi non è amministratore può gestire solo utenti con permessi uguali o inferiori ai propri. */
+function assertCanManageUser(actor: { id: number; role: string }, target: { id: number; role: string }) {
+  if (actor.role === ADMIN_ROLE || actor.id === target.id) return;
+  if (!roleWithin(actor.role, target.role)) throw new UserError("Puoi gestire solo utenti con permessi uguali o inferiori ai tuoi.");
 }
 
 export async function createUser(form: FormData) {
@@ -61,6 +68,8 @@ export async function updateUser(form: FormData) {
       .parse({ username: f.str("username"), displayName: f.str("displayName"), role: f.str("role"), active: f.bool("active"), notes: f.opt("notes") });
     const before = await prisma.user.findUnique({ where: { id } });
     if (!before) throw new UserError("Utente non trovato.");
+    assertCanManageUser(actor, before);
+    if (before.id === actor.id && data.role !== before.role && actor.role !== ADMIN_ROLE) throw new UserError("Non puoi cambiare il tuo ruolo.");
     if (data.role !== before.role) await checkAssignableRole(actor, data.role);
     if (before.role === ADMIN_ROLE && actor.role !== ADMIN_ROLE) throw new UserError("Solo un amministratore può modificare un altro amministratore.");
     // Un amministratore non si può disattivare: ne deve restare sempre almeno uno attivo per poter entrare
@@ -91,6 +100,9 @@ export async function resetPassword(form: FormData) {
     const pw = pwSchema.parse(f.str("password"));
     const u = await prisma.user.findUnique({ where: { id } });
     if (!u) throw new UserError("Utente non trovato.");
+    // nessuno può prendere il controllo di un account più potente del proprio (es. un amministratore)
+    if (u.role === ADMIN_ROLE && actor.role !== ADMIN_ROLE) throw new UserError("Solo un amministratore può reimpostare la password di un amministratore.");
+    assertCanManageUser(actor, u);
     await prisma.$transaction(async (tx) => {
       await tx.user.update({ where: { id }, data: { passwordHash: await hashPassword(pw) } });
       // Chiude le sessioni attive dell'utente (tranne la propria se si cambia la propria password)
@@ -103,7 +115,11 @@ export async function resetPassword(form: FormData) {
 
 /** Conteggio di tutti i dati collegati a un utente (anteprima prima dell'eliminazione). */
 export async function userDataSummary(userId: number) {
-  await assertPermission("users.delete");
+  const actor = await assertPermission("users.delete");
+  if (!Number.isInteger(userId) || userId <= 0) throw new UserError("Utente non valido.");
+  const target = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, role: true } });
+  if (!target) throw new UserError("Utente non trovato.");
+  assertCanManageUser(actor, target);
   const horseIds = (await prisma.horse.findMany({ where: { OR: [{ capturedById: userId }, { ownerId: userId }] }, select: { id: true } })).map((h) => h.id);
   const [sales, salesOnHorses, itemSales, spawns, reservations, payroll, reimb, notes, logs] = await Promise.all([
     prisma.sale.count({ where: { sellerId: userId } }),
@@ -126,6 +142,9 @@ export async function deleteUserCompletely(form: FormData) {
     const f = fd(form);
     const id = f.int("id") ?? 0;
     const u = await prisma.user.findUnique({ where: { id } });
+    if (u && u.id === actor.id) throw new UserError("Non puoi eliminare il tuo stesso account.");
+    if (u && u.role === ADMIN_ROLE && actor.role !== ADMIN_ROLE) throw new UserError("Solo un amministratore può eliminare un amministratore.");
+    if (u) assertCanManageUser(actor, u);
     if (!u) throw new UserError("Utente non trovato.");
     if (u.id === actor.id) throw new UserError("Non puoi eliminare il tuo account.");
     if (f.str("conferma") !== u.username) throw new UserError(`Per confermare scrivi esattamente il nome utente: ${u.username}`);
@@ -472,7 +491,14 @@ export async function previewImport(form: FormData) {
 export async function confirmImport(payload: string, mode: "solo_nuovi" | "aggiorna") {
   return run(async () => {
     const actor = await assertPermission("data.import");
-    const parsed = JSON.parse(payload) as ParsedListino;
+    if (typeof payload !== "string" || payload.length > 20_000_000) throw new UserError("Dati di importazione non validi.");
+    if (mode !== "solo_nuovi" && mode !== "aggiorna") throw new UserError("Modalità di importazione non valida.");
+    let parsed: ParsedListino;
+    try {
+      parsed = JSON.parse(payload) as ParsedListino;
+    } catch {
+      throw new UserError("Dati di importazione non validi.");
+    }
     if (!Array.isArray(parsed.rows) || !Array.isArray(parsed.statColumns)) throw new UserError("Dati di importazione non validi.");
     const r = await applyListino(parsed, mode, actor);
     return { ok: true, message: `Importazione completata: ${r.breedsCreated} razze e ${r.coatsCreated} manti nuovi, ${r.coatsUpdated} aggiornati, ${r.coatsSkipped} invariati.` };

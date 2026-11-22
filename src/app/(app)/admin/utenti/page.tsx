@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
-import { allRoles, ADMIN_ROLE } from "@/lib/permissions";
+import { allRoles, roleWithin } from "@/lib/permissions";
 import { RoleBadge } from "@/components/RoleBadge";
 import { prisma } from "@/lib/db";
 import { dateTime } from "@/lib/format";
@@ -14,7 +14,7 @@ export default async function UsersPage() {
   const me = await requireUser("users.manage");
   const users = await prisma.user.findMany({ orderBy: [{ active: "desc" }, { role: "asc" }, { displayName: "asc" }] });
   // il ruolo Amministratore lo può assegnare solo un amministratore
-  const roles = allRoles().filter((r) => me.role === ADMIN_ROLE || r.key !== ADMIN_ROLE).map((r) => ({ key: r.key, name: r.name }));
+  const roles = allRoles().filter((r) => roleWithin(me.role, r.key)).map((r) => ({ key: r.key, name: r.name }));
   return (
     <>
       <PageHeader title="Amministrazione" subtitle="Gli account dei dipendenti vengono creati solo dall'amministratore." actions={<NewUserButton roles={roles} />} />

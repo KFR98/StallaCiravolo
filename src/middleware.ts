@@ -52,6 +52,9 @@ const ACTION_ID = /^[0-9a-f]{40,64}$/;
 
 /** Filtro rapido: senza cookie di sessione si va al login. La verifica vera avviene sul server a ogni richiesta. */
 export function middleware(req: NextRequest) {
+  if (!req.nextUrl.pathname.startsWith("/api/") && !["GET", "HEAD", "POST"].includes(req.method)) {
+    return new NextResponse(null, { status: 405, headers: { Allow: "GET, HEAD, POST" } });
+  }
   const action = req.headers.get("next-action");
   if (action !== null && !ACTION_ID.test(action)) return new NextResponse(null, { status: 400 });
 

@@ -97,6 +97,7 @@ export async function moveSpawn(id: number, x: number, y: number) {
   return run(async () => {
     // Spostare i segnaposto è riservato a admin, direttore e gestore (modalità "Modifica")
     const user = await assertPermission("map.manage");
+    if (!Number.isInteger(id) || id <= 0) throw new UserError("Richiesta non valida.");
     if (!(await prisma.spawn.findUnique({ where: { id } }))) throw new UserError("Spawn non trovato.");
     const p = z.object({ x: z.number().min(0).max(MAP_SIZE.width), y: z.number().min(0).max(MAP_SIZE.height) }).parse({ x, y });
     await prisma.spawn.update({ where: { id }, data: { ...p, updatedById: user.id } });

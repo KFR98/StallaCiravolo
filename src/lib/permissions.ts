@@ -121,3 +121,18 @@ export function canSeeBreed(role: string | null | undefined, breedId: number | n
   if (a.mode === "all" || breedId == null) return true;
   return a.mode === "only" ? a.breedIds.includes(breedId) : !a.breedIds.includes(breedId);
 }
+
+/**
+ * Gerarchia dei ruoli: il ruolo `target` non dà permessi che `actor` non ha.
+ * Serve a impedire a chi gestisce gli utenti (ma non è amministratore) di prendere il controllo
+ * di account più potenti del suo o di darsi/dare ruoli con più permessi.
+ */
+export function roleWithin(actorRole: string, targetRole: string): boolean {
+  if (actorRole === ADMIN_ROLE) return true;
+  if (targetRole === ADMIN_ROLE) return false;
+  const a = getRole(actorRole)?.permissions;
+  const t = getRole(targetRole)?.permissions;
+  if (!a || !t) return false;
+  for (const p of t) if (!a.has(p)) return false;
+  return true;
+}

@@ -95,6 +95,7 @@ export async function deleteRole(form: FormData) {
 export async function moveRole(key: string, dir: -1 | 1) {
   return run(async () => {
     await assertOwner();
+    if (typeof key !== "string" || (dir !== -1 && dir !== 1)) throw new UserError("Richiesta non valida.");
     const roles = await prisma.appRole.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] });
     const i = roles.findIndex((r) => r.key === key);
     const j = i + dir;
