@@ -37,6 +37,7 @@ export type FeedEntry = {
 
 export type FeedFilter = {
   sellerId?: number;
+  customerId?: number;
   soldAt?: Prisma.DateTimeFilter;
   q?: string;
   includeVoided?: boolean;
@@ -49,6 +50,7 @@ export async function salesFeed(f: FeedFilter, imageUrl: (p: string | null) => s
   const q = f.q?.trim().slice(0, 100);
   const saleWhere: Prisma.SaleWhereInput = {
     ...(f.sellerId ? { sellerId: f.sellerId } : {}),
+    ...(f.customerId ? { customerId: f.customerId } : {}),
     ...(f.soldAt ? { soldAt: f.soldAt } : {}),
     ...(f.includeVoided ? {} : { voided: false }),
     ...(q ? { OR: [{ breedName: { contains: q } }, { coatName: { contains: q } }, { plate: { contains: q } }, { buyerName: { contains: q } }, { sellerName: { contains: q } }] } : {}),
@@ -64,6 +66,7 @@ export async function salesFeed(f: FeedFilter, imageUrl: (p: string | null) => s
   const itemWhere: Prisma.ItemSaleWhereInput = {
     id: { notIn: linkedIds },
     ...(f.sellerId ? { sellerId: f.sellerId } : {}),
+    ...(f.customerId ? { customerId: f.customerId } : {}),
     ...(f.soldAt ? { soldAt: f.soldAt } : {}),
     ...(f.includeVoided ? {} : { voided: false }),
     ...(q ? { OR: [{ buyerName: { contains: q } }, { sellerName: { contains: q } }, { lines: { some: { itemName: { contains: q } } } }] } : {}),

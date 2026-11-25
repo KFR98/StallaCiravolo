@@ -13,7 +13,7 @@ const NAV: (NavItem & { perm: Permission })[] = [
   { href: "/bottega", label: "Bottega", icon: "shop", perm: "shop.view", match: ["/bottega"] },
   { href: "/mappa", label: "Mappa spawn", icon: "map", perm: "map.view", match: ["/mappa"], mobile: true },
   { href: "/catalogo", label: "Catalogo e prezzi", icon: "catalog", perm: "catalog.view", match: ["/catalogo", "/confronto", "/listino"] },
-  { href: "/prenotazioni", label: "Bacheca", icon: "notes", perm: "reservations.edit", match: ["/prenotazioni"] },
+  { href: "/prenotazioni", label: "Bacheca e clienti", icon: "notes", perm: "reservations.edit", match: ["/prenotazioni", "/clienti"] },
   { href: "/dipendenti", label: "Personale", icon: "staff", perm: "employees.list", match: ["/dipendenti", "/stipendi"] },
   { href: "/cassa", label: "Cassa", icon: "cash", perm: "cash.view", match: ["/cassa"] },
   { href: "/admin", label: "Amministrazione", icon: "admin", perm: "audit.view", match: ["/admin"] },

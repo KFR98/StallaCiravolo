@@ -10,6 +10,7 @@ import { money, dateOnly, dateTime, TZ } from "@/lib/format";
 import { PageHeader, Card, Empty, HorseThumb } from "@/components/ui";
 import { ActionForm } from "@/components/ActionForm";
 import { ReservationButton } from "./ReservationForm";
+import { ClientTabs } from "../ClientTabs";
 import { setReservationStatus, deleteReservation } from "./actions";
 import { ActionButton } from "@/components/ActionForm";
 import { RES_STATUS } from "./status";
@@ -41,6 +42,7 @@ export default async function ReservationsPage({ searchParams }: { searchParams:
   return (
     <>
       <PageHeader title="Bacheca" subtitle="Prenotazioni e note condivise: chi ha prenotato cosa, cavalli da catturare, affari in corso. Tutti possono scrivere e modificare." actions={<ReservationButton breeds={breeds} users={users} label="+ Nuova nota" className="btn btn-primary" />} />
+      <ClientTabs role={user.role} active="bacheca" />
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <Link href={link({ stato: undefined })} className="chip" aria-pressed={!sp.stato}>Aperte</Link>
         {Object.entries(RES_STATUS).map(([k, v]) => (
@@ -91,6 +93,10 @@ export default async function ReservationsPage({ searchParams }: { searchParams:
                     </select>
                     <button className="btn btn-secondary btn-sm">OK</button>
                   </ActionForm>
+                  {(r.status === "PRENOTATO" || r.status === "VENDIBILE_DA_TUTTI" || r.status === "DA_CATTURARE") && (
+                    <Link href={`/bottega?prenotazione=${r.id}`} className="btn btn-primary btn-sm">Vendi</Link>
+                  )}
+                  {r.saleRef && <Link href={`/vendite?q=${encodeURIComponent(r.customerName ?? "")}`} className="badge badge-ok">Venduto ({r.saleRef})</Link>}
                   {canDelete && <ActionButton action={deleteReservation} fields={{ id: r.id }} label="Elimina" className="btn btn-ghost btn-sm" confirm="Eliminare questa nota? L'operazione resta nel registro attività." />}
                   <span className="ml-auto text-[12px] text-fg-3">{r.updatedBy?.displayName ?? r.createdBy.displayName} · {dateTime(r.updatedAt)}</span>
                 </div>

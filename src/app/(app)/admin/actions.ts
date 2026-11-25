@@ -440,6 +440,7 @@ export async function saveSettings(form: FormData) {
         trainingPayrollCategory: z.enum(["stable", "items"]),
         navBadges: z.object({ stalla: z.boolean(), bottega: z.boolean(), bacheca: z.boolean(), personale: z.boolean(), admin: z.boolean() }),
         cashCountGov: z.boolean(),
+        customersAutoCreate: z.boolean(),
         cashCountPayroll: z.boolean(),
         cashCountReimbursements: z.boolean(),
         saleLabelColors: z.object({
@@ -495,6 +496,7 @@ export async function saveSettings(form: FormData) {
         trainingPayrollCategory: f.str("trainingPayrollCategory"),
         navBadges: { stalla: f.bool("navBadge_stalla"), bottega: f.bool("navBadge_bottega"), bacheca: f.bool("navBadge_bacheca"), personale: f.bool("navBadge_personale"), admin: f.bool("navBadge_admin") },
         cashCountGov: f.bool("cashCountGov"),
+        customersAutoCreate: f.bool("customersAutoCreate"),
         cashCountPayroll: f.bool("cashCountPayroll"),
         cashCountReimbursements: f.bool("cashCountReimbursements"),
         saleLabelColors: { cavallo: f.str("saleColor_cavallo"), addestramento: f.str("saleColor_addestramento"), vetrina: f.str("saleColor_vetrina"), blip: f.str("saleColor_blip") },

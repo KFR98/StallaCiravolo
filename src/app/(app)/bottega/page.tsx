@@ -9,6 +9,7 @@ import { PageHeader, Card, Tabs, Empty } from "@/components/ui";
 import { ShopSell, ItemTable, SupplierTable, HandleButton, type ShopItemRow, type StableHorse } from "./ShopClient";
 import type { HorseRules, SellableHorse } from "./HorseSaleBlock";
 import { horsePricing, pregnancyState } from "@/lib/horses";
+import { customerSuggestions } from "@/lib/customers";
 import { NoteForm, ReimbursementForm } from "./RequestForms";
 import { ActionButton } from "@/components/ActionForm";
 import { deleteShopNote } from "./actions";
@@ -20,7 +21,7 @@ const NOTE_TYPE = { NUOVO_FORNITORE: "Nuovo fornitore", MODIFICA_PROPOSTA: "Modi
 const NOTE_STATUS = { APERTA: ["Aperta", "badge-warn"], ACCOLTA: ["Accolta", "badge-ok"], RESPINTA: ["Respinta", "badge-neutral"] } as const;
 const REIMB_STATUS = { RICHIESTO: ["Richiesto", "badge-warn"], APPROVATO: ["Approvato", "badge-info"], PAGATO: ["Pagato", "badge-ok"], RESPINTO: ["Respinto", "badge-neutral"] } as const;
 
-export default async function ShopPage({ searchParams }: { searchParams: Promise<{ tab?: string; cavallo?: string }> }) {
+export default async function ShopPage({ searchParams }: { searchParams: Promise<{ tab?: string; cavallo?: string; prenotazione?: string }> }) {
   // la bottega è anche la cassa per vendere i cavalli: si apre con "vedere la bottega" oppure con "vendere i propri cavalli"
   const user = await requireUser();
   if (!can(user.role, "shop.view") && !can(user.role, "horses.sell")) redirect("/?negato=1");
@@ -85,7 +86,19 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
       minSaleAge: st.minSaleAge, bracketAMax: st.bracketAMax, bracketBMax: st.bracketBMax, rareBasePrice: st.rareBasePrice, rareTrainingPrice: st.rareTrainingPrice,
       canOverride: can(user.role, "sales.overridePrice"), canSellUnderage: can(user.role, "horses.sellUnderage"),
     };
-    const initialHorseId = Number(sp.cavallo) || null;
+    // dalla bacheca: prenotazione da chiudere (il cavallo con la stessa targa viene proposto da solo)
+    const resv = Number(sp.prenotazione) && can(user.role, "reservations.edit")
+      ? await prisma.reservation.findUnique({ where: { id: Number(sp.prenotazione) }, include: { breed: true, coat: true } })
+      : null;
+    const reservation = resv && resv.status !== "AFFARE_CHIUSO" && resv.status !== "ANNULLATO"
+      ? {
+          id: resv.id, customerName: resv.customerName, price: resv.price == null ? null : Number(resv.price), deposit: resv.deposit == null ? null : Number(resv.deposit),
+          label: [resv.title, resv.customerName, resv.breed ? `${resv.breed.name}${resv.coat ? " – " + resv.coat.name : ""}` : null, resv.plate].filter(Boolean).join(" · ") || `#${resv.id}`,
+        }
+      : null;
+    const byPlate = resv?.plate ? horses.find((h) => h.plate?.toUpperCase() === resv.plate!.toUpperCase()) : null;
+    const initialHorseId = Number(sp.cavallo) || byPlate?.id || null;
+    const customers = can(user.role, "customers.view") ? (await customerSuggestions()).map((c) => c.name) : [];
     // scorciatoia ferri: oggetti scelti in Impostazioni, altrimenti riconosciuti dal nome ("Ferri Classici (4)")
     const sellItemsList = rows.filter((r) => r.kind === "VENDITA" && r.price != null);
     const shoe = (setting: number, word: string) =>
@@ -104,6 +117,8 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
             initialHorseId={initialHorseId}
             shoeIds={shoeIds}
             canShop={can(user.role, "shop.sell")}
+            customers={customers}
+            reservation={reservation}
             rareTrainingPrice={st.rareTrainingPrice}
             maxDiscount={st.maxDiscountPercent}
             canFlat={can(user.role, "shop.flatPrice")}

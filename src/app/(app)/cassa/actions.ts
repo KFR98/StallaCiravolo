@@ -8,6 +8,8 @@ import { run, fd, UserError } from "@/lib/action";
 import { audit } from "@/lib/audit";
 import { round2 } from "@/lib/pricing";
 import { cashBalance } from "@/lib/cash";
+import { closureSummary } from "@/lib/cash-closure";
+import { can } from "@/lib/permissions";
 
 const reasonSchema = z.string().trim().min(3, "Scrivi il motivo (almeno 3 caratteri)").max(200, "Motivo troppo lungo");
 const amountSchema = z.number({ message: "Indica l'importo" }).positive("L'importo deve essere maggiore di zero").max(100_000_000, "Importo troppo alto");
@@ -80,5 +82,49 @@ export async function voidCashMove(form: FormData) {
     });
     revalidatePath("/cassa");
     return { ok: true, message: "Movimento annullato." };
+  });
+}
+
+/**
+ * Chiusura di cassa: fotografa il periodo dall'ultima chiusura (entrate e uscite per tipo e per stalliere).
+ * Se si indica il contante contato, si registra la differenza (ammanco o eccedenza) e, se scelto, si allinea la cassa.
+ */
+export async function closeCash(form: FormData) {
+  return run(async () => {
+    const user = await assertPermission("cash.close");
+    const f = fd(form);
+    const countedRaw = f.num("counted");
+    const counted = countedRaw == null ? null : z.number({ message: "Contante non valido" }).min(0, "Il contante non può essere negativo").max(100_000_000).parse(countedRaw);
+    const align = f.bool("align");
+    const notes = z.string().trim().max(1000).nullable().parse(f.opt("notes"));
+    const res = await prisma.$transaction(async (tx) => {
+      const now = new Date();
+      const sum = await closureSummary(tx, now);
+      const difference = counted == null ? null : round2(counted - sum.closingBalance);
+      if (align && difference && Math.abs(difference) >= 0.005) {
+        if (!can(user.role, "cash.manage")) throw new UserError("Per allineare la cassa serve anche il permesso di prelevare e versare.");
+        await tx.cashMovement.create({
+          data: { kind: "RETTIFICA", amount: difference, reason: `Chiusura di cassa: ${difference > 0 ? "eccedenza" : "ammanco"}`, userId: user.id, userName: user.displayName, createdAt: new Date(now.getTime() - 1) },
+        });
+      }
+      const c = await tx.cashClosure.create({
+        data: {
+          periodFrom: sum.from ? new Date(sum.from) : null, periodTo: now, expected: sum.closingBalance, counted, difference,
+          summary: JSON.stringify(sum), notes, userId: user.id, userName: user.displayName,
+        },
+      });
+      const diffTxt = difference == null ? "" : `, contati $${counted} (${difference >= 0 ? "+" : "−"}$${Math.abs(difference)})`;
+      await audit(user, "CHIUSURA_CASSA", "Cassa", c.id,
+        `Chiusura di cassa: saldo $${sum.closingBalance}${diffTxt}${align && difference ? ", cassa allineata" : ""}`,
+        { entrate: sum.income, uscite: sum.outgo, movimenti: sum.movements }, tx);
+      return { id: c.id, difference };
+    });
+    revalidatePath("/cassa");
+    const d = res.difference;
+    return {
+      ok: true,
+      message: d == null ? "Chiusura registrata." : Math.abs(d) < 0.005 ? "Chiusura registrata: la cassa torna al centesimo." : `Chiusura registrata con ${d > 0 ? "un'eccedenza" : "un ammanco"} di $${Math.abs(d)}.`,
+      redirect: `/cassa/chiusure/${res.id}`,
+    };
   });
 }

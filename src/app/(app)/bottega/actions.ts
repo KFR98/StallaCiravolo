@@ -9,6 +9,7 @@ import { round2 } from "@/lib/pricing";
 import { getSettings } from "@/lib/settings";
 import { can, canSeeBreed } from "@/lib/permissions";
 import { quoteHorseSale } from "@/lib/horse-sale";
+import { linkCustomer } from "@/lib/customers";
 import { revalidatePath } from "next/cache";
 
 // ───────── Articoli (oggetti in vendita e materie prime) ─────────
@@ -216,11 +217,22 @@ export async function sellItems(form: FormData) {
     const horseDisc = horseSale && listTotal > 0 ? round2((discount * horsePrice) / listTotal) : 0;
     const horseFinal = round2(horsePrice - horseDisc);
     const restFinal = round2(total - horseFinal);
-    const buyerName = f.opt("buyerName");
-    const notes = f.opt("notes");
+    const buyerName = f.opt("buyerName")?.slice(0, 120) ?? null;
+    const notes = f.opt("notes")?.slice(0, 2000) ?? null;
     const now = new Date();
+    // Prenotazione della bacheca chiusa con questa vendita (facoltativa)
+    const reservationId = f.int("reservationId");
+    const reservation = reservationId ? await prisma.reservation.findUnique({ where: { id: reservationId } }) : null;
+    if (reservationId) {
+      if (!reservation) throw new UserError("Prenotazione non trovata.");
+      if (!can(user.role, "reservations.edit")) throw new UserError("Non puoi chiudere le prenotazioni.");
+      if (reservation.status === "AFFARE_CHIUSO" || reservation.status === "ANNULLATO") throw new UserError("Questa prenotazione è già chiusa.");
+    }
 
     const out = await prisma.$transaction(async (tx) => {
+      // l'acquirente finisce nella rubrica clienti (se attivo in Impostazioni)
+      const customerId = await linkCustomer(tx, buyerName ?? reservation?.customerName, { autoCreate: s.customersAutoCreate, userId: user.id, missiva: reservation?.missiva });
+      if (customerId) await tx.customer.update({ where: { id: customerId }, data: { updatedAt: now } });
       if (horseSale) {
         const locked = await tx.horse.updateMany({
           where: { id: horseSale.horse.id, status: "IN_STALLA", version: horseSale.version },
@@ -232,7 +244,7 @@ export async function sellItems(form: FormData) {
       if (rows.length) {
         const is = await tx.itemSale.create({
           data: {
-            sellerId: user.id, sellerName: user.displayName, buyerName, total: restFinal, listTotal: itemsList, requestId, soldAt: now,
+            sellerId: user.id, sellerName: user.displayName, buyerName: buyerName ?? reservation?.customerName ?? null, customerId, total: restFinal, listTotal: itemsList, requestId, soldAt: now,
             notes: horseSale ? [`Venduti con il cavallo ${horseSale.q.label}`, notes].filter(Boolean).join(" · ") : notes,
             lines: { create: rows },
           },
@@ -253,10 +265,17 @@ export async function sellItems(form: FormData) {
             ageAtSale: round2(q.age), priceBracket: q.priceBracket, listPrice: q.horsePrice, basePrice: q.base, trainingPrice: q.training || null,
             itemsTotal: rows.length ? restFinal : null, itemSaleId,
             discountType: horseDisc > 0 ? "IMPORTO" : null, discountValue: horseDisc > 0 ? horseDisc : null, finalPrice: horseFinal,
-            sellerId: user.id, sellerName: user.displayName, buyerName, notes: [notes, ...q.notes].filter(Boolean).join(" · ") || null, soldAt: now,
+            sellerId: user.id, sellerName: user.displayName, buyerName: buyerName ?? reservation?.customerName ?? null, customerId,
+            notes: [notes, ...q.notes, reservation ? `Prenotazione #${reservation.id}` : null].filter(Boolean).join(" · ") || null, soldAt: now,
           },
         });
         saleId = created.id;
+      }
+      if (reservation) {
+        await tx.reservation.update({
+          where: { id: reservation.id },
+          data: { status: "AFFARE_CHIUSO", saleRef: saleId ? `V${saleId}` : itemSaleId ? `B${itemSaleId}` : null, customerId: customerId ?? reservation.customerId, updatedById: user.id },
+        });
       }
       const what = [
         horseSale ? `cavallo ${horseSale.q.label}${horseSale.q.training ? " con addestramento" : ""}` : null,
@@ -269,6 +288,7 @@ export async function sellItems(form: FormData) {
           listino: listTotal, incassato: total,
           ...(horseSale ? { cavallo: { id: horseSale.horse.id, fascia: horseSale.q.bracket, fasciaCalcolata: horseSale.q.computed, base: horseSale.q.base, addestramento: horseSale.q.training, finale: horseFinal } } : {}),
           righe: rows.map((r) => ({ tipo: r.kind, voce: r.itemName, qta: r.quantity, prezzo: r.lineTotal })),
+          ...(reservation ? { prenotazioneChiusa: reservation.id } : {}),
         },
         tx,
       );

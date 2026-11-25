@@ -9,6 +9,8 @@ import { cashLedger, CASH_KIND_LABEL, type CashKind } from "@/lib/cash";
 import { getSettings } from "@/lib/settings";
 import { PageHeader, Card, Empty } from "@/components/ui";
 import { CashActions, VoidMove } from "./CashClient";
+import { CloseCashButton } from "./ClosureClient";
+import { closureSummary } from "@/lib/cash-closure";
 
 export const metadata = { title: "Cassa" };
 
@@ -25,6 +27,8 @@ const GROUPS: { key: string; label: string; kinds: CashKind[] }[] = [
 export default async function CashPage({ searchParams }: { searchParams: Promise<SP> }) {
   const me = await requireUser("cash.view");
   const manage = can(me.role, "cash.manage");
+  const canClose = can(me.role, "cash.close");
+  const preview = canClose ? await closureSummary() : null;
   const sp = await searchParams;
   const s = await getSettings();
   const ledger = await cashLedger();
@@ -56,7 +60,14 @@ export default async function CashPage({ searchParams }: { searchParams: Promise
 
   return (
     <>
-      <PageHeader title="Cassa" subtitle="Quanto c'è in cassa, da dove arriva e dove va. Si aggiorna da solo con vendite, stipendi e rimborsi." />
+      <PageHeader
+        title="Cassa"
+        subtitle="Quanto c'è in cassa, da dove arriva e dove va. Si aggiorna da solo con vendite, stipendi e rimborsi."
+        actions={<>
+          <Link href="/cassa/chiusure" className="btn btn-ghost">Chiusure</Link>
+          {canClose && <CloseCashButton canAlign={manage} preview={{ from: preview!.from, income: preview!.income, outgo: preview!.outgo, closing: preview!.closingBalance, movements: preview!.movements }} />}
+        </>}
+      />
 
       <div className="mb-5 grid gap-4 lg:grid-cols-[1.1fr_2fr]">
         <section className="card relative overflow-hidden p-5">

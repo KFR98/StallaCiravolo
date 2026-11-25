@@ -339,6 +339,9 @@ model Sale {
   seller     User    @relation("SaleSeller", fields: [sellerId], references: [id], onDelete: Restrict)
   sellerName String
   buyerName  String?
+  /// Cliente della rubrica (il nome resta anche in buyerName, come fotografia)
+  customerId Int?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
   notes      String?
   soldAt     DateTime @default(now())
 
@@ -356,6 +359,7 @@ model Sale {
   @@index([sellerId, soldAt])
   @@index([type])
   @@index([horseId])
+  @@index([customerId])
 }
 
 // ───────────────────────────── MAPPA SPAWN ─────────────────────────────
@@ -412,6 +416,10 @@ model Reservation {
   id           Int               @id @default(autoincrement())
   title        String?
   customerName String?
+  customerId   Int?
+  customer     Customer?         @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  /// Vendita con cui è stata chiusa ("V12" cavallo, "B7" fattura bottega)
+  saleRef      String?
   missiva      String?
   breedId      Int?
   breed        Breed?            @relation(fields: [breedId], references: [id], onDelete: SetNull)
@@ -611,6 +619,8 @@ model ItemSale {
   seller     User      @relation("ItemSaleSeller", fields: [sellerId], references: [id], onDelete: Cascade)
   sellerName String
   buyerName  String?
+  customerId Int?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
   /// Prezzo finale incassato (uguale a listTotal, oppure il prezzo forfettario)
   total      Decimal
   /// Somma delle righe ai prezzi di listino (null nelle vendite vecchie = uguale a total)
@@ -629,6 +639,7 @@ model ItemSale {
 
   @@index([soldAt])
   @@index([sellerId, soldAt])
+  @@index([customerId])
 }
 
 model ItemSaleLine {
@@ -699,4 +710,43 @@ model AuditLog {
   @@index([createdAt])
   @@index([entity, entityId])
   @@index([userId])
+}
+
+/// Rubrica clienti: chi compra cavalli, addestramenti e oggetti
+model Customer {
+  id          Int      @id @default(autoincrement())
+  name        String
+  /// Nome normalizzato (minuscolo, senza spazi doppi): due clienti non possono avere lo stesso nome
+  nameKey     String   @unique
+  missiva     String?
+  contact     String?
+  notes       String?
+  createdById Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  sales        Sale[]
+  itemSales    ItemSale[]
+  reservations Reservation[]
+}
+
+/// Chiusura di cassa: fotografia di saldo, entrate e uscite di un periodo, con il contante contato
+model CashClosure {
+  id         Int       @id @default(autoincrement())
+  periodFrom DateTime?
+  periodTo   DateTime
+  /// Saldo calcolato al momento della chiusura
+  expected   Decimal
+  /// Contante contato davvero (facoltativo)
+  counted    Decimal?
+  /// counted - expected (positivo = soldi in più, negativo = ammanco)
+  difference Decimal?
+  /// JSON con i totali per tipo e per stalliere
+  summary    String
+  notes      String?
+  userId     Int?
+  userName   String
+  createdAt  DateTime  @default(now())
+
+  @@index([periodTo])
 }

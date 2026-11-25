@@ -137,6 +137,13 @@ export function SettingsForm({ s, inStable, shopItems }: { s: Settings; inStable
         ))}
       </Section>
 
+      <Section title="Clienti" hint="La rubrica clienti si trova in Bacheca → Rubrica clienti.">
+        <label className="flex min-h-10 items-center gap-3 rounded-lg border border-border px-3 sm:col-span-2">
+          <input type="checkbox" name="customersAutoCreate" defaultChecked={s.customersAutoCreate} />
+          <span className="text-[14px]">Aggiungi da solo alla rubrica chi compra o prenota (se non c&apos;è già)</span>
+        </label>
+      </Section>
+
       <Section title="Etichette delle vendite" hint="Il colore di ogni etichetta nella pagina Vendite, in bottega e nelle fatture.">
         <Color name="saleColor_cavallo" label="Cavallo" value={s.saleLabelColors.cavallo} />
         <Color name="saleColor_addestramento" label="Addestramento" value={s.saleLabelColors.addestramento} />

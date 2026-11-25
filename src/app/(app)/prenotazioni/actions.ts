@@ -7,6 +7,8 @@ import { assertPermission } from "@/lib/auth";
 import { run, fd, UserError } from "@/lib/action";
 import { audit } from "@/lib/audit";
 import { TZ } from "@/lib/format";
+import { getSettings } from "@/lib/settings";
+import { linkCustomer } from "@/lib/customers";
 
 const STATUSES = ["DA_CATTURARE", "PRENOTATO", "VENDIBILE_DA_TUTTI", "AFFARE_CHIUSO", "ANNULLATO"] as const;
 
@@ -31,8 +33,8 @@ function parse(form: FormData) {
     .refine((d) => d.title || d.customerName || d.notes, { message: "Inserisci almeno un titolo, un cliente o una nota." })
     .parse({
       title: f.opt("title"),
-      customerName: f.opt("customerName"),
-      missiva: f.opt("missiva"),
+      customerName: f.opt("customerName")?.replace(/\s+/g, " ") ?? null,
+      missiva: f.opt("missiva")?.toUpperCase() ?? null,
       breedId: f.int("breedId"),
       coatId: f.int("coatId"),
       plate: f.opt("plate")?.toUpperCase() ?? null,
@@ -55,14 +57,17 @@ export async function saveReservation(form: FormData) {
       if (!ok) throw new UserError("Il manto non appartiene alla razza scelta.");
     }
     if (data.price != null && data.deposit != null && data.deposit > data.price) throw new UserError("L'acconto supera il prezzo.");
+    // il cliente della prenotazione finisce nella rubrica (se attivo in Impostazioni)
+    const s = await getSettings();
+    const customerId = await linkCustomer(prisma, data.customerName, { autoCreate: s.customersAutoCreate, userId: user.id, missiva: data.missiva });
     if (id) {
       const before = await prisma.reservation.findUnique({ where: { id } });
       if (!before) throw new UserError("Nota non trovata.");
-      await prisma.reservation.update({ where: { id }, data: { ...data, updatedById: user.id } });
+      await prisma.reservation.update({ where: { id }, data: { ...data, customerId, updatedById: user.id } });
       await audit(user, "MODIFICA_PRENOTAZIONE", "Prenotazione", id, `Modificata nota/prenotazione #${id} (${data.status})`);
       return { ok: true, message: "Nota aggiornata." };
     }
-    const r = await prisma.reservation.create({ data: { ...data, createdById: user.id } });
+    const r = await prisma.reservation.create({ data: { ...data, customerId, createdById: user.id } });
     await audit(user, "NUOVA_PRENOTAZIONE", "Prenotazione", r.id, `Nuova nota/prenotazione #${r.id}`);
     return { ok: true, message: "Nota creata." };
   });

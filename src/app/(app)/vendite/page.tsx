@@ -14,7 +14,7 @@ import { SaleAdmin, ItemSaleAdmin } from "./SaleAdmin";
 
 export const metadata = { title: "Vendite" };
 
-type SP = { vista?: string; venditore?: string; da?: string; a?: string; q?: string; tipo?: string; ordina?: string; min?: string; max?: string; annullate?: string; evidenzia?: string; pagina?: string };
+type SP = { vista?: string; cliente?: string; venditore?: string; da?: string; a?: string; q?: string; tipo?: string; ordina?: string; min?: string; max?: string; annullate?: string; evidenzia?: string; pagina?: string };
 const PAGE = 100;
 const KINDS: [SaleKind, string][] = [["cavallo", "Cavalli"], ["addestramento", "Addestramenti"], ["vetrina", "Vetrina"], ["blip", "Blip"]];
 const COUNT_LABEL: Record<SaleKind, string> = { cavallo: "cavalli venduti", addestramento: "addestramenti", vetrina: "fatture con oggetti", blip: "vendite al blip" };
@@ -37,7 +37,9 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
   const keep = (extra: Record<string, string>) =>
     new URLSearchParams({ ...Object.fromEntries(Object.entries(sp).filter(([k, v]) => v && !["pagina", "evidenzia"].includes(k))), ...extra }).toString();
 
-  const feed = await salesFeed({ sellerId, soldAt: dateRange(sp), q: sp.q, includeVoided: sp.annullate === "1" }, imageUrl);
+  const customerId = Number(sp.cliente) || undefined;
+  const customer = customerId ? await prisma.customer.findUnique({ where: { id: customerId }, select: { id: true, name: true } }) : null;
+  const feed = await salesFeed({ sellerId, customerId, soldAt: dateRange(sp), q: sp.q, includeVoided: sp.annullate === "1" }, imageUrl);
   const tipo = KINDS.some(([k]) => k === sp.tipo) ? (sp.tipo as SaleKind) : null;
   const min = sp.min && Number.isFinite(Number(sp.min)) ? Number(sp.min) : null;
   const max = sp.max && Number.isFinite(Number(sp.max)) ? Number(sp.max) : null;
@@ -71,7 +73,14 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
         ))}
       </div>
 
+      {customer && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 text-[14px]">
+          Acquisti di <Link href={`/clienti/${customer.id}`} className="font-semibold underline">{customer.name}</Link>
+          <Link href={`/vendite?${keep({ cliente: "" })}`} className="chip">Togli filtro cliente ✕</Link>
+        </div>
+      )}
       <form className="card mb-4 grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-[2fr_1.2fr_1fr_1fr_1.2fr]">
+        {customer && <input type="hidden" name="cliente" value={customer.id} />}
         <input name="q" defaultValue={sp.q} className="input" placeholder="Cerca razza, manto, targa, oggetto, acquirente…" aria-label="Cerca" />
         {all ? (
           <select name="venditore" defaultValue={sp.venditore ?? ""} className="input" aria-label="Stalliere">

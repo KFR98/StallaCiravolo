@@ -30,7 +30,7 @@ type TrainingLine = { key: string; coatId: number; horseId: number | null; label
  * Fattura della bottega: addestramenti di cavalli + oggetti in vetrina, un unico totale.
  * I prezzi mostrati sono solo un'anteprima: il server li ricalcola dal listino.
  */
-export function ShopSell({ items, breeds, stable, rareTrainingPrice, maxDiscount, canFlat, canOverride, horses, horseRules, initialHorseId, shoeIds, canShop }: {
+export function ShopSell({ items, breeds, stable, rareTrainingPrice, maxDiscount, canFlat, canOverride, horses, horseRules, initialHorseId, shoeIds, canShop, customers, reservation }: {
   items: ShopItemRow[]; breeds: TrainingBreed[]; stable: StableHorse[]; rareTrainingPrice: number; maxDiscount: number; canFlat: boolean; canOverride: boolean;
   /** cavalli della stalla che chi vende può vendere (vuoto = nessun permesso) */
   horses: SellableHorse[]; horseRules: HorseRules; initialHorseId?: number | null;
@@ -38,6 +38,10 @@ export function ShopSell({ items, breeds, stable, rareTrainingPrice, maxDiscount
   shoeIds: { classici: number | null; migliorati: number | null };
   /** può vendere addestramenti e oggetti (altrimenti solo il cavallo) */
   canShop: boolean;
+  /** nomi della rubrica clienti per i suggerimenti */
+  customers: string[];
+  /** prenotazione della bacheca da chiudere con questa vendita */
+  reservation?: { id: number; label: string; customerName: string | null; price: number | null; deposit: number | null } | null;
 }) {
   const [horseSel, setHorseSel] = useState<HorseSel | null>(() => {
     const h = initialHorseId ? horses.find((x) => x.id === initialHorseId) : null;
@@ -212,7 +216,15 @@ export function ShopSell({ items, breeds, stable, rareTrainingPrice, maxDiscount
             })} />
           )}
           {flatOn && <input type="hidden" name="flatPrice" value={flatNum ?? ""} />}
-          <input name="buyerName" className="input" placeholder="Acquirente (facoltativo)" maxLength={120} />
+          {reservation && (
+            <div className="rounded-lg border border-[var(--sale-addestramento)] bg-surface-2 p-3 text-[14px]">
+              <input type="hidden" name="reservationId" value={reservation.id} />
+              <b>Chiude la prenotazione:</b> {reservation.label}
+              {reservation.price != null && <span className="block text-[13px] text-fg-3">Prezzo concordato {money(reservation.price)}{reservation.deposit ? ` · acconto già versato ${money(reservation.deposit)}` : ""}</span>}
+            </div>
+          )}
+          <input name="buyerName" className="input" placeholder="Acquirente (facoltativo, si salva nella rubrica)" maxLength={120} list="rubrica-clienti" defaultValue={reservation?.customerName ?? ""} autoComplete="off" />
+          <datalist id="rubrica-clienti">{customers.map((c) => <option key={c} value={c} />)}</datalist>
           {(trainings.length > 0 || itemsTotal > 0 || soldHorse) && (
             <dl className="space-y-1 text-[14px]">
               {soldHorse && <div className="flex justify-between"><dt className="text-fg-2">Cavallo</dt><dd className="tabular-nums">{hq?.ok ? money(hq.price) : "—"}</dd></div>}

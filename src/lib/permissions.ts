@@ -42,6 +42,8 @@ export const PERMISSIONS = {
   "map.exportImage": { group: "Mappa", label: "Esportare l'immagine della mappa con i punti", defaults: TOP },
   "map.backup": { group: "Mappa", label: "Scaricare il backup dei punti e reimportarlo", hint: "Con l'importazione “sostituisci” si possono rimpiazzare tutti i punti", defaults: TOP },
 
+  "customers.view": { group: "Bacheca", label: "Vedere la rubrica clienti e i loro acquisti", defaults: ALL },
+  "customers.manage": { group: "Bacheca", label: "Modificare, unire ed eliminare i clienti della rubrica", defaults: BOSS },
   "reservations.edit": { group: "Bacheca", label: "Vedere e scrivere note e prenotazioni", defaults: ALL },
   "reservations.delete": { group: "Bacheca", label: "Eliminare note e prenotazioni", defaults: BOSS },
 
@@ -52,6 +54,7 @@ export const PERMISSIONS = {
 
   "cash.view": { group: "Cassa", label: "Vedere la cassa (saldo, entrate e uscite)", defaults: TOP },
   "cash.manage": { group: "Cassa", label: "Prelevare, versare e allineare la cassa", defaults: TOP },
+  "cash.close": { group: "Cassa", label: "Fare la chiusura di cassa (con il contante contato)", defaults: TOP },
 
   "employees.list": { group: "Personale", label: "Vedere l'elenco del personale", defaults: BOSS },
   "employees.stats": { group: "Personale", label: "Vedere statistiche e storico di ogni stalliere", defaults: TOP },
