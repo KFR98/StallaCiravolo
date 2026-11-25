@@ -8,6 +8,7 @@ import { LayoutDashboard, Warehouse, Receipt, Store, Map, BookOpen, NotebookPen,
 import { ThemeToggle } from "./ThemeToggle";
 import { DiscordBrushDefs, DiscordLink, type DiscordStyle } from "./DiscordLink";
 import { SearchPalette } from "./SearchPalette";
+import { NotificationBell, HashFlash, type BellData } from "./NotificationBell";
 
 const ICONS = { dashboard: LayoutDashboard, stable: Warehouse, sales: Receipt, shop: Store, map: Map, catalog: BookOpen, notes: NotebookPen, staff: Users, cash: Wallet, admin: Shield };
 
@@ -22,6 +23,7 @@ export function AppShell({
   discordUrl,
   discordStyle,
   logout,
+  bell = null,
   children,
 }: {
   items: NavItem[];
@@ -33,6 +35,8 @@ export function AppShell({
   discordUrl: string | null;
   discordStyle: DiscordStyle;
   logout: () => Promise<void>;
+  /** campanella delle notifiche (null se spenta in Impostazioni o senza permesso) */
+  bell?: BellData | null;
   children: React.ReactNode;
 }) {
   const path = usePathname();
@@ -72,7 +76,7 @@ export function AppShell({
       <img src="/brand/logo.png" alt="" width={42} height={42} className="size-[38px] shrink-0 lg:size-[42px]" />
       <span className="min-w-0">
         <span className="block truncate font-brand text-[22px] leading-none text-white lg:text-[18px]">{stableName}</span>
-        <span className="mt-1 block font-display text-[11px] font-semibold tracking-[0.3em] text-[#ff5d55] uppercase lg:text-[10px] lg:tracking-[0.24em]">Gestionale stalla</span>
+        <span className="mt-1 block truncate font-display text-[11px] font-semibold tracking-[0.3em] whitespace-nowrap text-[#ff5d55] uppercase max-sm:tracking-[0.18em] lg:text-[10px] lg:tracking-[0.24em]">Gestionale stalla</span>
       </span>
     </Link>
   );
@@ -112,10 +116,11 @@ export function AppShell({
   return (
     <div className="min-h-dvh">
       {discordUrl && <DiscordBrushDefs />}
+      <HashFlash />
       {/* Sidebar desktop: sempre scura, come l'intestazione del sito Rockstar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[248px] flex-col gap-5 border-r border-white/5 bg-[#0b0a09] px-3 py-5 lg:flex">
         <div className="px-2">{brand}</div>
-        <div className="space-y-2 px-1">{cta}{searchBtn}</div>
+        <div className="space-y-2 px-1">{cta}<div className="flex items-center gap-1.5"><div className="min-w-0 flex-1">{searchBtn}</div>{bell && <NotificationBell initial={bell} />}</div></div>
         <nav className="flex-1 overflow-y-auto" aria-label="Menu principale">{links}</nav>
         {discord}
         {userBox}
@@ -127,6 +132,7 @@ export function AppShell({
         {brand}
         <div className="flex items-center gap-1">
           {/* il tema chiaro/scuro resta nel menu (riquadro dell'utente): qui la ricerca, per non tagliare il nome */}
+          {bell && <NotificationBell initial={bell} />}
           <button type="button" onClick={() => setSearchOpen(true)} aria-label="Cerca" className="btn btn-ghost btn-icon !text-neutral-300"><Search size={19} /></button>
           <button onClick={() => setOpen(true)} aria-label={items.some((i) => i.badge) ? "Apri menu (ci sono cose da fare)" : "Apri menu"} className="btn btn-ghost btn-icon relative !text-white">
             <Menu />

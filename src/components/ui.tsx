@@ -64,13 +64,14 @@ export function TableWrap({ children }: { children: ReactNode }) {
 }
 
 /** Schede di navigazione interne a una sezione (link). */
-export function Tabs({ items, active }: { items: { href: string; label: string; key: string; count?: number }[]; active: string }) {
+export function Tabs({ items, active }: { items: { href: string; label: string; key: string; count?: number; /** numerino rosso: cose da fare (notifica) */ alert?: number }[]; active: string }) {
   return (
     <nav className="tabs mb-5" aria-label="Sezioni">
       {items.map((t) => (
         <Link key={t.key} href={t.href} className="tab" aria-current={t.key === active ? "page" : undefined}>
           {t.label}
-          {t.count != null && <span className="ml-1.5 rounded bg-surface-3 px-1.5 text-[12px] text-fg-3">{t.count}</span>}
+          {t.alert ? <span className="nav-badge ml-1.5 !min-w-[18px] !px-1 !text-[11px] !leading-[18px]" title={`${t.alert} da fare`} aria-label={`${t.alert} da fare`}>{t.alert > 99 ? "99+" : t.alert}</span>
+            : t.count != null && <span className="ml-1.5 rounded bg-surface-3 px-1.5 text-[12px] text-fg-3">{t.count}</span>}
         </Link>
       ))}
     </nav>

@@ -2,7 +2,7 @@ import { requireUser } from "@/lib/auth";
 import { can, roleLabel, type Permission } from "@/lib/permissions";
 import { getSettings } from "@/lib/settings";
 import { discordLink } from "@/lib/discord";
-import { navBadges } from "@/lib/nav-badges";
+import { getNotifications } from "@/lib/notifications";
 import { moneyHome } from "./MoneyTabs";
 import { AppShell, type NavItem } from "@/components/Sidebar";
 import { logoutAction } from "../login/actions";
@@ -22,8 +22,10 @@ const NAV: (Omit<NavItem, "href"> & { href: string | ((role: string) => string);
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
-  const { stableName, discordUrl, discordStyle, mobileNav } = await getSettings();
-  const badges = await navBadges(user);
+  const { stableName, discordUrl, discordStyle, mobileNav, notifyBell } = await getSettings();
+  const notes = await getNotifications(user);
+  const badges = notes.badges;
+  const bell = notifyBell && can(user.role, "notifications.view") ? { items: notes.items, total: notes.total, badges: notes.badges } : null;
   const visible = NAV.filter((n) => n.perms.some((p) => can(user.role, p)));
   // barra in basso del telefono: le 4 voci scelte in Impostazioni (tra quelle che il ruolo vede), poi le altre in ordine
   const mobile = [...mobileNav.filter((k) => visible.some((n) => n.key === k)), ...visible.map((n) => n.key).filter((k) => !mobileNav.includes(k))].slice(0, 4);
@@ -40,6 +42,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       discordUrl={discordLink(discordUrl)}
       discordStyle={discordStyle}
       logout={logoutAction}
+      bell={bell}
     >
       {children}
     </AppShell>

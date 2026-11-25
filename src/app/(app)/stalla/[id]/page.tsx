@@ -13,6 +13,8 @@ import { bracketLabel } from "@/lib/pricing";
 import { formatAge, daysUntilAge } from "@/lib/age";
 import { money, dateTime, TZ } from "@/lib/format";
 import { Card, HorseThumb } from "@/components/ui";
+import { NoticeDot } from "@/components/NoticeDot";
+import { noticeIds, anchor } from "@/lib/notifications";
 import { StatBars } from "@/components/StatBars";
 import { StatusBadge, SaleTypeBadge, PregnancyBadge } from "@/components/StatusBadge";
 import { FoalForm } from "./FoalForm";
@@ -57,6 +59,10 @@ export default async function HorsePage({ params }: { params: Promise<{ id: stri
   // chi può completare i dati del puledro: il proprietario, oppure la direzione (obbligatoria se la madre è rara)
   const canCompleteFoal = inStable && horse.needsData && (horse.needsStaff ? staff : isOwner || staff);
   const img = imageUrl(horse.coat.imagePath);
+  // pallini della notifica: solo se questo cavallo è tra le cose da fare di chi guarda
+  const notified = inStable && (await noticeIds(user, "stalla")).has(anchor.horse(horse.id));
+  const birthDue = notified && !!horse.pregnancyDueAt && horse.pregnancyDueAt <= new Date();
+  const dataDot = notified && horse.needsData;
   return (
     <>
       <Link href={inStable ? "/stalla" : "/stalla?vista=storico"} className="btn btn-ghost btn-sm mb-3 -ml-2"><ArrowLeft size={16} /> Stalla</Link>
@@ -72,7 +78,9 @@ export default async function HorsePage({ params }: { params: Promise<{ id: stri
             {inStable && p.age < s.foalMaxAge && <span className="badge badge-neutral">Puledro</span>}
             {horse.trained && <span className="badge badge-ok">Addestrato</span>}
             {horse.needsData && inStable && <span className="badge badge-warn">Da completare</span>}
+            {dataDot && <a href="#dati-puledro" className="inline-flex"><NoticeDot title="Notifica: dati del puledro da completare" /></a>}
             {inStable && <PregnancyBadge dueAt={horse.pregnancyDueAt} />}
+            {birthDue && <a href="#gravidanza" className="inline-flex"><NoticeDot title="Notifica: parto da fare" /></a>}
           </div>
         </div>
         {/* Su telefono il riquadro Vendi è in fondo: scorciatoia diretta */}
@@ -89,7 +97,8 @@ export default async function HorsePage({ params }: { params: Promise<{ id: stri
       </header>
 
       {inStable && horse.needsData && (
-        <div role="status" className={clsx("mb-5 flex gap-3 rounded-xl border p-4", horse.needsStaff ? "border-[var(--legend)] bg-[color-mix(in_srgb,var(--legend)_10%,transparent)]" : "border-warn bg-warn-soft")}>
+        <div id="dati-puledro" role="status" className={clsx("relative mb-5 flex scroll-mt-20 gap-3 rounded-xl border p-4", horse.needsStaff ? "border-[var(--legend)] bg-[color-mix(in_srgb,var(--legend)_10%,transparent)]" : "border-warn bg-warn-soft")}>
+          {dataDot && <NoticeDot corner title="Notifica: dati del puledro da completare" />}
           <AlertTriangle size={20} className={clsx("mt-0.5 shrink-0", horse.needsStaff ? "text-[var(--legend)]" : "text-warn")} />
           <div className="text-[14.5px]">
             {horse.needsStaff ? (
@@ -161,7 +170,7 @@ export default async function HorsePage({ params }: { params: Promise<{ id: stri
           )}
 
           {inStable && horse.sex === "FEMMINA" && (
-            <Card title="Gravidanza">
+            <Card title={<span className="inline-flex items-center gap-2">Gravidanza{birthDue && <NoticeDot title="Notifica: parto da fare" />}</span>} id="gravidanza" className="relative scroll-mt-20">
               <PregnancyPanel
                 horseId={horse.id}
                 canEdit={isOwner}

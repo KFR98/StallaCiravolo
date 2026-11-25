@@ -13,6 +13,8 @@ import { customerSuggestions } from "@/lib/customers";
 import { NoteForm, ReimbursementForm } from "./RequestForms";
 import { ActionButton } from "@/components/ActionForm";
 import { deleteShopNote } from "./actions";
+import { NoticeDot } from "@/components/NoticeDot";
+import { noticeIds, anchor } from "@/lib/notifications";
 import { SaleTag } from "@/components/SaleTag";
 
 export const metadata = { title: "Bottega" };
@@ -157,10 +159,11 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
     const sup = await prisma.supplier.findMany({ where: { archived: false }, orderBy: { name: "asc" } });
     body = <SupplierTable suppliers={sup} canManage={manage} />;
   } else {
-    const [notes, reimb, sup] = await Promise.all([
+    const [notes, reimb, sup, dots] = await Promise.all([
       prisma.shopNote.findMany({ where: manage ? {} : { createdById: user.id }, orderBy: [{ status: "asc" }, { createdAt: "desc" }], take: 100, include: { createdBy: true, handledBy: true } }),
       prisma.reimbursement.findMany({ where: manage ? {} : { userId: user.id }, orderBy: [{ status: "asc" }, { createdAt: "desc" }], take: 100, include: { user: true, supplier: true, handledBy: true } }),
       prisma.supplier.findMany({ where: { archived: false }, orderBy: { name: "asc" }, select: { id: true, name: true, activity: true } }),
+      noticeIds(user, "bottega"),
     ]);
     body = (
       <div className="grid gap-5 lg:grid-cols-[1fr_1.6fr]">
@@ -173,9 +176,9 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
             {reimb.length === 0 ? <Empty>Nessuna richiesta.</Empty> : (
               <ul className="divide-y divide-border">
                 {reimb.map((r) => (
-                  <li key={r.id} className="flex flex-wrap items-start justify-between gap-3 px-5 py-3">
+                  <li key={r.id} id={anchor.reimbursement(r.id)} className="flex scroll-mt-20 flex-wrap items-start justify-between gap-3 px-5 py-3">
                     <div className="min-w-0 flex-1">
-                      <div className="font-semibold">{r.description}</div>
+                      <div className="flex items-center gap-2 font-semibold">{dots.has(anchor.reimbursement(r.id)) && <NoticeDot title="Notifica: rimborso da gestire" />}{r.description}</div>
                       <div className="text-[13px] text-fg-3">{r.user.displayName} · {r.supplier?.name ?? r.supplierName} · {dateTime(r.createdAt)}</div>
                       {r.response && <div className="mt-1 text-[13.5px] text-fg-2">Risposta: {r.response}</div>}
                     </div>
@@ -193,9 +196,9 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
             {notes.length === 0 ? <Empty>Nessuna proposta.</Empty> : (
               <ul className="divide-y divide-border">
                 {notes.map((n) => (
-                  <li key={n.id} className="flex flex-wrap items-start justify-between gap-3 px-5 py-3">
+                  <li key={n.id} id={anchor.note(n.id)} className="flex scroll-mt-20 flex-wrap items-start justify-between gap-3 px-5 py-3">
                     <div className="min-w-0 flex-1">
-                      <div className="text-[12.5px] font-semibold text-fg-3 uppercase">{NOTE_TYPE[n.type]}</div>
+                      <div className="flex items-center gap-2 text-[12.5px] font-semibold text-fg-3 uppercase">{dots.has(anchor.note(n.id)) && <NoticeDot title="Notifica: proposta da gestire" />}{NOTE_TYPE[n.type]}</div>
                       <div className="whitespace-pre-wrap">{n.text}</div>
                       <div className="text-[13px] text-fg-3">{n.createdBy.displayName} · {dateTime(n.createdAt)}</div>
                       {n.response && <div className="mt-1 text-[13.5px] text-fg-2">Risposta di {n.handledBy?.displayName}: {n.response}</div>}
@@ -223,7 +226,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
         { key: "listino", href: "/bottega?tab=listino", label: "Prezzi oggetti" },
         { key: "materie", href: "/bottega?tab=materie", label: "Materie prime" },
         { key: "fornitori", href: "/bottega?tab=fornitori", label: "Fornitori" },
-        { key: "richieste", href: "/bottega?tab=richieste", label: "Rimborsi e proposte", count: openReq || undefined },
+        { key: "richieste", href: "/bottega?tab=richieste", label: "Rimborsi e proposte", alert: openReq || undefined },
       ]} />}
       {body}
     </>

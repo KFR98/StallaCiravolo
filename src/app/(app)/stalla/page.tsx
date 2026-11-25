@@ -12,6 +12,7 @@ import { PageHeader, Card, Empty, TableWrap, Tabs, HorseName } from "@/component
 import { StatusBadge } from "@/components/StatusBadge";
 import { StableBoard, type BoardHorse } from "./StableBoard";
 import { CaptureButton } from "./CaptureDialog";
+import { noticeIds, anchor } from "@/lib/notifications";
 
 export const metadata = { title: "Stalla" };
 
@@ -87,6 +88,7 @@ export default async function StablePage({ searchParams }: { searchParams: Promi
     orderBy: { capturedAt: "desc" },
   });
   const now = new Date();
+  const dots = await noticeIds(user, "stalla");
   const board: BoardHorse[] = horses.map((h) => {
     const p = horsePricing(h, s, now);
     // già addestrato: il prezzo base mostrato include l'addestramento
@@ -103,6 +105,8 @@ export default async function StablePage({ searchParams }: { searchParams: Promi
       sexCode: h.sex, age: p.age, capturedAt: h.capturedAt.toISOString(), tooYoung: p.bracket === "TROPPO_GIOVANE",
       priceValue: h.needsData || h.rarity ? null : shown,
       trained: h.trained,
+      // pallino della notifica: parto da fare o dati da completare (solo se riguarda chi guarda)
+      alert: dots.has(anchor.horse(h.id)) ? (h.pregnancyDueAt && h.pregnancyDueAt <= now ? "Parto da fare" : "Dati da completare") : null,
     };
   });
   return (

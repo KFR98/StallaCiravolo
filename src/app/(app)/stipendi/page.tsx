@@ -11,6 +11,8 @@ import { roleLabel } from "@/lib/permissions";
 import { PageHeader, Card, StatTile, TableWrap, Empty } from "@/components/ui";
 import { PayButton } from "./PayrollControls";
 import { MoneyTabs } from "../MoneyTabs";
+import { NoticeDot } from "@/components/NoticeDot";
+import { noticeIds, anchor } from "@/lib/notifications";
 
 export const metadata = { title: "Stipendi" };
 
@@ -65,7 +67,7 @@ export default async function PayrollPage({ searchParams }: { searchParams: Prom
     );
   }
 
-  const list = await payrollOverview();
+  const [list, dots] = await Promise.all([payrollOverview(), noticeIds(user, "soldi")]);
   const due = list.reduce((t, u) => t + u.due, 0);
   const paidAll = list.reduce((t, u) => t + u.paidTotal, 0);
   const toPay = list.filter((u) => u.due > 0);
@@ -86,8 +88,8 @@ export default async function PayrollPage({ searchParams }: { searchParams: Prom
               <thead><tr><th className="!pl-5">Dipendente</th><th>Percentuali</th><th>Ultimo pagamento</th><th>Arretrati</th><th className="num">Gli spetta</th><th className="num">Sett. in corso</th><th className="!pr-5" /></tr></thead>
               <tbody>
                 {list.map((u) => (
-                  <tr key={u.userId}>
-                    <td className="!pl-5"><Link href={`/stipendi/${u.userId}`} className="font-semibold hover:text-accent-text">{u.name}</Link><div className="text-[12.5px] text-fg-3">{roleLabel(u.role)}{!u.active ? " · disattivato" : ""}</div></td>
+                  <tr key={u.userId} id={anchor.payroll(u.userId)} className="scroll-mt-20">
+                    <td className="!pl-5"><span className="flex items-center gap-2">{dots.has(anchor.payroll(u.userId)) && <NoticeDot title="Notifica: stipendio arretrato da pagare" />}<Link href={`/stipendi/${u.userId}`} className="font-semibold hover:text-accent-text">{u.name}</Link></span><div className="text-[12.5px] text-fg-3">{roleLabel(u.role)}{!u.active ? " · disattivato" : ""}</div></td>
                     <td className="text-[13px] whitespace-nowrap text-fg-2">S {u.percents.stable}% · B {u.percents.gov}% · O {u.percents.items}%{u.percents.custom && <span className="badge badge-info ml-1">personali</span>}</td>
                     <td className="whitespace-nowrap">{u.lastPaidAt ? dateOnly(u.lastPaidAt) : <span className="text-fg-3">mai</span>}</td>
                     <td>{u.arrears.length === 0 ? <span className="badge badge-ok">In regola</span> : <span className="badge badge-warn">{u.arrears.length} {u.arrears.length === 1 ? "settimana" : "settimane"}</span>}</td>

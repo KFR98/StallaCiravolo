@@ -107,19 +107,23 @@ export function SettingsForm({ s, inStable, shopItems, roles }: { s: Settings; i
         ))}
       </Section>
 
-      <Section title="Menu: numerini delle cose da fare" hint="Il numerino rosso accanto alla voce del menu. Ognuno vede solo quelli delle sezioni a cui ha accesso.">
+      <Section title="Notifiche: numerini, campanella e pallini" hint="Le notifiche sono le cose da fare: compaiono come numerino accanto alla voce del menu, nell'elenco della campanella (con il link alla schermata esatta) e come pallino rosso accanto alla cosa precisa. Ognuno vede solo quelle delle sezioni a cui ha accesso; spariscono da sole quando la cosa è sistemata. Chi vede la campanella si decide anche in Ruoli.">
         {([
           ["navBadge_stalla", "Stalla: parti da fare e puledri senza dati", s.navBadges.stalla],
           ["navBadge_bottega", "Bottega: rimborsi e proposte da gestire", s.navBadges.bottega],
           ["navBadge_bacheca", "Bacheca: prenotazioni assegnate ancora aperte", s.navBadges.bacheca],
           ["navBadge_personale", "Personale: stipendi arretrati", s.navBadges.personale],
-          ["navBadge_admin", "Amministrazione: Alarm e Critico nelle ultime 24 ore", s.navBadges.admin],
+          ["navBadge_admin", "Amministrazione: Alarm e Critico del registro", s.navBadges.admin],
+          ["notifyBell", "Mostra la campanella con l'elenco delle notifiche", s.notifyBell],
+          ["notifyDots", "Mostra il pallino rosso accanto alla cosa precisa sulle pagine", s.notifyDots],
         ] as const).map(([n, l, v]) => (
           <label key={n} className="flex min-h-10 items-center gap-3 rounded-lg border border-border px-3">
             <input type="checkbox" name={n} defaultChecked={v} />
             <span className="text-[14px]">{l}</span>
           </label>
         ))}
+        <Num name="notifyListMax" label="Voci al massimo per sezione nella campanella" value={s.notifyListMax} step="1" min="1" max="100" />
+        <Num name="notifyAuditHours" label="Ore in cui restano le notifiche Alarm/Critico" value={s.notifyAuditHours} step="1" min="1" max="720" />
       </Section>
 
       <Section title="Confronto cavalli" hint="In Catalogo e prezzi → Confronto cavalli si mettono i cavalli uno accanto all'altro.">

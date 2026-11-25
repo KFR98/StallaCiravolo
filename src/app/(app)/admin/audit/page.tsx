@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { Prisma } from "@prisma/client";
 import clsx from "clsx";
+import { NoticeDot } from "@/components/NoticeDot";
+import { noticeIds, anchor } from "@/lib/notifications";
 import { Info, TriangleAlert, Siren, ShieldAlert, Globe, User as UserIcon, ChevronDown } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -52,6 +54,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
 
   const page = Math.max(1, Number(sp.pagina) || 1);
   const since24 = new Date(Date.now() - 86400_000);
+  const dots = await noticeIds(me, "admin");
   const [rows, count, users, entities, last24] = await Promise.all([
     prisma.auditLog.findMany({ where, orderBy: { createdAt: "desc" }, take: PAGE, skip: (page - 1) * PAGE }),
     prisma.auditLog.count({ where }),
@@ -165,8 +168,9 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
                     const det = details(r.details, showIp);
                     const roleColor = r.userId ? getRole(roleOf.get(r.userId))?.color : null;
                     return (
-                      <li key={r.id} className={clsx("audit-row", `audit-row-${lv}`)} style={{ "--lv": `var(--lv-${lv})` } as React.CSSProperties}>
+                      <li key={r.id} id={anchor.audit(r.id)} className={clsx("audit-row scroll-mt-28", `audit-row-${lv}`)} style={{ "--lv": `var(--lv-${lv})` } as React.CSSProperties}>
                         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                          {dots.has(anchor.audit(r.id)) && <NoticeDot title="Notifica: voce grave recente" />}
                           <span className="audit-badge" title={LEVEL_HELP[lv]}><Icon size={13} strokeWidth={2.4} />{style[lv].name}</span>
                           <span className="font-semibold">{actionLabel(r.action)}</span>
                           <span className="text-[13px] text-fg-3">{r.entity}{r.entityId ? ` #${r.entityId}` : ""}</span>

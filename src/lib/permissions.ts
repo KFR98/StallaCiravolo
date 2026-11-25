@@ -19,6 +19,7 @@ export const PERMISSIONS = {
   "dashboard.view": { group: "Generale", label: "Vedere l'Ufficio (pagina iniziale)", defaults: ALL },
   "dashboard.overview": { group: "Generale", label: "Vedere i numeri di tutta la stalla nell'Ufficio", defaults: BOSS },
   "dashboard.shout": { group: "Generale", label: "Usare lo Strillone (annuncio personale da copiare in gioco)", defaults: ALL },
+  "notifications.view": { group: "Generale", label: "Vedere la campanella delle notifiche", hint: "Mostra solo le notifiche delle sezioni a cui il ruolo ha già accesso", defaults: ALL },
 
   "catalog.view": { group: "Catalogo e prezzi", label: "Vedere il catalogo dei cavalli", defaults: ALL },
   "prices.view": { group: "Catalogo e prezzi", label: "Vedere listino e confronto prezzi", defaults: ALL },

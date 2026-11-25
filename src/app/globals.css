@@ -506,6 +506,43 @@ input[type="radio"] {
   @apply absolute -top-1.5 -right-2.5 min-w-4 px-1 text-[10px] leading-4 ring-2 ring-[#0b0a09];
 }
 
+/* Pallino della notifica accanto alla cosa precisa (cavallo, rimborso, prenotazione…) */
+.notice-dot {
+  @apply relative inline-block size-2.5 shrink-0 rounded-full bg-[#e01f27] align-middle;
+}
+.notice-dot::after {
+  content: "";
+  @apply absolute inset-0 rounded-full bg-[#e01f27];
+  animation: notice-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+/* pallino in alto a destra di una scheda o di una foto */
+.notice-dot-corner {
+  @apply absolute -top-1 -right-1 z-[1] size-3 ring-2 ring-surface;
+}
+@keyframes notice-ping {
+  75%, 100% { transform: scale(2.2); opacity: 0; }
+}
+/* la cosa raggiunta dalla campanella si illumina per qualche secondo */
+.notice-flash {
+  animation: notice-flash 3s ease-out;
+  scroll-margin-top: 5rem;
+}
+@keyframes notice-flash {
+  0%, 30% { box-shadow: 0 0 0 3px #e01f27, 0 0 24px rgba(224, 31, 39, 0.45); }
+  100% { box-shadow: 0 0 0 3px transparent, 0 0 0 transparent; }
+}
+.bell-ring { transform-origin: 50% 10%; animation: bell-ring 2.4s ease-in-out 1; }
+@keyframes bell-ring {
+  0%, 60%, 100% { transform: rotate(0); }
+  10%, 30% { transform: rotate(14deg); }
+  20%, 40% { transform: rotate(-12deg); }
+  50% { transform: rotate(5deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .notice-dot::after, .bell-ring { animation: none; }
+  .notice-flash { animation-duration: 0.01s; box-shadow: 0 0 0 3px #e01f27; }
+}
+
 /* ───────── Stampa (es. chiusura di cassa): solo il contenuto, su carta bianca ───────── */
 @media print {
   aside, nav, .no-print, [data-sonner-toaster] { display: none !important; }

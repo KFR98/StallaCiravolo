@@ -101,6 +101,14 @@ export const DEFAULT_SETTINGS = {
   mobileNav: ["ufficio", "stalla", "bottega", "soldi"] as string[],
   /** Menu: numerini delle cose da fare accanto alle voci (ognuno vede solo quelli delle sue sezioni) */
   navBadges: { stalla: true, bottega: true, bacheca: true, personale: true, admin: true } as Record<"stalla" | "bottega" | "bacheca" | "personale" | "admin", boolean>,
+  /** Notifiche: campanella con l'elenco di tutte le cose da fare (ognuno vede solo le sue sezioni) */
+  notifyBell: true,
+  /** Notifiche: pallino rosso accanto alla cosa precisa sulla pagina (cavallo, rimborso, prenotazione…) */
+  notifyDots: true,
+  /** Notifiche: quante voci al massimo per sezione nell'elenco della campanella */
+  notifyListMax: 15,
+  /** Notifiche: per quante ore restano le voci Alarm/Critico del registro */
+  notifyAuditHours: 24,
   /** Clienti: chi compra viene aggiunto da solo alla rubrica (se non c'è già) */
   customersAutoCreate: true,
   /** Confronto cavalli: quanti cavalli si possono mettere uno accanto all'altro */

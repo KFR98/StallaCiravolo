@@ -7,6 +7,7 @@ import { Search, Users, LayoutGrid, ArrowDownUp, SlidersHorizontal, X } from "lu
 import { HorseThumb, Empty } from "@/components/ui";
 import { PregnancyBadge } from "@/components/StatusBadge";
 import { matchHorse } from "@/components/HorsePicker";
+import { NoticeDot } from "@/components/NoticeDot";
 import { RarityBadge, rarityStyle } from "@/components/Rarity";
 import { STABLE_SORTS, type StableSort } from "./sorts";
 
@@ -15,6 +16,8 @@ export type BoardHorse = {
   price: string; ownerId: number; owner: string; capturedBy: string; dueAt: string | null; condition: string | null; mine: boolean;
   rarity: "RARO" | "LEGGENDARIO" | null; needsData: boolean; foal: boolean;
   sexCode: "MASCHIO" | "FEMMINA" | null; age: number; capturedAt: string; tooYoung: boolean; priceValue: number | null; trained: boolean;
+  /** notifica su questo cavallo (pallino rosso), null se niente */
+  alert: string | null;
 };
 
 type Sex = "tutti" | "MASCHIO" | "FEMMINA";
@@ -237,7 +240,8 @@ export function StableBoard({ horses, meId, defaultSort }: { horses: BoardHorse[
 
 function HorseCard({ h }: { h: BoardHorse }) {
   return (
-    <Link href={`/stalla/${h.id}`} style={rarityStyle(h.rarity)} className={clsx("card flex gap-3 p-3 transition-colors hover:border-border-strong", h.mine && !h.rarity && "ring-1 ring-accent/30")}>
+    <Link id={`cavallo-${h.id}`} href={`/stalla/${h.id}`} style={rarityStyle(h.rarity)} className={clsx("card relative flex scroll-mt-20 gap-3 p-3 transition-colors hover:border-border-strong", h.mine && !h.rarity && "ring-1 ring-accent/30")}>
+      {h.alert && <NoticeDot corner title={`Notifica: ${h.alert}`} className="!-top-1.5 !-right-1.5" />}
       <span className="relative shrink-0">
         <HorseThumb src={h.image} size={72} />
         {h.rarity && (

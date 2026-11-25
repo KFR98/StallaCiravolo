@@ -11,6 +11,8 @@ import { PageHeader, Card, Empty, HorseThumb } from "@/components/ui";
 import { ActionForm } from "@/components/ActionForm";
 import { ReservationButton } from "./ReservationForm";
 import { ClientTabs } from "../ClientTabs";
+import { NoticeDot } from "@/components/NoticeDot";
+import { noticeIds, anchor } from "@/lib/notifications";
 import { setReservationStatus, deleteReservation } from "./actions";
 import { ActionButton } from "@/components/ActionForm";
 import { RES_STATUS } from "./status";
@@ -25,11 +27,12 @@ export default async function ReservationsPage({ searchParams }: { searchParams:
   else if (sp.stato !== "tutte") where.status = { notIn: ["AFFARE_CHIUSO", "ANNULLATO"] };
   if (sp.mie === "1") where.assignedToId = user.id;
   if (sp.q) where.OR = [{ title: { contains: sp.q } }, { customerName: { contains: sp.q } }, { notes: { contains: sp.q } }, { plate: { contains: sp.q } }, { missiva: { contains: sp.q } }, { breed: { name: { contains: sp.q } } }, { coat: { name: { contains: sp.q } } }];
-  const [items, breeds, users, counts] = await Promise.all([
+  const [items, breeds, users, counts, dots] = await Promise.all([
     prisma.reservation.findMany({ where, orderBy: [{ deliveryDate: "asc" }, { updatedAt: "desc" }], include: { breed: true, coat: true, assignedTo: true, createdBy: true, updatedBy: true }, take: 300 }),
     getBreedOptions(),
     prisma.user.findMany({ where: { active: true }, orderBy: { displayName: "asc" }, select: { id: true, displayName: true } }),
     prisma.reservation.groupBy({ by: ["status"], _count: true }),
+    noticeIds(user, "bacheca"),
   ]);
   const canDelete = can(user.role, "reservations.delete");
   const link = (extra: Record<string, string | undefined>) => {
@@ -49,7 +52,7 @@ export default async function ReservationsPage({ searchParams }: { searchParams:
           <Link key={k} href={link({ stato: k })} className="chip" aria-pressed={sp.stato === k}>{v.label} <span className="text-fg-3">{counts.find((c) => c.status === k)?._count ?? 0}</span></Link>
         ))}
         <Link href={link({ stato: "tutte" })} className="chip" aria-pressed={sp.stato === "tutte"}>Tutte</Link>
-        <Link href={link({ mie: sp.mie === "1" ? undefined : "1" })} className="chip" aria-pressed={sp.mie === "1"}>Assegnate a me</Link>
+        <Link href={link({ mie: sp.mie === "1" ? undefined : "1" })} className="chip" aria-pressed={sp.mie === "1"}>{dots.size > 0 && <NoticeDot title={`Notifica: ${dots.size} prenotazioni assegnate a te da fare`} className="mr-1" />}Assegnate a me</Link>
         <form className="relative ml-auto w-full sm:w-64">
           {sp.stato && <input type="hidden" name="stato" value={sp.stato} />}
           {sp.mie && <input type="hidden" name="mie" value={sp.mie} />}
@@ -63,7 +66,8 @@ export default async function ReservationsPage({ searchParams }: { searchParams:
             const st = RES_STATUS[r.status];
             const balance = r.price != null ? Number(r.price) - Number(r.deposit ?? 0) : null;
             return (
-              <article key={r.id} className="card card-pad flex flex-col gap-2">
+              <article key={r.id} id={anchor.reservation(r.id)} className="card card-pad relative flex scroll-mt-20 flex-col gap-2">
+                {dots.has(anchor.reservation(r.id)) && <NoticeDot corner title="Notifica: prenotazione assegnata a te da fare" className="!-top-1.5 !-right-1.5" />}
                 <div className="flex items-start gap-3">
                   {r.breed && <HorseThumb src={imageUrl(r.coat?.imagePath)} size={40} />}
                   <div className="min-w-0 flex-1">
