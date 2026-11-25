@@ -9,6 +9,7 @@ import { money } from "@/lib/format";
 import { SaleTag } from "@/components/SaleTag";
 import { HorseThumb } from "@/components/ui";
 import { HorsePicker, buildHorseOptions, type HorseOption } from "@/components/HorsePicker";
+import { HorseSaleBlock, horseQuote, initialSel, type HorseRules, type HorseSel, type SellableHorse } from "./HorseSaleBlock";
 import { sellItems, saveItem, deleteItem, saveSupplier, deleteSupplier, handleShopNote, handleReimbursement } from "./actions";
 
 export type ShopItemRow = { id: number; kind: "VENDITA" | "MATERIA_PRIMA"; name: string; group: string | null; subgroup: string | null; price: number | null; priceNote: string | null; notes: string | null };
@@ -29,9 +30,22 @@ type TrainingLine = { key: string; coatId: number; horseId: number | null; label
  * Fattura della bottega: addestramenti di cavalli + oggetti in vetrina, un unico totale.
  * I prezzi mostrati sono solo un'anteprima: il server li ricalcola dal listino.
  */
-export function ShopSell({ items, breeds, stable, rareTrainingPrice, maxDiscount, canFlat, canOverride }: {
+export function ShopSell({ items, breeds, stable, rareTrainingPrice, maxDiscount, canFlat, canOverride, horses, horseRules, initialHorseId, shoeIds, canShop }: {
   items: ShopItemRow[]; breeds: TrainingBreed[]; stable: StableHorse[]; rareTrainingPrice: number; maxDiscount: number; canFlat: boolean; canOverride: boolean;
+  /** cavalli della stalla che chi vende può vendere (vuoto = nessun permesso) */
+  horses: SellableHorse[]; horseRules: HorseRules; initialHorseId?: number | null;
+  /** oggetti "4 ferri normali" e "4 ferri migliorati" (scorciatoia quando c'è un cavallo) */
+  shoeIds: { classici: number | null; migliorati: number | null };
+  /** può vendere addestramenti e oggetti (altrimenti solo il cavallo) */
+  canShop: boolean;
 }) {
+  const [horseSel, setHorseSel] = useState<HorseSel | null>(() => {
+    const h = initialHorseId ? horses.find((x) => x.id === initialHorseId) : null;
+    return h ? initialSel(h, horseRules) : null;
+  });
+  const soldHorse = horseSel ? horses.find((h) => h.id === horseSel.id) ?? null : null;
+  const hq = soldHorse && horseSel ? horseQuote(soldHorse, horseSel, horseRules) : null;
+  const horseBlocked = !!soldHorse && soldHorse.computed == null && !horseRules.canSellUnderage;
   const [q, setQ] = useState("");
   const [group, setGroup] = useState<string>("");
   const [cart, setCart] = useState<Record<number, number>>({});
@@ -58,14 +72,15 @@ export function ShopSell({ items, breeds, stable, rareTrainingPrice, maxDiscount
   const lines = Object.entries(cart).filter(([, n]) => n > 0).map(([id, n]) => ({ item: items.find((i) => i.id === Number(id))!, quantity: n }));
   const itemsTotal = lines.reduce((t, l) => t + (l.item.price ?? 0) * l.quantity, 0);
   const trainingTotal = trainings.reduce((t, l) => t + l.price, 0);
-  const listTotal = Math.round((itemsTotal + trainingTotal) * 100) / 100;
+  const horsePrice = hq?.ok ? hq.price : 0;
+  const listTotal = Math.round((itemsTotal + trainingTotal + horsePrice) * 100) / 100;
   const flatNum = flat.trim() === "" ? null : Number(flat.replace(",", "."));
   const total = flatOn && flatNum != null && Number.isFinite(flatNum) ? flatNum : listTotal;
   const discountPct = flatOn && listTotal > 0 ? ((listTotal - total) / listTotal) * 100 : 0;
   const tooMuch = discountPct > maxDiscount + 1e-9 && !canOverride;
   const add = (id: number, d: number) => setCart((c) => ({ ...c, [id]: Math.max(0, (c[id] ?? 0) + d) }));
-  const empty = !lines.length && !trainings.length;
-  const reset = () => { setCart({}); setTrainings([]); setFlatOn(false); setFlat(""); };
+  const empty = !lines.length && !trainings.length && !soldHorse;
+  const reset = () => { setCart({}); setTrainings([]); setFlatOn(false); setFlat(""); setHorseSel(null); };
 
   const payload = [
     ...trainings.map((t) => ({ type: "training", coatId: t.coatId, horseId: t.horseId, rarity: t.rarity, plate: t.plate.trim() || null })),
@@ -75,7 +90,21 @@ export function ShopSell({ items, breeds, stable, rareTrainingPrice, maxDiscount
   return (
     <div className="grid gap-5 lg:grid-cols-[1.5fr_1fr]">
       <div className="space-y-5">
-        <TrainingPicker breeds={breeds} stable={stable} rareTrainingPrice={rareTrainingPrice} inCart={trainings.map((t) => t.horseId).filter((x): x is number => x != null)} onAdd={(t) => setTrainings((x) => [...x, t])} />
+        {horses.length > 0 || initialHorseId ? (
+          <HorseSaleBlock horses={horses} rules={horseRules} sel={horseSel} onChange={setHorseSel} />
+        ) : null}
+        {canShop && soldHorse && (shoeIds.classici || shoeIds.migliorati) && (
+          <div className="-mt-2 flex flex-wrap items-center gap-2 px-1 text-[13.5px]">
+            <span className="text-fg-3">Ferri per il cavallo:</span>
+            {([["classici", "4 ferri normali"], ["migliorati", "4 ferri migliorati"]] as const).map(([k, l]) => {
+              const id = shoeIds[k];
+              const it = id ? items.find((i) => i.id === id) : null;
+              return it ? <button key={k} type="button" className="chip" aria-pressed={!!cart[it.id]} onClick={() => add(it.id, cart[it.id] ? -cart[it.id] : 1)}>{l} · {money(it.price)}</button> : null;
+            })}
+          </div>
+        )}
+        {canShop && <TrainingPicker breeds={breeds} stable={stable} rareTrainingPrice={rareTrainingPrice} inCart={[...trainings.map((t) => t.horseId).filter((x): x is number => x != null), ...(soldHorse ? [soldHorse.id] : [])]} onAdd={(t) => setTrainings((x) => [...x, t])} />}
+        {canShop && (
         <div className="card card-pad">
           <h3 className="mb-3 flex items-center gap-2 font-semibold"><SaleTag kind="vetrina" /> Oggetti in vetrina</h3>
           <div className="relative mb-3">
@@ -108,6 +137,7 @@ export function ShopSell({ items, breeds, stable, rareTrainingPrice, maxDiscount
           ))}
           {list.length === 0 && <p className="text-fg-3">Nessun oggetto trovato.</p>}
         </div>
+        )}
       </div>
 
       <div className="card card-pad h-fit lg:sticky lg:top-6">
@@ -119,8 +149,22 @@ export function ShopSell({ items, breeds, stable, rareTrainingPrice, maxDiscount
             </button>
           )}
         </div>
-        {empty ? <p className="text-fg-3">Aggiungi un addestramento o tocca gli oggetti per metterli in fattura.</p> : (
+        {empty ? <p className="text-fg-3">Scegli un cavallo, aggiungi un addestramento o tocca gli oggetti per metterli in fattura.</p> : (
           <ul className="mb-3 divide-y divide-border">
+            {soldHorse && (
+              <li className="flex items-center gap-2 py-2">
+                <span className="relative shrink-0">
+                  <HorseThumb src={soldHorse.image} size={36} />
+                  <span className="absolute -right-1 -bottom-1"><SaleTag kind="cavallo" short /></span>
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block break-words">{soldHorse.breed} – {soldHorse.coat}</span>
+                  <span className="block text-[12.5px] text-fg-3">{[soldHorse.plate && `Targa ${soldHorse.plate}`, hq?.training ? "con addestramento" : null].filter(Boolean).join(" · ")}</span>
+                </span>
+                <b className="w-16 text-right tabular-nums">{hq?.ok ? money(hq.price) : "—"}</b>
+                <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Togli il cavallo" onClick={() => setHorseSel(null)}><X size={15} /></button>
+              </li>
+            )}
             {trainings.map((t) => (
               <li key={t.key} className="flex items-center gap-2 py-2">
                 <span className="relative shrink-0">
@@ -153,14 +197,25 @@ export function ShopSell({ items, breeds, stable, rareTrainingPrice, maxDiscount
           action={sellItems}
           onSuccess={() => { reset(); setRequestId(newId()); }}
           className="space-y-3"
-          confirm={() => (tooMuch ? null : `Registrare la vendita per ${money(total)}${total !== listTotal ? ` (listino ${money(listTotal)})` : ""}?`)}
+          confirm={() => {
+            if (tooMuch) return null;
+            const what = `Registrare la vendita per ${money(total)}${total !== listTotal ? ` (listino ${money(listTotal)})` : ""}?`;
+            return soldHorse?.pregnant ? `ATTENZIONE: la cavalla è INCINTA.\nÈ meglio non venderla prima del parto. ${what}` : what;
+          }}
         >
           <input type="hidden" name="requestId" value={requestId} />
           <input type="hidden" name="lines" value={JSON.stringify(payload)} />
+          {soldHorse && horseSel && (
+            <input type="hidden" name="horse" value={JSON.stringify({
+              horseId: soldHorse.id, version: soldHorse.version, bracket: horseSel.choice ?? "A", withTraining: horseSel.training || soldHorse.trained,
+              manualPrice: horseSel.manual.trim() === "" ? null : Number(horseSel.manual.replace(",", ".")),
+            })} />
+          )}
           {flatOn && <input type="hidden" name="flatPrice" value={flatNum ?? ""} />}
           <input name="buyerName" className="input" placeholder="Acquirente (facoltativo)" maxLength={120} />
-          {(trainings.length > 0 || itemsTotal > 0) && (
+          {(trainings.length > 0 || itemsTotal > 0 || soldHorse) && (
             <dl className="space-y-1 text-[14px]">
+              {soldHorse && <div className="flex justify-between"><dt className="text-fg-2">Cavallo</dt><dd className="tabular-nums">{hq?.ok ? money(hq.price) : "—"}</dd></div>}
               {trainings.length > 0 && <div className="flex justify-between"><dt className="text-fg-2">Addestramenti ({trainings.length})</dt><dd className="tabular-nums">{money(trainingTotal)}</dd></div>}
               {itemsTotal > 0 && <div className="flex justify-between"><dt className="text-fg-2">Oggetti</dt><dd className="tabular-nums">{money(itemsTotal)}</dd></div>}
             </dl>
@@ -189,7 +244,7 @@ export function ShopSell({ items, breeds, stable, rareTrainingPrice, maxDiscount
               )}
             </div>
           )}
-          <button className="btn btn-primary w-full" disabled={empty || !requestId || tooMuch || (flatOn && (flatNum == null || !Number.isFinite(flatNum) || flatNum < 0))}>
+          <button className="btn btn-primary w-full" disabled={empty || !requestId || tooMuch || horseBlocked || (!!soldHorse && !hq?.ok) || (flatOn && (flatNum == null || !Number.isFinite(flatNum) || flatNum < 0))}>
             Registra vendita · {money(total)}
           </button>
         </ActionForm>

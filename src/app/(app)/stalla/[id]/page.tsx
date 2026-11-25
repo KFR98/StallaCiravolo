@@ -15,7 +15,6 @@ import { money, dateTime, TZ } from "@/lib/format";
 import { Card, HorseThumb } from "@/components/ui";
 import { StatBars } from "@/components/StatBars";
 import { StatusBadge, SaleTypeBadge, PregnancyBadge } from "@/components/StatusBadge";
-import { SellForm } from "./SellForm";
 import { FoalForm } from "./FoalForm";
 import { ActionButton } from "@/components/ActionForm";
 import { setTrained } from "../actions";
@@ -58,13 +57,6 @@ export default async function HorsePage({ params }: { params: Promise<{ id: stri
   // chi può completare i dati del puledro: il proprietario, oppure la direzione (obbligatoria se la madre è rara)
   const canCompleteFoal = inStable && horse.needsData && (horse.needsStaff ? staff : isOwner || staff);
   const img = imageUrl(horse.coat.imagePath);
-  // Oggetti della bottega vendibili insieme al cavallo (prima quelli della categoria Cavalli)
-  const shopItems = inStable && isOwner
-    ? (await prisma.shopItem.findMany({ where: { kind: "VENDITA", archived: false, price: { not: null } }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }))
-        .map((i) => ({ id: i.id, name: i.name, price: Number(i.price), group: i.group }))
-        .sort((a, b) => (a.group === "Cavalli" ? 0 : 1) - (b.group === "Cavalli" ? 0 : 1))
-    : [];
-
   return (
     <>
       <Link href={inStable ? "/stalla" : "/stalla?vista=storico"} className="btn btn-ghost btn-sm mb-3 -ml-2"><ArrowLeft size={16} /> Stalla</Link>
@@ -194,29 +186,13 @@ export default async function HorsePage({ params }: { params: Promise<{ id: stri
               {horse.needsData ? (
                 <p className="text-fg-2">Prima di venderlo completa i dati del puledro (targa e sesso).</p>
               ) : isOwner ? (
-                <SellForm
-                  horseId={horse.id}
-                  version={horse.version}
-                  bracket={p.bracket}
-                  age={p.age}
-                  minSaleAge={s.minSaleAge}
-                  bracketAMax={s.bracketAMax}
-                  bracketBMax={s.bracketBMax}
-                  basePriceA={horse.coat.basePriceA == null ? null : Number(horse.coat.basePriceA)}
-                  basePriceB={horse.coat.basePriceB == null ? null : Number(horse.coat.basePriceB)}
-                  trainingPrice={horse.coat.trainingPrice == null ? null : Number(horse.coat.trainingPrice)}
-                  canOverride={can(user.role, "sales.overridePrice")}
-                  canSellUnderage={can(user.role, "horses.sellUnderage")}
-                  maxDiscount={s.maxDiscountPercent}
-                  pregnant={preg != null}
-                  shopItems={shopItems}
-                  rarity={rarity}
-                  rareBasePrice={s.rareBasePrice}
-                  rareTrainingPrice={s.rareTrainingPrice}
-                  shoeClassicId={s.shoeClassicItemId}
-                  shoeImprovedId={s.shoeImprovedItemId}
-                  trained={horse.trained}
-                />
+                <div className="space-y-3">
+                  <p className="text-[14px] text-fg-2">
+                    La vendita si fa nella <b>cassa</b>: fascia d&apos;età, addestramento, ferri e oggetti in un&apos;unica fattura, con prezzo forfettario se serve.
+                  </p>
+                  {preg != null && <p className="rounded-lg bg-warn-soft p-2.5 text-[14px] text-warn">La cavalla è incinta: è sconsigliato venderla prima del parto.</p>}
+                  <Link href={`/bottega?cavallo=${horse.id}`} className="btn btn-primary w-full">Vendi questo cavallo</Link>
+                </div>
               ) : (
                 <p className="text-fg-2">Questo cavallo è in carico a <b>{horse.owner.displayName}</b>: solo lui può venderlo o passarlo a un altro stalliere.</p>
               )}

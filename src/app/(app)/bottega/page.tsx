@@ -1,4 +1,5 @@
 import { requireUser } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { can, canSeeBreed } from "@/lib/permissions";
 import { getBreedOptions, imageUrl } from "@/lib/catalog";
 import { getSettings } from "@/lib/settings";
@@ -6,6 +7,8 @@ import { prisma } from "@/lib/db";
 import { money, dateTime } from "@/lib/format";
 import { PageHeader, Card, Tabs, Empty } from "@/components/ui";
 import { ShopSell, ItemTable, SupplierTable, HandleButton, type ShopItemRow, type StableHorse } from "./ShopClient";
+import type { HorseRules, SellableHorse } from "./HorseSaleBlock";
+import { horsePricing, pregnancyState } from "@/lib/horses";
 import { NoteForm, ReimbursementForm } from "./RequestForms";
 import { ActionButton } from "@/components/ActionForm";
 import { deleteShopNote } from "./actions";
@@ -17,11 +20,14 @@ const NOTE_TYPE = { NUOVO_FORNITORE: "Nuovo fornitore", MODIFICA_PROPOSTA: "Modi
 const NOTE_STATUS = { APERTA: ["Aperta", "badge-warn"], ACCOLTA: ["Accolta", "badge-ok"], RESPINTA: ["Respinta", "badge-neutral"] } as const;
 const REIMB_STATUS = { RICHIESTO: ["Richiesto", "badge-warn"], APPROVATO: ["Approvato", "badge-info"], PAGATO: ["Pagato", "badge-ok"], RESPINTO: ["Respinto", "badge-neutral"] } as const;
 
-export default async function ShopPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
-  const user = await requireUser("shop.view");
+export default async function ShopPage({ searchParams }: { searchParams: Promise<{ tab?: string; cavallo?: string }> }) {
+  // la bottega è anche la cassa per vendere i cavalli: si apre con "vedere la bottega" oppure con "vendere i propri cavalli"
+  const user = await requireUser();
+  if (!can(user.role, "shop.view") && !can(user.role, "horses.sell")) redirect("/?negato=1");
+  const shopView = can(user.role, "shop.view");
   const sp = await searchParams;
   const manage = can(user.role, "shop.manage");
-  const tab = ["vendi", "listino", "materie", "fornitori", "richieste"].includes(sp.tab ?? "") ? sp.tab! : "vendi";
+  const tab = shopView && ["vendi", "listino", "materie", "fornitori", "richieste"].includes(sp.tab ?? "") ? sp.tab! : "vendi";
   const [items, openReq] = await Promise.all([
     prisma.shopItem.findMany({ where: { archived: false }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }),
     manage ? prisma.reimbursement.count({ where: { status: { in: ["RICHIESTO", "APPROVATO"] } } }).then(async (n) => n + (await prisma.shopNote.count({ where: { status: "APERTA" } }))) : Promise.resolve(undefined),
@@ -53,20 +59,58 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
           rarity, owner: h.owner.displayName, price: rarity ? st.rareTrainingPrice : h.coat.trainingPrice == null ? null : Number(h.coat.trainingPrice),
         };
       });
+
+    // Cavalli della stalla vendibili da chi apre la cassa (i propri, o tutti con "gestire anche i cavalli degli altri")
+    const canSellHorses = can(user.role, "horses.sell");
+    const sellRaw = canSellHorses
+      ? await prisma.horse.findMany({
+          where: { status: "IN_STALLA", needsData: false, ...(can(user.role, "horses.manageAll") ? {} : { ownerId: user.id }) },
+          include: { breed: true, coat: true, owner: { select: { displayName: true } } },
+          orderBy: [{ breed: { name: "asc" } }, { coat: { name: "asc" } }],
+        })
+      : [];
+    const num = (v: unknown) => (v == null ? null : Number(v));
+    const horses: SellableHorse[] = sellRaw
+      .filter((h) => canSeeBreed(user.role, h.breedId))
+      .map((h) => {
+        const p = horsePricing(h, st);
+        return {
+          id: h.id, version: h.version, breed: h.breed.name, coat: h.coat.name, plate: h.plate, image: imageUrl(h.coat.imagePath), owner: h.owner.displayName,
+          age: p.age, computed: p.bracket === "TROPPO_GIOVANE" ? null : p.bracket, basePriceA: num(h.coat.basePriceA), basePriceB: num(h.coat.basePriceB),
+          trainingPrice: num(h.coat.trainingPrice), rarity: h.rarity === "RARO" || h.rarity === "LEGGENDARIO" ? h.rarity : null, trained: h.trained,
+          pregnant: pregnancyState(h) != null,
+        };
+      });
+    const horseRules: HorseRules = {
+      minSaleAge: st.minSaleAge, bracketAMax: st.bracketAMax, bracketBMax: st.bracketBMax, rareBasePrice: st.rareBasePrice, rareTrainingPrice: st.rareTrainingPrice,
+      canOverride: can(user.role, "sales.overridePrice"), canSellUnderage: can(user.role, "horses.sellUnderage"),
+    };
+    const initialHorseId = Number(sp.cavallo) || null;
+    // scorciatoia ferri: oggetti scelti in Impostazioni, altrimenti riconosciuti dal nome ("Ferri Classici (4)")
+    const sellItemsList = rows.filter((r) => r.kind === "VENDITA" && r.price != null);
+    const shoe = (setting: number, word: string) =>
+      (setting && sellItemsList.find((i) => i.id === setting)?.id) ||
+      sellItemsList.find((i) => { const n = i.name.toLowerCase(); return n.includes("ferri") && n.includes(word) && n.includes("4"); })?.id || null;
+    const shoeIds = { classici: shoe(st.shoeClassicItemId, "classic"), migliorati: shoe(st.shoeImprovedItemId, "miglior") };
     body = (
       <>
-        {can(user.role, "shop.sell") && (
+        {(can(user.role, "shop.sell") || canSellHorses) && (
           <ShopSell
             items={rows.filter((r) => r.kind === "VENDITA")}
             breeds={breeds}
             stable={stable}
+            horses={horses}
+            horseRules={horseRules}
+            initialHorseId={initialHorseId}
+            shoeIds={shoeIds}
+            canShop={can(user.role, "shop.sell")}
             rareTrainingPrice={st.rareTrainingPrice}
             maxDiscount={st.maxDiscountPercent}
             canFlat={can(user.role, "shop.flatPrice")}
             canOverride={can(user.role, "sales.overridePrice")}
           />
         )}
-        <Card title="Ultime fatture della bottega" className="mt-5">
+        {shopView && <Card title="Ultime fatture della bottega" className="mt-5">
           {recent.length === 0 ? <Empty>Nessuna vendita in bottega.</Empty> : (
             <ul className="divide-y divide-border">
               {recent.map((s) => (
@@ -87,7 +131,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
               ))}
             </ul>
           )}
-        </Card>
+        </Card>}
       </>
     );
   } else if (tab === "listino") {
@@ -159,13 +203,13 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
   return (
     <>
       <PageHeader title="Bottega" subtitle={manage ? "Oggetti in vendita, materie prime e fornitori. Puoi modificare listini e fornitori e gestire le richieste." : "Vendi oggetti della stalla, consulta prezzi e fornitori, chiedi rimborsi."} />
-      <Tabs active={tab} items={[
-        { key: "vendi", href: "/bottega", label: "Vendi (fattura)" },
+      {shopView && <Tabs active={tab} items={[
+        { key: "vendi", href: "/bottega", label: "Nuova vendita" },
         { key: "listino", href: "/bottega?tab=listino", label: "Prezzi oggetti" },
         { key: "materie", href: "/bottega?tab=materie", label: "Materie prime" },
         { key: "fornitori", href: "/bottega?tab=fornitori", label: "Fornitori" },
         { key: "richieste", href: "/bottega?tab=richieste", label: "Rimborsi e proposte", count: openReq || undefined },
-      ]} />
+      ]} />}
       {body}
     </>
   );

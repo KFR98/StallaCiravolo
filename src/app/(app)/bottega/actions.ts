@@ -8,6 +8,8 @@ import { audit } from "@/lib/audit";
 import { round2 } from "@/lib/pricing";
 import { getSettings } from "@/lib/settings";
 import { can, canSeeBreed } from "@/lib/permissions";
+import { quoteHorseSale } from "@/lib/horse-sale";
+import { revalidatePath } from "next/cache";
 
 // ───────── Articoli (oggetti in vendita e materie prime) ─────────
 export async function saveItem(form: FormData) {
@@ -106,12 +108,13 @@ const lineSchema = z
       }),
     ]),
   )
-  .min(1, "Aggiungi almeno un oggetto o un addestramento")
   .max(200, "Troppe righe in una fattura");
 
 export async function sellItems(form: FormData) {
   return run(async () => {
-    const user = await assertPermission("shop.sell");
+    // si entra con "vendere in bottega" oppure con "vendere i propri cavalli"; sotto si controlla riga per riga
+    const user = await assertPermission();
+    if (!can(user.role, "shop.sell") && !can(user.role, "horses.sell")) throw new UserError("Non hai i permessi per vendere.");
     const f = fd(form);
     const requestId = z.string().min(8).max(64).parse(f.str("requestId"));
     let lines: z.infer<typeof lineSchema>;
@@ -171,7 +174,29 @@ export async function sellItems(form: FormData) {
         quantity: 1, unitPrice: price, lineTotal: round2(price), coatId: c.id, breedName: c.breed.name, coatName: c.name, plate, rarity, horseId: h?.id ?? null,
       };
     });
-    const listTotal = round2(rows.reduce((t, r) => t + r.lineTotal, 0));
+    const itemsList = round2(rows.reduce((t, r) => t + r.lineTotal, 0));
+
+    // Cavallo della stalla venduto nella stessa fattura (facoltativo): prezzo calcolato qui dal listino
+    let horseSale: { horse: NonNullable<Awaited<ReturnType<typeof loadHorse>>>; q: ReturnType<typeof quoteHorseSale>; version: number } | null = null;
+    const horseRaw = f.str("horse");
+    if (horseRaw) {
+      if (!can(user.role, "horses.sell")) throw new UserError("Non puoi vendere cavalli.");
+      let hIn: z.infer<typeof horseSaleSchema>;
+      try {
+        hIn = horseSaleSchema.parse(JSON.parse(horseRaw));
+      } catch (e) {
+        if (e instanceof z.ZodError) throw e;
+        throw new UserError("Dati del cavallo non validi.");
+      }
+      if (horseIds.includes(hIn.horseId)) throw new UserError("L'addestramento del cavallo venduto si sceglie nella sua sezione (“Con addestramento”), non come riga a parte.");
+      const horse = await loadHorse(hIn.horseId);
+      if (!horse || !canSeeBreed(user.role, horse.breedId)) throw new UserError("Cavallo non trovato.");
+      horseSale = { horse, version: hIn.version, q: quoteHorseSale(horse, s, user, { bracket: hIn.bracket, withTraining: hIn.withTraining, manualPrice: hIn.manualPrice }) };
+    }
+    if (!rows.length && !horseSale) throw new UserError("Aggiungi un cavallo, un addestramento o un oggetto.");
+    if (rows.length && !can(user.role, "shop.sell")) throw new UserError("Non puoi vendere oggetti o addestramenti in bottega.");
+    const horsePrice = horseSale?.q.horsePrice ?? 0;
+    const listTotal = round2(itemsList + horsePrice);
 
     // Prezzo forfettario: entro lo sconto massimo per chi ha il permesso, oltre solo con "cambiare il prezzo di listino"
     const flat = f.num("flatPrice");
@@ -186,28 +211,86 @@ export async function sellItems(form: FormData) {
       total = round2(flat);
     }
     const flatUsed = total !== listTotal;
+    // lo sconto (o il rincaro) del forfait si divide in proporzione tra cavallo e resto della fattura
+    const discount = round2(listTotal - total);
+    const horseDisc = horseSale && listTotal > 0 ? round2((discount * horsePrice) / listTotal) : 0;
+    const horseFinal = round2(horsePrice - horseDisc);
+    const restFinal = round2(total - horseFinal);
+    const buyerName = f.opt("buyerName");
+    const notes = f.opt("notes");
+    const now = new Date();
 
-    const sale = await prisma.$transaction(async (tx) => {
-      const sale = await tx.itemSale.create({
-        data: { sellerId: user.id, sellerName: user.displayName, buyerName: f.opt("buyerName"), notes: f.opt("notes"), total, listTotal, requestId, lines: { create: rows } },
-      });
+    const out = await prisma.$transaction(async (tx) => {
+      if (horseSale) {
+        const locked = await tx.horse.updateMany({
+          where: { id: horseSale.horse.id, status: "IN_STALLA", version: horseSale.version },
+          data: { status: "VENDUTO", exitedAt: now, exitReason: "Venduto", version: { increment: 1 } },
+        });
+        if (locked.count !== 1) throw new UserError("Il cavallo è appena stato venduto o modificato da un altro utente. Ricarica la pagina.");
+      }
+      let itemSaleId: number | null = null;
+      if (rows.length) {
+        const is = await tx.itemSale.create({
+          data: {
+            sellerId: user.id, sellerName: user.displayName, buyerName, total: restFinal, listTotal: itemsList, requestId, soldAt: now,
+            notes: horseSale ? [`Venduti con il cavallo ${horseSale.q.label}`, notes].filter(Boolean).join(" · ") : notes,
+            lines: { create: rows },
+          },
+        });
+        itemSaleId = is.id;
+      }
       // cavalli in stalla addestrati con questa fattura: spunta "addestrato" (se nel frattempo qualcuno l'ha già messa, si annulla tutto)
       for (const id of horseIds) {
-        const r = await tx.horse.updateMany({ where: { id, status: "IN_STALLA", trained: false }, data: { trained: true, trainedAt: new Date(), trainedById: user.id, version: { increment: 1 } } });
+        const r = await tx.horse.updateMany({ where: { id, status: "IN_STALLA", trained: false }, data: { trained: true, trainedAt: now, trainedById: user.id, version: { increment: 1 } } });
         if (r.count !== 1) throw new UserError("Uno dei cavalli è appena stato addestrato o venduto da un altro utente. Ricarica la pagina.");
       }
-      const what = rows.map((r) => (r.kind === "ADDESTRAMENTO" ? r.itemName : `${r.quantity}× ${r.itemName}`)).join(", ");
+      let saleId: number | null = null;
+      if (horseSale) {
+        const { horse, q } = horseSale;
+        const created = await tx.sale.create({
+          data: {
+            horseId: horse.id, type: "STALLA", breedName: horse.breed.name, coatName: horse.coat.name, sex: horse.sex, plate: horse.plate,
+            ageAtSale: round2(q.age), priceBracket: q.priceBracket, listPrice: q.horsePrice, basePrice: q.base, trainingPrice: q.training || null,
+            itemsTotal: rows.length ? restFinal : null, itemSaleId,
+            discountType: horseDisc > 0 ? "IMPORTO" : null, discountValue: horseDisc > 0 ? horseDisc : null, finalPrice: horseFinal,
+            sellerId: user.id, sellerName: user.displayName, buyerName, notes: [notes, ...q.notes].filter(Boolean).join(" · ") || null, soldAt: now,
+          },
+        });
+        saleId = created.id;
+      }
+      const what = [
+        horseSale ? `cavallo ${horseSale.q.label}${horseSale.q.training ? " con addestramento" : ""}` : null,
+        ...rows.map((r) => (r.kind === "ADDESTRAMENTO" ? r.itemName : `${r.quantity}× ${r.itemName}`)),
+      ].filter(Boolean).join(", ");
       await audit(
-        user, flatUsed ? "PREZZO_FORFETTARIO" : "VENDITA_OGGETTI", "Bottega", sale.id,
-        flatUsed ? `Fattura a prezzo forfettario $${total} (listino $${listTotal}): ${what}` : `Fattura bottega per $${total}: ${what}`,
-        { listino: listTotal, incassato: total, righe: rows.map((r) => ({ tipo: r.kind, voce: r.itemName, qta: r.quantity, prezzo: r.lineTotal })) },
+        user, flatUsed ? "PREZZO_FORFETTARIO" : horseSale ? "VENDITA" : "VENDITA_OGGETTI", horseSale ? "Vendita" : "Bottega", saleId ?? itemSaleId,
+        flatUsed ? `Fattura a prezzo forfettario $${total} (listino $${listTotal}): ${what}` : `Fattura per $${total}: ${what}`,
+        {
+          listino: listTotal, incassato: total,
+          ...(horseSale ? { cavallo: { id: horseSale.horse.id, fascia: horseSale.q.bracket, fasciaCalcolata: horseSale.q.computed, base: horseSale.q.base, addestramento: horseSale.q.training, finale: horseFinal } } : {}),
+          righe: rows.map((r) => ({ tipo: r.kind, voce: r.itemName, qta: r.quantity, prezzo: r.lineTotal })),
+        },
         tx,
       );
-      return sale;
-    });
-    return { ok: true, message: `Vendita registrata: $${Number(sale.total)}${flatUsed ? ` (listino $${listTotal})` : ""}.` };
+      return { saleId };
+    }, { timeout: 30_000 });
+    revalidatePath("/vendite");
+    return {
+      ok: true,
+      message: `Vendita registrata: $${total}${flatUsed ? ` (listino $${listTotal})` : ""}.`,
+      ...(out.saleId ? { redirect: "/vendite?evidenzia=" + out.saleId } : {}),
+    };
   });
 }
+
+const horseSaleSchema = z.object({
+  horseId: z.number().int().positive(),
+  version: z.number().int().min(0),
+  bracket: z.enum(["A", "B", "LIBERO"]),
+  withTraining: z.boolean(),
+  manualPrice: z.number().min(0, "Prezzo non valido").max(10_000_000).nullable(),
+});
+const loadHorse = (id: number) => prisma.horse.findUnique({ where: { id }, include: { coat: true, breed: true } });
 
 export async function voidItemSale(form: FormData) {
   return run(async () => {
