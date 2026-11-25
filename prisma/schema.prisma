@@ -57,31 +57,32 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  sessions          Session[]
-  capturedHorses    Horse[]          @relation("HorseCapturedBy")
-  sales             Sale[]           @relation("SaleSeller")
-  voidedSales       Sale[]           @relation("SaleVoidedBy")
-  spawns            Spawn[]          @relation("SpawnCreatedBy")
-  spawnsUpdated     Spawn[]          @relation("SpawnUpdatedBy")
-  reservations      Reservation[]    @relation("ReservationAssigned")
-  reservationsMade  Reservation[]    @relation("ReservationCreatedBy")
-  reservationsEdit  Reservation[]    @relation("ReservationUpdatedBy")
-  payrollEntries    PayrollEntry[]   @relation("PayrollUser")
-  payrollPaid       PayrollEntry[]   @relation("PayrollPaidBy")
-  payments          Payment[]        @relation("PaymentUser")
-  paymentsRecorded  Payment[]        @relation("PaymentRecordedBy")
-  priceChanges      PriceHistory[]
-  auditLogs         AuditLog[]
-  ownedHorses       Horse[]          @relation("HorseOwner")
-  transfersFrom     HorseTransfer[]  @relation("TransferFrom")
-  transfersTo       HorseTransfer[]  @relation("TransferTo")
-  transfersMade     HorseTransfer[]  @relation("TransferBy")
-  itemSales         ItemSale[]       @relation("ItemSaleSeller")
-  itemSalesVoided   ItemSale[]       @relation("ItemSaleVoidedBy")
-  shopNotes         ShopNote[]       @relation("ShopNoteBy")
-  shopNotesHandled  ShopNote[]       @relation("ShopNoteHandledBy")
-  reimbursements    Reimbursement[]  @relation("ReimbUser")
-  reimbHandled      Reimbursement[]  @relation("ReimbHandledBy")
+  sessions         Session[]
+  noticeDismissals NoticeDismissal[]
+  capturedHorses   Horse[]           @relation("HorseCapturedBy")
+  sales            Sale[]            @relation("SaleSeller")
+  voidedSales      Sale[]            @relation("SaleVoidedBy")
+  spawns           Spawn[]           @relation("SpawnCreatedBy")
+  spawnsUpdated    Spawn[]           @relation("SpawnUpdatedBy")
+  reservations     Reservation[]     @relation("ReservationAssigned")
+  reservationsMade Reservation[]     @relation("ReservationCreatedBy")
+  reservationsEdit Reservation[]     @relation("ReservationUpdatedBy")
+  payrollEntries   PayrollEntry[]    @relation("PayrollUser")
+  payrollPaid      PayrollEntry[]    @relation("PayrollPaidBy")
+  payments         Payment[]         @relation("PaymentUser")
+  paymentsRecorded Payment[]         @relation("PaymentRecordedBy")
+  priceChanges     PriceHistory[]
+  auditLogs        AuditLog[]
+  ownedHorses      Horse[]           @relation("HorseOwner")
+  transfersFrom    HorseTransfer[]   @relation("TransferFrom")
+  transfersTo      HorseTransfer[]   @relation("TransferTo")
+  transfersMade    HorseTransfer[]   @relation("TransferBy")
+  itemSales        ItemSale[]        @relation("ItemSaleSeller")
+  itemSalesVoided  ItemSale[]        @relation("ItemSaleVoidedBy")
+  shopNotes        ShopNote[]        @relation("ShopNoteBy")
+  shopNotesHandled ShopNote[]        @relation("ShopNoteHandledBy")
+  reimbursements   Reimbursement[]   @relation("ReimbUser")
+  reimbHandled     Reimbursement[]   @relation("ReimbHandledBy")
 }
 
 model Session {
@@ -118,9 +119,9 @@ model Breed {
 }
 
 model Coat {
-  id           Int      @id @default(autoincrement())
+  id           Int     @id @default(autoincrement())
   breedId      Int
-  breed        Breed    @relation(fields: [breedId], references: [id], onDelete: Restrict)
+  breed        Breed   @relation(fields: [breedId], references: [id], onDelete: Restrict)
   name         String
   originalName String?
   description  String?
@@ -243,24 +244,24 @@ model Horse {
   foalCount      Int       @default(0)
 
   /// Rarità: null = normale, "RARO" o "LEGGENDARIO" (prezzo libero in vendita)
-  rarity     String?
+  rarity      String?
   /// Già addestrato in stalla: il prezzo base include l'addestramento (in vendita non si aggiunge di nuovo)
   trained     Boolean   @default(false)
   trainedAt   DateTime?
   trainedById Int?
   /// Puledro nato in stalla: id della madre e momento della nascita
-  motherId   Int?
-  bornAt     DateTime?
+  motherId    Int?
+  bornAt      DateTime?
   /// Dati da completare (targa, sesso): il puledro non si può vendere finché non sono a posto
-  needsData  Boolean   @default(false)
+  needsData   Boolean   @default(false)
   /// Puledro di madre rara/leggendaria: i dati li deve sistemare direttore, gestore o admin
-  needsStaff Boolean   @default(false)
+  needsStaff  Boolean   @default(false)
   /// Quando il proprietario ha impostato data e ora esatte di nascita (si può fare una sola volta)
-  birthSetAt DateTime?
+  birthSetAt  DateTime?
 
   capturedById Int
-  capturedBy   User     @relation("HorseCapturedBy", fields: [capturedById], references: [id], onDelete: Restrict)
-  capturedAt   DateTime @default(now())
+  capturedBy   User      @relation("HorseCapturedBy", fields: [capturedById], references: [id], onDelete: Restrict)
+  capturedAt   DateTime  @default(now())
   /// Valorizzato se il cavallo è stato depositato in stalla
   depositedAt  DateTime?
   exitedAt     DateTime?
@@ -342,21 +343,21 @@ model Sale {
   finalPrice    Decimal
 
   sellerId   Int
-  seller     User    @relation("SaleSeller", fields: [sellerId], references: [id], onDelete: Restrict)
+  seller     User      @relation("SaleSeller", fields: [sellerId], references: [id], onDelete: Restrict)
   sellerName String
   buyerName  String?
   /// Cliente della rubrica (il nome resta anche in buyerName, come fotografia)
   customerId Int?
   customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
   notes      String?
-  soldAt     DateTime @default(now())
+  soldAt     DateTime  @default(now())
 
   /// Le vendite non si cancellano: si annullano
-  voided       Boolean   @default(false)
-  voidedAt     DateTime?
-  voidedById   Int?
-  voidedBy     User?     @relation("SaleVoidedBy", fields: [voidedById], references: [id], onDelete: SetNull)
-  voidReason   String?
+  voided     Boolean   @default(false)
+  voidedAt   DateTime?
+  voidedById Int?
+  voidedBy   User?     @relation("SaleVoidedBy", fields: [voidedById], references: [id], onDelete: SetNull)
+  voidReason String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -394,18 +395,18 @@ model Spawn {
   x           Float
   y           Float
   breedId     Int?
-  breed       Breed?   @relation(fields: [breedId], references: [id], onDelete: SetNull)
+  breed       Breed?    @relation(fields: [breedId], references: [id], onDelete: SetNull)
   coatId      Int?
-  coat        Coat?    @relation(fields: [coatId], references: [id], onDelete: SetNull)
+  coat        Coat?     @relation(fields: [coatId], references: [id], onDelete: SetNull)
   location    String?
   description String?
   notes       String?
   createdById Int
-  createdBy   User     @relation("SpawnCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  createdBy   User      @relation("SpawnCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
   updatedById Int?
-  updatedBy   User?    @relation("SpawnUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedBy   User?     @relation("SpawnUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 // ───────────────────────────── NOTE / PRENOTAZIONI ─────────────────────────────
@@ -547,17 +548,17 @@ model ShopItem {
 }
 
 model Supplier {
-  id          Int      @id @default(autoincrement())
-  name        String
-  activity    String?
-  goods       String?
-  missiva     String?
+  id        Int      @id @default(autoincrement())
+  name      String
+  activity  String?
+  goods     String?
+  missiva   String?
   /// Contrassegnato con * nel file originale
-  starred     Boolean  @default(false)
-  notes       String?
-  archived    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  starred   Boolean  @default(false)
+  notes     String?
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   reimbursements Reimbursement[]
 }
@@ -649,26 +650,26 @@ model ItemSale {
 }
 
 model ItemSaleLine {
-  id         Int       @id @default(autoincrement())
-  saleId     Int
-  sale       ItemSale  @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  itemId     Int?
-  item       ShopItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
-  itemName   String
-  quantity   Int
-  unitPrice  Decimal
-  lineTotal  Decimal
+  id        Int       @id @default(autoincrement())
+  saleId    Int
+  sale      ItemSale  @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  itemId    Int?
+  item      ShopItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  itemName  String
+  quantity  Int
+  unitPrice Decimal
+  lineTotal Decimal
   /// "OGGETTO" (vetrina della bottega) oppure "ADDESTRAMENTO" (di un cavallo)
-  kind       String    @default("OGGETTO")
+  kind      String    @default("OGGETTO")
   /// Solo addestramenti: cavallo addestrato (fotografia dal catalogo)
-  coatId     Int?
-  breedName  String?
-  coatName   String?
-  plate      String?
+  coatId    Int?
+  breedName String?
+  coatName  String?
+  plate     String?
   /// "RARO" / "LEGGENDARIO" se il cavallo lo era (prezzo addestramento dedicato)
-  rarity     String?
+  rarity    String?
   /// Se l'addestramento era di un cavallo in stalla: viene segnato "addestrato" (e tolto se la vendita si annulla)
-  horseId    Int?
+  horseId   Int?
 }
 
 /// Movimenti manuali della cassa: prelievi, versamenti e allineamenti al contante reale.
@@ -755,4 +756,16 @@ model CashClosure {
   createdAt  DateTime  @default(now())
 
   @@index([periodTo])
+}
+
+/// Notifiche che un utente ha segnato come viste/ignorate (sono personali)
+model NoticeDismissal {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// chiave della notifica nello stato in cui è stata ignorata (es. "rimborso-3:RICHIESTO")
+  key       String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, key])
 }

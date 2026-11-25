@@ -25,7 +25,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const { stableName, discordUrl, discordStyle, mobileNav, notifyBell } = await getSettings();
   const notes = await getNotifications(user);
   const badges = notes.badges;
-  const bell = notifyBell && can(user.role, "notifications.view") ? { items: notes.items, total: notes.total, badges: notes.badges } : null;
+  const bell = notifyBell && can(user.role, "notifications.view") ? { items: notes.items, total: notes.total, hidden: notes.hidden, badges: notes.badges } : null;
   const visible = NAV.filter((n) => n.perms.some((p) => can(user.role, p)));
   // barra in basso del telefono: le 4 voci scelte in Impostazioni (tra quelle che il ruolo vede), poi le altre in ordine
   const mobile = [...mobileNav.filter((k) => visible.some((n) => n.key === k)), ...visible.map((n) => n.key).filter((k) => !mobileNav.includes(k))].slice(0, 4);

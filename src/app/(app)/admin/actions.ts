@@ -581,7 +581,8 @@ export async function saveSettings(form: FormData) {
         await tx.setting.upsert({ where: { key }, create: { key, value: JSON.stringify(value) }, update: { value: JSON.stringify(value) } });
       }
       const changed = Object.fromEntries(
-        Object.entries(next).filter(([k, v]) => prev[k as keyof Settings] !== v).map(([k, v]) => [k, { da: prev[k as keyof Settings], a: v }]),
+        // confronto per contenuto: liste e oggetti uguali non contano come "cambiati"
+        Object.entries(next).filter(([k, v]) => JSON.stringify(prev[k as keyof Settings]) !== JSON.stringify(v)).map(([k, v]) => [k, { da: prev[k as keyof Settings], a: v }]),
       );
       await audit(actor, "IMPOSTAZIONI", "Impostazioni", null, `Impostazioni modificate: ${Object.keys(changed).join(", ") || "nessuna modifica"}`, { ...changed, cavalliRicalcolati: frozen }, tx);
     });

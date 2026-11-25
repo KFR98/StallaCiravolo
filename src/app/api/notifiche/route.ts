@@ -9,6 +9,6 @@ export async function GET() {
   if (!user) return Response.json({ error: "Non autenticato" }, { status: 401 });
   const s = await getSettings();
   if (!s.notifyBell || !can(user.role, "notifications.view")) return Response.json({ error: "Non autorizzato" }, { status: 403 });
-  const { items, badges, total } = await getNotifications(user);
-  return Response.json({ items, badges, total }, { headers: { "Cache-Control": "no-store" } });
+  const { items, badges, total, hidden } = await getNotifications(user);
+  return Response.json({ items, badges, total, hidden }, { headers: { "Cache-Control": "no-store" } });
 }
