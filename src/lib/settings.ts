@@ -85,6 +85,16 @@ export const DEFAULT_SETTINGS = {
   sessionDays: 7,
   /** Foto: dimensione massima delle immagini caricate (MB) */
   maxImageMB: 8,
+  /** Stipendi: gli addestramenti venduti in bottega contano come "stable" (percentuale vendite in stalla) o "items" (percentuale oggetti) */
+  trainingPayrollCategory: "stable" as "stable" | "items",
+  /** Vendite: colore dell'etichetta di ogni tipo (Cavallo, Addestramento, Vetrina = oggetti, Blip = governo) */
+  saleLabelColors: { cavallo: "#1d5f8f", addestramento: "#1f7a3d", vetrina: "#b7791f", blip: "#78716c" } as Record<"cavallo" | "addestramento" | "vetrina" | "blip", string>,
+  /** Cassa: le vendite al blip del Governo entrano in cassa */
+  cashCountGov: true,
+  /** Cassa: gli stipendi pagati escono dalla cassa */
+  cashCountPayroll: true,
+  /** Cassa: i rimborsi pagati escono dalla cassa */
+  cashCountReimbursements: true,
   /** Strillone: lunghezza massima dell'annuncio (caratteri) */
   shoutMaxLength: 500,
   /** Stalla: ordinamento proposto all'apertura (ognuno può cambiarlo, e il browser lo ricorda) */

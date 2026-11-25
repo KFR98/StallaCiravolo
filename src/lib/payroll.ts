@@ -82,8 +82,12 @@ export function buildWeek(key: string, weekStart: Date, inProgress: boolean, liv
 async function weeklyTotals(userIds: number[]) {
   const [sales, items] = await Promise.all([
     prisma.sale.findMany({ where: { voided: false, sellerId: { in: userIds } }, select: { sellerId: true, soldAt: true, finalPrice: true, type: true } }),
-    prisma.itemSale.findMany({ where: { voided: false, sellerId: { in: userIds } }, select: { sellerId: true, soldAt: true, total: true } }),
+    prisma.itemSale.findMany({
+      where: { voided: false, sellerId: { in: userIds } },
+      select: { sellerId: true, soldAt: true, total: true, lines: { select: { kind: true, lineTotal: true } } },
+    }),
   ]);
+  const trainingAs = (await getSettings()).trainingPayrollCategory === "items" ? "items" : "stable";
   const map = new Map<string, WeekTotals & { weekStart: Date }>();
   const add = (uid: number, d: Date, k: "stable" | "gov" | "items", v: number) => {
     const w = weekStartOf(d, TZ);
@@ -94,7 +98,16 @@ async function weeklyTotals(userIds: number[]) {
     map.set(key, t);
   };
   for (const s of sales) add(s.sellerId, s.soldAt, s.type === "GOVERNO" ? "gov" : "stable", Number(s.finalPrice));
-  for (const s of items) add(s.sellerId, s.soldAt, "items", Number(s.total));
+  for (const s of items) {
+    // Fattura della bottega: la parte di addestramenti (in proporzione, se c'è un prezzo forfettario)
+    // conta come scelto in Impostazioni; il resto come oggetti
+    const total = Number(s.total);
+    const list = s.lines.reduce((t, l) => t + Number(l.lineTotal), 0);
+    const train = s.lines.filter((l) => l.kind === "ADDESTRAMENTO").reduce((t, l) => t + Number(l.lineTotal), 0);
+    const trainShare = list > 0 ? round2((total * train) / list) : 0;
+    if (trainShare > 0) add(s.sellerId, s.soldAt, trainingAs, trainShare);
+    if (total - trainShare > 0 || trainShare === 0) add(s.sellerId, s.soldAt, "items", round2(total - trainShare));
+  }
   return map;
 }
 

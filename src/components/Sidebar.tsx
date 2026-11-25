@@ -4,11 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import clsx from "clsx";
-import { LayoutDashboard, Warehouse, Receipt, Store, Map, BookOpen, NotebookPen, Users, Shield, LogOut, Menu, X, Plus } from "lucide-react";
+import { LayoutDashboard, Warehouse, Receipt, Store, Map, BookOpen, NotebookPen, Users, Shield, LogOut, Menu, X, Plus, Wallet } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { DiscordBrushDefs, DiscordLink, type DiscordStyle } from "./DiscordLink";
 
-const ICONS = { dashboard: LayoutDashboard, stable: Warehouse, sales: Receipt, shop: Store, map: Map, catalog: BookOpen, notes: NotebookPen, staff: Users, admin: Shield };
+const ICONS = { dashboard: LayoutDashboard, stable: Warehouse, sales: Receipt, shop: Store, map: Map, catalog: BookOpen, notes: NotebookPen, staff: Users, cash: Wallet, admin: Shield };
 
 export type NavItem = { href: string; label: string; icon: keyof typeof ICONS; match: string[]; mobile?: boolean };
 

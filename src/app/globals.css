@@ -480,3 +480,18 @@ input[type="radio"] {
 @media (max-width: 380px) {
   .rc-box > div { transform: scale(0.86); transform-origin: center top; }
 }
+
+/* ───────── Etichette dei tipi di vendita (colori in Impostazioni) ───────── */
+.sale-tag {
+  @apply inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[12px] leading-tight font-semibold whitespace-nowrap;
+  color: color-mix(in srgb, var(--tag) 85%, var(--fg));
+  background: color-mix(in srgb, var(--tag) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tag) 40%, transparent);
+}
+
+/* ───────── Cassa ───────── */
+.cash-kind {
+  @apply w-[118px] shrink-0 rounded-md px-2 py-1 text-center text-[12px] font-semibold;
+}
+.cash-in { @apply bg-ok-soft text-ok; }
+.cash-out { @apply bg-accent-soft text-accent-text; }

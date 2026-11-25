@@ -70,7 +70,11 @@ export default async function CoatPage({ params }: { params: Promise<{ coatId: s
               <dt className="text-fg-3">Vendita {s.minSaleAge}-{s.bracketAMax} anni</dt><dd className="text-right font-semibold">{money(coat.salePriceA)}</dd>
               <dt className="text-fg-3">Vendita {s.bracketAMax + 1}-{s.bracketBMax} anni</dt><dd className="text-right font-semibold">{money(coat.salePriceB)}</dd>
               <dt className="text-fg-3">Oltre {s.bracketBMax} anni</dt><dd className="text-right">Libero</dd>
-              <dt className="text-fg-3">Vendita al blip</dt><dd className="text-right font-semibold">{money(coat.governmentPrice)}</dd>
+              <dt className="border-t border-border pt-1.5 text-fg-3">Addestramento</dt><dd className="border-t border-border pt-1.5 text-right font-semibold">{money(coat.trainingPrice)}</dd>
+              <dt className="text-fg-3">Addestramento raro / leggendario</dt><dd className="text-right">{money(s.rareTrainingPrice)}</dd>
+              <dt className="border-t border-border pt-1.5 text-fg-3">Base {s.minSaleAge}-{s.bracketAMax} anni (senza addestr.)</dt><dd className="border-t border-border pt-1.5 text-right">{money(coat.basePriceA)}</dd>
+              <dt className="text-fg-3">Base {s.bracketAMax + 1}-{s.bracketBMax} anni (senza addestr.)</dt><dd className="text-right">{money(coat.basePriceB)}</dd>
+              <dt className="border-t border-border pt-1.5 text-fg-3">Vendita al blip</dt><dd className="border-t border-border pt-1.5 text-right font-semibold">{money(coat.governmentPrice)}</dd>
               <dt className="text-fg-3">Listino Gov</dt><dd className="text-right">{money(coat.govListPrice)}</dd>
             </dl>
             <p className="mt-3 text-[13.5px] text-fg-3">In stalla ora: <b className="text-fg">{inStable}</b></p>

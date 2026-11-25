@@ -43,6 +43,7 @@ export async function getBreedOptions() {
       salePriceB: c.salePriceB == null ? null : Number(c.salePriceB),
       governmentPrice: c.governmentPrice == null ? null : Number(c.governmentPrice),
       govListPrice: c.govListPrice == null ? null : Number(c.govListPrice),
+      trainingPrice: c.trainingPrice == null ? null : Number(c.trainingPrice),
     })),
   }));
 }

@@ -104,6 +104,29 @@ export function SettingsForm({ s, inStable, shopItems }: { s: Settings; inStable
         <Num name="pctStable" label="Vendite in stalla %" value={s.pctStable} step="any" min="0" max="100" />
         <Num name="pctGov" label="Vendite al blip %" value={s.pctGov} step="any" min="0" max="100" />
         <Num name="pctItems" label="Vendite oggetti %" value={s.pctItems} step="any" min="0" max="100" />
+        <label className="block">
+          <span className="field-label">Addestramenti venduti in bottega</span>
+          <select name="trainingPayrollCategory" defaultValue={s.trainingPayrollCategory} className="input">
+            <option value="stable">Contano come vendite in stalla</option>
+            <option value="items">Contano come vendite oggetti</option>
+          </select>
+        </label>
+      </Section>
+
+      <Section title="Cassa" hint="Cosa entra ed esce da solo dalla cassa. Prelievi, versamenti e allineamenti si fanno dalla pagina Cassa.">
+        {([["cashCountGov", "Le vendite al blip entrano in cassa", s.cashCountGov], ["cashCountPayroll", "Gli stipendi pagati escono dalla cassa", s.cashCountPayroll], ["cashCountReimbursements", "I rimborsi pagati escono dalla cassa", s.cashCountReimbursements]] as const).map(([n, l, v]) => (
+          <label key={n} className="flex min-h-10 items-center gap-3 rounded-lg border border-border px-3">
+            <input type="checkbox" name={n} defaultChecked={v} />
+            <span className="text-[14px]">{l}</span>
+          </label>
+        ))}
+      </Section>
+
+      <Section title="Etichette delle vendite" hint="Il colore di ogni etichetta nella pagina Vendite, in bottega e nelle fatture.">
+        <Color name="saleColor_cavallo" label="Cavallo" value={s.saleLabelColors.cavallo} />
+        <Color name="saleColor_addestramento" label="Addestramento" value={s.saleLabelColors.addestramento} />
+        <Color name="saleColor_vetrina" label="Vetrina (oggetti)" value={s.saleLabelColors.vetrina} />
+        <Color name="saleColor_blip" label="Blip (Governo)" value={s.saleLabelColors.blip} />
       </Section>
 
       <Section title="Stalliere della settimana (punti)" hint="Come si calcola la classifica: punti per ogni cattura e vendita, più punti per ogni $100 incassati (cavalli e oggetti).">

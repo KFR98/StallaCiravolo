@@ -6,6 +6,8 @@ import { assertPermission } from "@/lib/auth";
 import { run, fd, UserError } from "@/lib/action";
 import { audit } from "@/lib/audit";
 import { round2 } from "@/lib/pricing";
+import { getSettings } from "@/lib/settings";
+import { can, canSeeBreed } from "@/lib/permissions";
 
 // ───────── Articoli (oggetti in vendita e materie prime) ─────────
 export async function saveItem(form: FormData) {
@@ -88,8 +90,21 @@ export async function deleteSupplier(form: FormData) {
   });
 }
 
-// ───────── Vendita oggetti ─────────
-const lineSchema = z.array(z.object({ itemId: z.number().int().positive(), quantity: z.number().int().min(1).max(10000) })).min(1, "Aggiungi almeno un oggetto");
+// ───────── Fattura della bottega: oggetti in vetrina + addestramenti di cavalli ─────────
+const lineSchema = z
+  .array(
+    z.discriminatedUnion("type", [
+      z.object({ type: z.literal("item"), itemId: z.number().int().positive(), quantity: z.number().int().min(1).max(10000) }),
+      z.object({
+        type: z.literal("training"),
+        coatId: z.number().int().positive(),
+        rarity: z.enum(["RARO", "LEGGENDARIO"]).nullable(),
+        plate: z.string().trim().max(40).nullable(),
+      }),
+    ]),
+  )
+  .min(1, "Aggiungi almeno un oggetto o un addestramento")
+  .max(200, "Troppe righe in una fattura");
 
 export async function sellItems(form: FormData) {
   return run(async () => {
@@ -105,24 +120,69 @@ export async function sellItems(form: FormData) {
     }
     const dup = await prisma.itemSale.findUnique({ where: { requestId } });
     if (dup) return { ok: true, message: "Vendita già registrata." };
-    const items = await prisma.shopItem.findMany({ where: { id: { in: lines.map((l) => l.itemId) }, kind: "VENDITA", archived: false } });
-    const byId = new Map(items.map((i) => [i.id, i]));
+    const s = await getSettings();
+
+    // Prezzi SEMPRE dal database: oggetti dal listino della bottega, addestramenti dal catalogo (o prezzo rari)
+    const itemIds: number[] = [];
+    const coatIds: number[] = [];
+    for (const l of lines) {
+      if (l.type === "item") itemIds.push(l.itemId);
+      else coatIds.push(l.coatId);
+    }
+    const [items, coats] = await Promise.all([
+      prisma.shopItem.findMany({ where: { id: { in: itemIds }, kind: "VENDITA", archived: false } }),
+      prisma.coat.findMany({ where: { id: { in: coatIds }, archived: false }, include: { breed: true } }),
+    ]);
+    const itemById = new Map(items.map((i) => [i.id, i]));
+    const coatById = new Map(coats.map((c) => [c.id, c]));
     const rows = lines.map((l) => {
-      const it = byId.get(l.itemId);
-      if (!it) throw new UserError("Un oggetto del carrello non è più in vendita.");
-      if (it.price == null) throw new UserError(`"${it.name}" non ha un prezzo: avvisa la direzione.`);
-      const unit = Number(it.price);
-      return { itemId: it.id, itemName: it.name, quantity: l.quantity, unitPrice: unit, lineTotal: round2(unit * l.quantity) };
+      if (l.type === "item") {
+        const it = itemById.get(l.itemId);
+        if (!it) throw new UserError("Un oggetto del carrello non è più in vendita.");
+        if (it.price == null) throw new UserError(`"${it.name}" non ha un prezzo: avvisa la direzione.`);
+        const unit = Number(it.price);
+        return { kind: "OGGETTO", itemId: it.id, itemName: it.name, quantity: l.quantity, unitPrice: unit, lineTotal: round2(unit * l.quantity) };
+      }
+      const c = coatById.get(l.coatId);
+      if (!c || c.breed.archived || !canSeeBreed(user.role, c.breedId)) throw new UserError("Uno dei cavalli scelti non è più nel catalogo.");
+      const price = l.rarity ? s.rareTrainingPrice : c.trainingPrice == null ? null : Number(c.trainingPrice);
+      if (price == null) throw new UserError(`Per ${c.breed.name} – ${c.name} non c'è un prezzo di addestramento nel listino: avvisa la direzione.`);
+      const rareTxt = l.rarity === "RARO" ? " (raro)" : l.rarity === "LEGGENDARIO" ? " (leggendario)" : "";
+      return {
+        kind: "ADDESTRAMENTO", itemId: null, itemName: `Addestramento ${c.breed.name} – ${c.name}${rareTxt}${l.plate ? ` [${l.plate}]` : ""}`,
+        quantity: 1, unitPrice: price, lineTotal: round2(price), coatId: c.id, breedName: c.breed.name, coatName: c.name, plate: l.plate || null, rarity: l.rarity,
+      };
     });
-    const total = round2(rows.reduce((t, r) => t + r.lineTotal, 0));
+    const listTotal = round2(rows.reduce((t, r) => t + r.lineTotal, 0));
+
+    // Prezzo forfettario: entro lo sconto massimo per chi ha il permesso, oltre solo con "cambiare il prezzo di listino"
+    const flat = f.num("flatPrice");
+    let total = listTotal;
+    if (flat != null && round2(flat) !== listTotal) {
+      if (!can(user.role, "shop.flatPrice")) throw new UserError("Non puoi fare un prezzo forfettario.");
+      if (!Number.isFinite(flat) || flat < 0 || flat > 10_000_000) throw new UserError("Prezzo forfettario non valido.");
+      const discountPct = listTotal > 0 ? ((listTotal - flat) / listTotal) * 100 : 0;
+      if (discountPct > s.maxDiscountPercent + 1e-9 && !can(user.role, "sales.overridePrice")) {
+        throw new UserError(`Lo sconto massimo è il ${s.maxDiscountPercent}%: il prezzo più basso possibile è $${round2(listTotal * (1 - s.maxDiscountPercent / 100))}.`);
+      }
+      total = round2(flat);
+    }
+    const flatUsed = total !== listTotal;
+
     const sale = await prisma.$transaction(async (tx) => {
       const sale = await tx.itemSale.create({
-        data: { sellerId: user.id, sellerName: user.displayName, buyerName: f.opt("buyerName"), notes: f.opt("notes"), total, requestId, lines: { create: rows } },
+        data: { sellerId: user.id, sellerName: user.displayName, buyerName: f.opt("buyerName"), notes: f.opt("notes"), total, listTotal, requestId, lines: { create: rows } },
       });
-      await audit(user, "VENDITA_OGGETTI", "Bottega", sale.id, `Vendita oggetti per $${total}: ${rows.map((r) => `${r.quantity}× ${r.itemName}`).join(", ")}`, undefined, tx);
+      const what = rows.map((r) => (r.kind === "ADDESTRAMENTO" ? r.itemName : `${r.quantity}× ${r.itemName}`)).join(", ");
+      await audit(
+        user, flatUsed ? "PREZZO_FORFETTARIO" : "VENDITA_OGGETTI", "Bottega", sale.id,
+        flatUsed ? `Fattura a prezzo forfettario $${total} (listino $${listTotal}): ${what}` : `Fattura bottega per $${total}: ${what}`,
+        { listino: listTotal, incassato: total, righe: rows.map((r) => ({ tipo: r.kind, voce: r.itemName, qta: r.quantity, prezzo: r.lineTotal })) },
+        tx,
+      );
       return sale;
     });
-    return { ok: true, message: `Vendita registrata: $${Number(sale.total)}.` };
+    return { ok: true, message: `Vendita registrata: $${Number(sale.total)}${flatUsed ? ` (listino $${listTotal})` : ""}.` };
   });
 }
 

@@ -1,5 +1,7 @@
 import { requireUser } from "@/lib/auth";
-import { can } from "@/lib/permissions";
+import { can, canSeeBreed } from "@/lib/permissions";
+import { getBreedOptions } from "@/lib/catalog";
+import { getSettings } from "@/lib/settings";
 import { prisma } from "@/lib/db";
 import { money, dateTime } from "@/lib/format";
 import { PageHeader, Card, Tabs, Empty } from "@/components/ui";
@@ -7,6 +9,7 @@ import { ShopSell, ItemTable, SupplierTable, HandleButton, type ShopItemRow } fr
 import { NoteForm, ReimbursementForm } from "./RequestForms";
 import { ActionButton } from "@/components/ActionForm";
 import { deleteShopNote } from "./actions";
+import { SaleTag } from "@/components/SaleTag";
 
 export const metadata = { title: "Bottega" };
 
@@ -27,20 +30,41 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
 
   let body: React.ReactNode = null;
   if (tab === "vendi") {
-    const recent = await prisma.itemSale.findMany({ where: manage ? {} : { sellerId: user.id }, orderBy: { soldAt: "desc" }, take: 8, include: { lines: true } });
+    const [recent, breedOpts, st] = await Promise.all([
+      prisma.itemSale.findMany({ where: manage ? {} : { sellerId: user.id }, orderBy: { soldAt: "desc" }, take: 8, include: { lines: true } }),
+      getBreedOptions(),
+      getSettings(),
+    ]);
+    const breeds = breedOpts.filter((b) => canSeeBreed(user.role, b.id)).map((b) => ({ id: b.id, name: b.name, coats: b.coats.map((c) => ({ id: c.id, name: c.name, trainingPrice: c.trainingPrice })) }));
     body = (
       <>
-        {can(user.role, "shop.sell") && <ShopSell items={rows.filter((r) => r.kind === "VENDITA")} />}
-        <Card title="Ultime vendite di oggetti" className="mt-5">
-          {recent.length === 0 ? <Empty>Nessuna vendita di oggetti.</Empty> : (
+        {can(user.role, "shop.sell") && (
+          <ShopSell
+            items={rows.filter((r) => r.kind === "VENDITA")}
+            breeds={breeds}
+            rareTrainingPrice={st.rareTrainingPrice}
+            maxDiscount={st.maxDiscountPercent}
+            canFlat={can(user.role, "shop.flatPrice")}
+            canOverride={can(user.role, "sales.overridePrice")}
+          />
+        )}
+        <Card title="Ultime fatture della bottega" className="mt-5">
+          {recent.length === 0 ? <Empty>Nessuna vendita in bottega.</Empty> : (
             <ul className="divide-y divide-border">
               {recent.map((s) => (
                 <li key={s.id} className={`flex flex-wrap items-center justify-between gap-2 py-2.5 ${s.voided ? "opacity-50 line-through" : ""}`}>
                   <div className="min-w-0">
-                    <div className="truncate font-medium">{s.lines.map((l) => `${l.quantity}× ${l.itemName}`).join(", ")}</div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {s.lines.some((l) => l.kind === "ADDESTRAMENTO") && <SaleTag kind="addestramento" />}
+                      {s.lines.some((l) => l.kind !== "ADDESTRAMENTO") && <SaleTag kind="vetrina" />}
+                      <span className="truncate font-medium">{s.lines.map((l) => (l.kind === "ADDESTRAMENTO" ? l.itemName : `${l.quantity}× ${l.itemName}`)).join(", ")}</span>
+                    </div>
                     <div className="text-[13px] text-fg-3">{dateTime(s.soldAt)} · {s.sellerName}{s.buyerName ? ` · a ${s.buyerName}` : ""}</div>
                   </div>
-                  <b className="tabular-nums">{money(s.total)}</b>
+                  <span className="text-right">
+                    <b className="tabular-nums">{money(s.total)}</b>
+                    {s.listTotal != null && Number(s.listTotal) !== Number(s.total) && <span className="block text-[12px] text-fg-3">forfait · listino {money(s.listTotal)}</span>}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -118,7 +142,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
     <>
       <PageHeader title="Bottega" subtitle={manage ? "Oggetti in vendita, materie prime e fornitori. Puoi modificare listini e fornitori e gestire le richieste." : "Vendi oggetti della stalla, consulta prezzi e fornitori, chiedi rimborsi."} />
       <Tabs active={tab} items={[
-        { key: "vendi", href: "/bottega", label: "Vendi oggetti" },
+        { key: "vendi", href: "/bottega", label: "Vendi (fattura)" },
         { key: "listino", href: "/bottega?tab=listino", label: "Prezzi oggetti" },
         { key: "materie", href: "/bottega?tab=materie", label: "Materie prime" },
         { key: "fornitori", href: "/bottega?tab=fornitori", label: "Fornitori" },

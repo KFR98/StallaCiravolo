@@ -607,7 +607,10 @@ model ItemSale {
   seller     User      @relation("ItemSaleSeller", fields: [sellerId], references: [id], onDelete: Cascade)
   sellerName String
   buyerName  String?
+  /// Prezzo finale incassato (uguale a listTotal, oppure il prezzo forfettario)
   total      Decimal
+  /// Somma delle righe ai prezzi di listino (null nelle vendite vecchie = uguale a total)
+  listTotal  Decimal?
   notes      String?
   soldAt     DateTime  @default(now())
   requestId  String?   @unique
@@ -634,6 +637,36 @@ model ItemSaleLine {
   quantity   Int
   unitPrice  Decimal
   lineTotal  Decimal
+  /// "OGGETTO" (vetrina della bottega) oppure "ADDESTRAMENTO" (di un cavallo)
+  kind       String    @default("OGGETTO")
+  /// Solo addestramenti: cavallo addestrato (fotografia dal catalogo)
+  coatId     Int?
+  breedName  String?
+  coatName   String?
+  plate      String?
+  /// "RARO" / "LEGGENDARIO" se il cavallo lo era (prezzo addestramento dedicato)
+  rarity     String?
+}
+
+/// Movimenti manuali della cassa: prelievi, versamenti e allineamenti al contante reale.
+/// Gli incassi delle vendite e le uscite per stipendi e rimborsi si calcolano dalle loro tabelle.
+model CashMovement {
+  id         Int       @id @default(autoincrement())
+  /// "PRELIEVO", "VERSAMENTO" o "RETTIFICA"
+  kind       String
+  /// Positivo = entra in cassa, negativo = esce
+  amount     Decimal
+  reason     String
+  userId     Int?
+  userName   String
+  createdAt  DateTime  @default(now())
+  requestId  String?   @unique
+  voided     Boolean   @default(false)
+  voidedAt   DateTime?
+  voidedById Int?
+  voidReason String?
+
+  @@index([createdAt])
 }
 
 // ───────────────────────────── IMPOSTAZIONI E AUDIT ─────────────────────────────

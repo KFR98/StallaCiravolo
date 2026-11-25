@@ -45,6 +45,11 @@ export const AUDIT_ACTIONS: Record<string, ActionDef> = {
   ANNULLA_VENDITA: { label: "Vendita annullata", level: "alarm", group: "Stalla e vendite" },
   // Bottega
   VENDITA_OGGETTI: { label: "Vendita in bottega", level: "info", group: "Bottega" },
+  PREZZO_FORFETTARIO: { label: "Fattura con prezzo forfettario", level: "warn", group: "Bottega" },
+  PRELIEVO_CASSA: { label: "Prelievo dalla cassa", level: "alarm", group: "Cassa" },
+  VERSAMENTO_CASSA: { label: "Versamento in cassa", level: "warn", group: "Cassa" },
+  RETTIFICA_CASSA: { label: "Cassa allineata al contante reale", level: "alarm", group: "Cassa" },
+  ANNULLA_MOVIMENTO_CASSA: { label: "Movimento di cassa annullato", level: "critical", group: "Cassa" },
   PROPOSTA_BOTTEGA: { label: "Proposta in bottega", level: "info", group: "Bottega" },
   RICHIESTA_RIMBORSO: { label: "Richiesta di rimborso", level: "info", group: "Bottega" },
   GESTIONE_PROPOSTA: { label: "Proposta gestita", level: "info", group: "Bottega" },

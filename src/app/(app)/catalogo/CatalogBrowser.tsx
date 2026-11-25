@@ -54,9 +54,10 @@ export function CatalogBrowser({ rows, meta, labels }: { rows: CatalogRow[]; met
                         <Rating score={c.score} />
                       </div>
                       <StatBars compact stats={meta.map((m, i) => ({ label: m.label, max: m.max, value: c.stats[i] }))} />
-                      <dl className="mt-auto grid grid-cols-3 gap-1 border-t border-border pt-3 text-center text-[13px]">
+                      <dl className="mt-auto grid grid-cols-4 gap-1 border-t border-border pt-3 text-center text-[13px]">
                         <div><dt className="text-fg-3">{labels.a} anni</dt><dd className="font-semibold">{money(c.salePriceA)}</dd></div>
                         <div><dt className="text-fg-3">{labels.b} anni</dt><dd className="font-semibold">{money(c.salePriceB)}</dd></div>
+                        <div><dt className="text-fg-3">Addestr.</dt><dd className="font-semibold">{money(c.trainingPrice)}</dd></div>
                         <div><dt className="text-fg-3">Blip</dt><dd className="font-semibold">{money(c.governmentPrice)}</dd></div>
                       </dl>
                     </div>

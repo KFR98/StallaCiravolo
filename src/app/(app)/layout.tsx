@@ -14,6 +14,7 @@ const NAV: (NavItem & { perm: Permission })[] = [
   { href: "/catalogo", label: "Catalogo e prezzi", icon: "catalog", perm: "catalog.view", match: ["/catalogo", "/confronto", "/listino"] },
   { href: "/prenotazioni", label: "Bacheca", icon: "notes", perm: "reservations.edit", match: ["/prenotazioni"] },
   { href: "/dipendenti", label: "Personale", icon: "staff", perm: "employees.list", match: ["/dipendenti", "/stipendi"] },
+  { href: "/cassa", label: "Cassa", icon: "cash", perm: "cash.view", match: ["/cassa"] },
   { href: "/admin", label: "Amministrazione", icon: "admin", perm: "audit.view", match: ["/admin"] },
 ];
 

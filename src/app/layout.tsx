@@ -28,7 +28,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // colori di rari e leggendari scelti in Impostazioni (usati da card, badge, moduli)
   const st = await getSettings().catch(() => null);
   const hex = (c: unknown, d: string) => (typeof c === "string" && /^#[0-9a-fA-F]{6}$/.test(c) ? c : d);
-  const themeVars = { "--rare": hex(st?.rareColor, "#7c3aed"), "--legend": hex(st?.legendaryColor, "#c99a1c") } as React.CSSProperties;
+  const sl = st?.saleLabelColors;
+  const themeVars = {
+    "--rare": hex(st?.rareColor, "#7c3aed"), "--legend": hex(st?.legendaryColor, "#c99a1c"),
+    // etichette delle vendite (Impostazioni → Etichette delle vendite)
+    "--sale-cavallo": hex(sl?.cavallo, "#1d5f8f"), "--sale-addestramento": hex(sl?.addestramento, "#1f7a3d"),
+    "--sale-vetrina": hex(sl?.vetrina, "#b7791f"), "--sale-blip": hex(sl?.blip, "#78716c"),
+  } as React.CSSProperties;
   return (
     <html lang="it" suppressHydrationWarning>
       <head>

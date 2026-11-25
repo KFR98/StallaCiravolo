@@ -47,7 +47,11 @@ export const PERMISSIONS = {
 
   "shop.view": { group: "Bottega", label: "Vedere la bottega", defaults: ALL },
   "shop.sell": { group: "Bottega", label: "Vendere oggetti e fare proposte/rimborsi", defaults: ALL },
+  "shop.flatPrice": { group: "Bottega", label: "Fare un prezzo forfettario nella fattura della bottega", hint: "Oltre lo sconto massimo serve anche “Cambiare il prezzo di listino”", defaults: ALL },
   "shop.manage": { group: "Bottega", label: "Gestire listino oggetti, fornitori, proposte e rimborsi", defaults: BOSS },
+
+  "cash.view": { group: "Cassa", label: "Vedere la cassa (saldo, entrate e uscite)", defaults: TOP },
+  "cash.manage": { group: "Cassa", label: "Prelevare, versare e allineare la cassa", defaults: TOP },
 
   "employees.list": { group: "Personale", label: "Vedere l'elenco del personale", defaults: BOSS },
   "employees.stats": { group: "Personale", label: "Vedere statistiche e storico di ogni stalliere", defaults: TOP },

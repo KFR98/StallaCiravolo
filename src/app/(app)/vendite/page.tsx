@@ -1,21 +1,23 @@
 import Link from "next/link";
 import type { Prisma } from "@prisma/client";
 import { fromZonedTime } from "date-fns-tz";
+import clsx from "clsx";
 import { requireUser } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
 import { imageUrl } from "@/lib/catalog";
 import { money, dateTime, TZ } from "@/lib/format";
-import { formatAge } from "@/lib/age";
-import { PageHeader, Card, Empty, StatTile, Tabs, HorseName, HorseThumb } from "@/components/ui";
-import { SaleTypeBadge } from "@/components/StatusBadge";
+import { salesFeed, sortFeed, feedTotals, SORTS, type FeedEntry } from "@/lib/sales-feed";
+import { PageHeader, Card, Empty, StatTile, HorseThumb } from "@/components/ui";
+import { SaleTag, type SaleKind } from "@/components/SaleTag";
 import { SaleAdmin, ItemSaleAdmin } from "./SaleAdmin";
-import clsx from "clsx";
 
 export const metadata = { title: "Vendite" };
 
-type SP = { tab?: string; vista?: string; venditore?: string; da?: string; a?: string; q?: string; tipo?: string; min?: string; max?: string; annullate?: string; evidenzia?: string; pagina?: string };
+type SP = { vista?: string; venditore?: string; da?: string; a?: string; q?: string; tipo?: string; ordina?: string; min?: string; max?: string; annullate?: string; evidenzia?: string; pagina?: string };
 const PAGE = 100;
+const KINDS: [SaleKind, string][] = [["cavallo", "Cavalli"], ["addestramento", "Addestramenti"], ["vetrina", "Vetrina"], ["blip", "Blip"]];
+const COUNT_LABEL: Record<SaleKind, string> = { cavallo: "cavalli venduti", addestramento: "addestramenti", vetrina: "fatture con oggetti", blip: "vendite al blip" };
 
 function dateRange(sp: SP) {
   const r: Prisma.DateTimeFilter = {};
@@ -29,208 +31,165 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
   const sp = await searchParams;
   const all = can(user.role, "sales.viewAll");
   const isAdmin = can(user.role, "sales.correct");
-  const oggetti = sp.tab === "oggetti";
   const sellers = all ? await prisma.user.findMany({ orderBy: { displayName: "asc" }, select: { id: true, displayName: true } }) : [];
-  const sellerId = !all ? user.id : sp.venditore ? Number(sp.venditore) : undefined;
-  const soldAt = dateRange(sp);
-  const keep = (extra: Record<string, string>) => new URLSearchParams({ ...Object.fromEntries(Object.entries(sp).filter(([k, v]) => v && !["pagina", "evidenzia"].includes(k))), ...extra }).toString();
+  // senza "vedere le vendite di tutti" si vedono solo le proprie (controllo lato server)
+  const sellerId = !all ? user.id : sp.venditore ? Number(sp.venditore) || -1 : undefined;
+  const keep = (extra: Record<string, string>) =>
+    new URLSearchParams({ ...Object.fromEntries(Object.entries(sp).filter(([k, v]) => v && !["pagina", "evidenzia"].includes(k))), ...extra }).toString();
 
-  const filters = (
-    <form className="card mb-5 grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-[2fr_1.2fr_1fr_1fr_auto]">
-      {oggetti && <input type="hidden" name="tab" value="oggetti" />}
-      <input name="q" defaultValue={sp.q} className="input" placeholder={oggetti ? "Cerca oggetto o acquirente…" : "Cerca razza, manto, targa, acquirente…"} />
-      {all ? (
-        <select name="venditore" defaultValue={sp.venditore ?? ""} className="input">
-          <option value="">Tutti gli stallieri</option>
-          {sellers.map((u) => <option key={u.id} value={u.id}>{u.displayName}</option>)}
-        </select>
-      ) : <div className="hidden lg:block" />}
-      <input type="date" name="da" defaultValue={sp.da} className="input" aria-label="Dal" title="Dal" />
-      <input type="date" name="a" defaultValue={sp.a} className="input" aria-label="Al" title="Al" />
-      <div className="flex gap-2"><button className="btn btn-secondary flex-1">Filtra</button><Link href={oggetti ? "/vendite?tab=oggetti" : "/vendite"} className="btn btn-ghost">Azzera</Link></div>
-      {!oggetti && (
-        <div className="flex flex-wrap items-center gap-2 sm:col-span-2 lg:col-span-5">
-          {[["", "Tutte"], ["STALLA", "Stalla"], ["GOVERNO", "Blip Governo"]].map(([k, l]) => (
-            <Link key={k} className="chip" aria-pressed={(sp.tipo ?? "") === k} href={`/vendite?${keep({ tipo: k })}`}>{l}</Link>
-          ))}
-          <span className="mx-1 h-5 w-px bg-border" />
-          <input name="min" type="number" defaultValue={sp.min} className="input !min-h-8 !w-28 !py-1" placeholder="Prezzo min" />
-          <input name="max" type="number" defaultValue={sp.max} className="input !min-h-8 !w-28 !py-1" placeholder="Prezzo max" />
-          <label className="ml-auto flex items-center gap-2 text-[14px] text-fg-2"><input type="checkbox" name="annullate" value="1" defaultChecked={sp.annullate === "1"} />Mostra annullate</label>
-          {sp.tipo && <input type="hidden" name="tipo" value={sp.tipo} />}
-        </div>
-      )}
-    </form>
-  );
+  const feed = await salesFeed({ sellerId, soldAt: dateRange(sp), q: sp.q, includeVoided: sp.annullate === "1" }, imageUrl);
+  const tipo = KINDS.some(([k]) => k === sp.tipo) ? (sp.tipo as SaleKind) : null;
+  const min = sp.min && Number.isFinite(Number(sp.min)) ? Number(sp.min) : null;
+  const max = sp.max && Number.isFinite(Number(sp.max)) ? Number(sp.max) : null;
+  const filtered = feed.filter((e) => (!tipo || e.tags.includes(tipo)) && (min == null || e.total >= min) && (max == null || e.total <= max));
+  const sort = SORTS.some(([k]) => k === sp.ordina) ? sp.ordina! : "recenti";
+  const list = sortFeed(filtered, sort);
+  const tot = feedTotals(filtered);
+  const page = Math.max(1, Number(sp.pagina) || 1);
+  const pageRows = list.slice((page - 1) * PAGE, page * PAGE);
+  const byStalliere = sp.vista === "stallieri";
 
-  const tabs = <Tabs active={oggetti ? "oggetti" : "cavalli"} items={[{ key: "cavalli", href: "/vendite", label: "Cavalli" }, { key: "oggetti", href: "/vendite?tab=oggetti", label: "Oggetti" }]} />;
   const header = (
     <PageHeader
       title={all ? "Vendite" : "Le mie vendite"}
-      subtitle="Le vendite non si cancellano: l'amministratore può correggerle o annullarle."
-      actions={can(user.role, "data.export") && !oggetti ? <a href={`/api/export/vendite?${keep({})}`} className="btn btn-secondary">Esporta Excel</a> : undefined}
+      subtitle="Cavalli, addestramenti e oggetti della vetrina: tutto in un unico elenco. Le vendite non si cancellano, si correggono o si annullano."
+      actions={can(user.role, "data.export") ? <a href={`/api/export/vendite?${keep({})}`} className="btn btn-secondary">Esporta Excel</a> : undefined}
     />
   );
 
-  if (oggetti) {
-    const where: Prisma.ItemSaleWhereInput = { ...(sellerId ? { sellerId } : {}), ...(soldAt ? { soldAt } : {}), ...(sp.annullate === "1" ? {} : { voided: false }) };
-    if (sp.q) where.OR = [{ buyerName: { contains: sp.q } }, { lines: { some: { itemName: { contains: sp.q } } } }];
-    const [list, agg] = await Promise.all([
-      prisma.itemSale.findMany({ where, orderBy: { soldAt: "desc" }, take: 200, include: { lines: true } }),
-      prisma.itemSale.aggregate({ where: { ...where, voided: false }, _sum: { total: true }, _count: true }),
-    ]);
-    return (
-      <>
-        {header}{tabs}
-        <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatTile label="Vendite di oggetti" value={agg._count} />
-          <StatTile label="Incasso" value={money(agg._sum.total ?? 0)} tone="accent" />
+  return (
+    <>
+      {header}
+      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <StatTile label="Incasso" value={money(tot.total)} hint={`${tot.count} fatture`} tone="accent" />
+        {KINDS.map(([k, l]) => (
+          <Link key={k} href={`/vendite?${keep({ tipo: tipo === k ? "" : k })}`} className={clsx("card block p-3.5 transition-colors hover:border-border-strong", tipo === k && "ring-2 ring-accent")}>
+            <SaleTag kind={k} />
+            <div className="mt-1.5 text-[22px] font-bold tabular-nums">{money(tot[k])}</div>
+            <div className="text-[12.5px] text-fg-3">{tot.n[k]} {COUNT_LABEL[k]}</div>
+          </Link>
+        ))}
+      </div>
+
+      <form className="card mb-4 grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-[2fr_1.2fr_1fr_1fr_1.2fr]">
+        <input name="q" defaultValue={sp.q} className="input" placeholder="Cerca razza, manto, targa, oggetto, acquirente…" aria-label="Cerca" />
+        {all ? (
+          <select name="venditore" defaultValue={sp.venditore ?? ""} className="input" aria-label="Stalliere">
+            <option value="">Tutti gli stallieri</option>
+            {sellers.map((u) => <option key={u.id} value={u.id}>{u.displayName}</option>)}
+          </select>
+        ) : <div className="hidden lg:block" />}
+        <input type="date" name="da" defaultValue={sp.da} className="input" aria-label="Dal" title="Dal" />
+        <input type="date" name="a" defaultValue={sp.a} className="input" aria-label="Al" title="Al" />
+        <select name="ordina" defaultValue={sort} className="input" aria-label="Ordina">
+          {SORTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+        </select>
+        <div className="flex flex-wrap items-center gap-2 sm:col-span-2 lg:col-span-5">
+          <select name="tipo" defaultValue={tipo ?? ""} className="input !min-h-9 !w-auto !py-1" aria-label="Tipo">
+            <option value="">Tutti i tipi</option>
+            {KINDS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+          </select>
+          <input name="min" type="number" defaultValue={sp.min} className="input !min-h-9 !w-28 !py-1" placeholder="Importo min" aria-label="Importo minimo" />
+          <input name="max" type="number" defaultValue={sp.max} className="input !min-h-9 !w-28 !py-1" placeholder="Importo max" aria-label="Importo massimo" />
+          {all && (
+            <label className="flex items-center gap-2 text-[14px] text-fg-2"><input type="checkbox" name="vista" value="stallieri" defaultChecked={byStalliere} />Raggruppa per stalliere</label>
+          )}
+          <label className="flex items-center gap-2 text-[14px] text-fg-2"><input type="checkbox" name="annullate" value="1" defaultChecked={sp.annullate === "1"} />Mostra annullate</label>
+          <span className="flex-1" />
+          <button className="btn btn-primary">Filtra</button>
+          <Link href="/vendite" className="btn btn-ghost">Azzera</Link>
         </div>
-        {filters}
+      </form>
+
+      {list.length === 0 ? <Card><Empty>Nessuna vendita trovata.</Empty></Card> : byStalliere ? (
+        <div className="space-y-6">
+          {[...new Map(list.map((x) => [x.sellerId, x.sellerName])).entries()]
+            .sort((a, b) => a[1].localeCompare(b[1], "it"))
+            .map(([sid, name]) => {
+              const mine = list.filter((x) => x.sellerId === sid);
+              const t = feedTotals(mine);
+              return (
+                <Card key={sid} pad={false} title={
+                  <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    {name}
+                    <span className="font-sans text-[13.5px] font-normal tracking-normal text-fg-3 normal-case">
+                      {t.count} fatture · <b className="text-fg">{money(t.total)}</b>
+                      {KINDS.filter(([k]) => t[k] > 0).map(([k, l]) => ` · ${l.toLowerCase()} ${money(t[k])}`).join("")}
+                    </span>
+                  </span>
+                }>
+                  <SalesTable rows={mine.slice(0, 200)} sp={sp} isAdmin={isAdmin} sellers={sellers} />
+                </Card>
+              );
+            })}
+        </div>
+      ) : (
         <Card pad={false}>
-          {list.length === 0 ? <Empty>Nessuna vendita di oggetti.</Empty> : (
-            <div className="overflow-x-auto">
-              <table className="tbl">
-                <thead><tr><th className="!pl-5">Data</th><th>Oggetti</th><th>Venditore</th><th>Acquirente</th><th className="num">Totale</th>{isAdmin && <th className="!pr-5" />}</tr></thead>
-                <tbody>
-                  {list.map((s) => (
-                    <tr key={s.id} className={s.voided ? "opacity-50" : ""}>
-                      <td className="!pl-5 whitespace-nowrap">{dateTime(s.soldAt)}</td>
-                      <td className={s.voided ? "line-through" : ""}>{s.lines.map((l) => `${l.quantity}× ${l.itemName}`).join(", ")}{s.voided && <div className="text-[12.5px] text-accent-text no-underline">Annullata: {s.voidReason}</div>}</td>
-                      <td>{s.sellerName}</td>
-                      <td>{s.buyerName ?? "—"}</td>
-                      <td className="num font-bold">{money(s.total)}</td>
-                      {isAdmin && <td className="!pr-5 text-right">{!s.voided && <ItemSaleAdmin id={s.id} />}</td>}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <div className="border-b border-border px-4 py-2.5 text-[13.5px] text-fg-3 sm:px-5">
+            {list.length} {list.length === 1 ? "fattura" : "fatture"} · ordinate per {SORTS.find(([k]) => k === sort)?.[1].toLowerCase()}
+          </div>
+          <SalesTable rows={pageRows} sp={sp} isAdmin={isAdmin} sellers={sellers} />
+          {list.length > PAGE && (
+            <div className="flex items-center justify-between border-t border-border px-5 py-3">
+              <span className="text-fg-3">Pagina {page} di {Math.ceil(list.length / PAGE)}</span>
+              <div className="flex gap-2">
+                {page > 1 && <Link className="btn btn-secondary btn-sm" href={`/vendite?${keep({ pagina: String(page - 1) })}`}>← Precedenti</Link>}
+                {page * PAGE < list.length && <Link className="btn btn-secondary btn-sm" href={`/vendite?${keep({ pagina: String(page + 1) })}`}>Successive →</Link>}
+              </div>
             </div>
           )}
         </Card>
-      </>
-    );
-  }
-
-  const where: Prisma.SaleWhereInput = {};
-  if (sellerId) where.sellerId = sellerId;
-  if (sp.annullate !== "1") where.voided = false;
-  if (sp.tipo === "STALLA" || sp.tipo === "GOVERNO") where.type = sp.tipo;
-  if (sp.q) where.OR = [{ breedName: { contains: sp.q } }, { coatName: { contains: sp.q } }, { plate: { contains: sp.q } }, { buyerName: { contains: sp.q } }];
-  if (soldAt) where.soldAt = soldAt;
-  const price: Prisma.DecimalFilter = {};
-  if (sp.min && Number.isFinite(Number(sp.min))) price.gte = Number(sp.min);
-  if (sp.max && Number.isFinite(Number(sp.max))) price.lte = Number(sp.max);
-  if (price.gte != null || price.lte != null) where.finalPrice = price;
-  const page = Math.max(1, Number(sp.pagina) || 1);
-  const [sales, count, agg] = await Promise.all([
-    prisma.sale.findMany({ where, orderBy: { soldAt: "desc" }, take: PAGE, skip: (page - 1) * PAGE, include: { horse: { include: { coat: { select: { imagePath: true } } } } } }),
-    prisma.sale.count({ where }),
-    prisma.sale.groupBy({ by: ["type"], where: { ...where, voided: false }, _sum: { finalPrice: true }, _count: true }),
-  ]);
-  const tot = (t?: "STALLA" | "GOVERNO") => agg.filter((a) => !t || a.type === t).reduce((s, a) => s + Number(a._sum.finalPrice ?? 0), 0);
-  const cnt = (t?: "STALLA" | "GOVERNO") => agg.filter((a) => !t || a.type === t).reduce((s, a) => s + a._count, 0);
-
-  return (
-    <>
-      {header}{tabs}
-      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatTile label="Vendite" value={cnt()} />
-        <StatTile label="Incasso" value={money(tot())} tone="accent" />
-        <StatTile label="Dalla stalla" value={money(tot("STALLA"))} hint={`${cnt("STALLA")} vendite`} />
-        <StatTile label="Al blip" value={money(tot("GOVERNO"))} hint={`${cnt("GOVERNO")} vendite`} />
-      </div>
-      {filters}
-      <div className="mb-3 flex items-center gap-2">
-        <span className="text-[13px] font-semibold text-fg-3">Visualizza:</span>
-        <Link className="chip" aria-pressed={sp.vista !== "stallieri"} href={`/vendite?${keep({ vista: "" })}`}>Tabella</Link>
-        <Link className="chip" aria-pressed={sp.vista === "stallieri"} href={`/vendite?${keep({ vista: "stallieri" })}`}>Per stalliere</Link>
-      </div>
-      {sp.vista === "stallieri" ? (
-        sales.length === 0 ? <Card><Empty>Nessuna vendita trovata.</Empty></Card> : (
-          <div className="space-y-7">
-            {[...new Map(sales.map((x) => [x.sellerId, x.sellerName])).entries()].map(([sid, name]) => {
-              const mine = sales.filter((x) => x.sellerId === sid);
-              const total = mine.filter((x) => !x.voided).reduce((t, x) => t + Number(x.finalPrice), 0);
-              return (
-                <section key={sid}>
-                  <h2 className="mb-3 flex flex-wrap items-baseline gap-2">
-                    <span className="h-display text-[20px]">{name}</span>
-                    <span className="text-[13px] text-fg-3">{mine.length} vendite · {money(total)}</span>
-                  </h2>
-                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                    {mine.map((x) => (
-                      <Link key={x.id} href={`/stalla/${x.horseId}`} className={clsx("card flex gap-3 p-3 transition-colors hover:border-border-strong", x.voided && "opacity-50")}>
-                        <HorseThumb src={imageUrl(x.horse.coat.imagePath)} size={56} />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0"><div className="truncate font-semibold">{x.breedName}</div><div className="truncate text-[13px] text-fg-3">{x.coatName}</div></div>
-                            <div className="text-right">
-                              <b className="text-[15.5px] whitespace-nowrap">{money(x.finalPrice)}</b>
-                              {x.itemsTotal != null && <div className="text-[12px] whitespace-nowrap text-fg-3">+ oggetti {money(x.itemsTotal)}</div>}
-                            </div>
-                          </div>
-                          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[12.5px] text-fg-3">
-                            <SaleTypeBadge type={x.type} />
-                            {x.plate && <span className="font-mono">{x.plate}</span>}
-                            <span>{dateTime(x.soldAt)}</span>
-                            {x.voided && <span className="badge badge-accent">Annullata</span>}
-                          </div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </section>
-              );
-            })}
-          </div>
-        )
-      ) : (
-      <Card pad={false}>
-        {sales.length === 0 ? <Empty>Nessuna vendita trovata.</Empty> : (
-          <div className="overflow-x-auto">
-            <table className="tbl">
-              <thead><tr><th className="!pl-5">Cavallo</th><th>Tipo</th><th>Targa</th><th>Età</th><th>Venditore</th><th>Data</th><th className="num">Listino</th><th className="num">Prezzo</th>{isAdmin && <th className="!pr-5" />}</tr></thead>
-              <tbody>
-                {sales.map((s) => (
-                  <tr key={s.id} className={clsx(String(s.id) === sp.evidenzia && "[&>td]:!bg-accent-soft", s.voided && "opacity-50")}>
-                    <td className="!pl-5">
-                      <HorseName image={imageUrl(s.horse.coat.imagePath)} breed={s.breedName} coat={s.coatName} href={`/stalla/${s.horseId}`} sub={s.buyerName ? `a ${s.buyerName}` : undefined} />
-                      {s.voided && <div className="mt-1 text-[12.5px] text-accent-text">Annullata: {s.voidReason}</div>}
-                    </td>
-                    <td><SaleTypeBadge type={s.type} /></td>
-                    <td className="font-mono">{s.plate ?? "—"}</td>
-                    <td className="whitespace-nowrap">{s.ageAtSale != null ? formatAge(Number(s.ageAtSale)) : "—"}</td>
-                    <td>{s.sellerName}</td>
-                    <td className="whitespace-nowrap text-fg-2">{dateTime(s.soldAt)}</td>
-                    <td className="num text-fg-2">
-                      {s.basePrice != null ? money(s.basePrice) : money(s.listPrice)}
-                      {s.trainingPrice != null && <div className="text-[12px]">+ addestr. {money(s.trainingPrice)}</div>}
-                      {s.itemsTotal != null && <div className="text-[12px]">+ oggetti {money(s.itemsTotal)}</div>}
-                      {s.discountValue ? <div className="text-[12px]">sconto {s.discountType === "PERCENTUALE" ? `${Number(s.discountValue)}%` : money(s.discountValue)}</div> : null}</td>
-                    <td className="num text-[15.5px] font-bold">{money(s.finalPrice)}</td>
-                    {isAdmin && (
-                      <td className="!pr-5 text-right">
-                        <SaleAdmin sale={{ id: s.id, finalPrice: Number(s.finalPrice), sellerId: s.sellerId, buyerName: s.buyerName, notes: s.notes, soldAt: s.soldAt.toISOString(), voided: s.voided, type: s.type }} sellers={sellers} />
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {count > PAGE && (
-          <div className="flex items-center justify-between border-t border-border px-5 py-3">
-            <span className="text-fg-3">Pagina {page} di {Math.ceil(count / PAGE)}</span>
-            <div className="flex gap-2">
-              {page > 1 && <Link className="btn btn-secondary btn-sm" href={`/vendite?${keep({ pagina: String(page - 1) })}`}>← Precedenti</Link>}
-              {page * PAGE < count && <Link className="btn btn-secondary btn-sm" href={`/vendite?${keep({ pagina: String(page + 1) })}`}>Successive →</Link>}
-            </div>
-          </div>
-        )}
-      </Card>
       )}
     </>
+  );
+}
+
+function SalesTable({ rows, sp, isAdmin, sellers }: { rows: FeedEntry[]; sp: SP; isAdmin: boolean; sellers: { id: number; displayName: string }[] }) {
+  return (
+    <ul className="divide-y divide-border">
+      {rows.map((e) => (
+        <li key={e.key} className={clsx("flex gap-3 px-4 py-3 sm:px-5", e.voided && "opacity-55", e.source === "sale" && String(e.id) === sp.evidenzia && "bg-accent-soft")}>
+          {e.horseId ? (
+            <Link href={`/stalla/${e.horseId}`} className="shrink-0"><HorseThumb src={e.image} size={48} /></Link>
+          ) : (
+            <span className="grid size-12 shrink-0 place-items-center rounded-lg bg-surface-3 text-[20px]" aria-hidden="true">{e.tags.includes("addestramento") ? "🏇" : "🛒"}</span>
+          )}
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {e.tags.map((t) => <SaleTag key={t} kind={t} />)}
+              {e.voided && <span className="badge badge-accent">Annullata</span>}
+            </div>
+            <div className={clsx("mt-1 font-semibold break-words", e.voided && "line-through")}>
+              {e.horseId ? <Link href={`/stalla/${e.horseId}`} className="hover:underline">{e.title}</Link> : e.title}
+            </div>
+            <div className="text-[13px] text-fg-3">
+              {[e.subtitle, e.plate && `Targa ${e.plate}`, `venduto da ${e.sellerName}`, e.buyerName && `a ${e.buyerName}`, dateTime(e.soldAt)].filter(Boolean).join(" · ")}
+            </div>
+            {e.voided && e.voidReason && <div className="text-[12.5px] text-accent-text">Annullata: {e.voidReason}</div>}
+            {e.lines.length > 1 && (
+              <details className="mt-1 text-[13px]">
+                <summary className="cursor-pointer text-fg-2 hover:text-fg">Dettaglio fattura ({e.lines.length} righe)</summary>
+                <ul className="mt-1 space-y-0.5">
+                  {e.lines.map((l, i) => (
+                    <li key={i} className="flex items-center gap-2">
+                      <SaleTag kind={l.kind} short />
+                      <span className="min-w-0 flex-1 truncate">{l.qty > 1 ? `${l.qty}× ` : ""}{l.label}</span>
+                      <span className="tabular-nums">{money(l.amount)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </div>
+          <div className="flex shrink-0 flex-col items-end gap-1 text-right">
+            <b className="text-[16px] tabular-nums">{money(e.total)}</b>
+            {e.listTotal != null && e.listTotal !== e.total && <span className="text-[12px] text-fg-3 line-through">{money(e.listTotal)}</span>}
+            {isAdmin && !e.voided && (e.source === "sale" ? (
+              <SaleAdmin sale={{ id: e.id, finalPrice: e.lines[0]?.amount ?? e.total, sellerId: e.sellerId, buyerName: e.buyerName, notes: e.notes, soldAt: e.soldAt.toISOString(), voided: e.voided, type: e.saleType ?? "STALLA" }} sellers={sellers} />
+            ) : <ItemSaleAdmin id={e.id} />)}
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }
