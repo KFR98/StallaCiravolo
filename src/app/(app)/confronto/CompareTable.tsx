@@ -91,14 +91,14 @@ export function CompareTable({ rows, meta, labels, maxCompare }: { rows: Catalog
             {list.map((r) => (
               <tr key={r.id}>
                 <td className="sticky left-0 z-10 bg-surface !pl-2">
-                  <span className="flex items-center gap-1.5">
+                  <span className="flex w-[180px] sm:w-[250px] items-center gap-1.5">
                   <button type="button" onClick={() => (ids.includes(r.id) ? remove(r.id) : add(r.id))} disabled={!ids.includes(r.id) && ids.length >= maxCompare}
                     className={clsx("btn btn-icon btn-sm shrink-0", ids.includes(r.id) ? "btn-primary" : "btn-ghost")}
                     aria-label={ids.includes(r.id) ? `Togli ${r.breed} ${r.coat} dal confronto` : `Aggiungi ${r.breed} ${r.coat} al confronto`}
                     title={ids.includes(r.id) ? "Nel confronto" : ids.length >= maxCompare ? `Massimo ${maxCompare} cavalli` : "Aggiungi al confronto"}>
                     {ids.includes(r.id) ? <Check size={15} /> : <Plus size={15} />}
                   </button>
-                  <Link href={`/catalogo/${r.id}`} className="flex min-w-[170px] items-center gap-2.5 hover:text-accent-text">
+                  <Link href={`/catalogo/${r.id}`} className="flex min-w-0 flex-1 items-center gap-2.5 hover:text-accent-text">
                     <HorseThumb src={r.image} size={32} />
                     <span className="min-w-0"><b className="block truncate">{r.breed}</b><span className="block truncate text-[13px] text-fg-3">{r.coat}</span></span>
                   </Link>
