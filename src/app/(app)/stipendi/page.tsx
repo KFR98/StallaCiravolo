@@ -10,7 +10,7 @@ import { weekLabel } from "@/lib/weeks";
 import { roleLabel } from "@/lib/permissions";
 import { PageHeader, Card, StatTile, TableWrap, Empty } from "@/components/ui";
 import { PayButton } from "./PayrollControls";
-import { StaffTabs } from "../StaffTabs";
+import { MoneyTabs } from "../MoneyTabs";
 
 export const metadata = { title: "Stipendi" };
 
@@ -22,7 +22,7 @@ export default async function PayrollPage({ searchParams }: { searchParams: Prom
   const cash = !storico && can(user.role, "cash.view") && s.cashCountPayroll ? await cashBalance() : null;
   const header = (
     <PageHeader
-      title="Personale"
+      title="Stipendi"
       subtitle={`Stipendio settimanale (lunedì–domenica): ${s.pctStable}% vendite in stalla · ${s.pctGov}% vendite al blip · ${s.pctItems}% vendite oggetti, salvo percentuali personali.`}
       actions={<a href="/api/export/pagamenti" className="btn btn-secondary">Esporta</a>}
     />
@@ -33,7 +33,7 @@ export default async function PayrollPage({ searchParams }: { searchParams: Prom
     return (
       <>
         {header}
-        <StaffTabs role={user.role} active="storico" />
+        <MoneyTabs role={user.role} active="storico" />
         <Card>
           {payments.length === 0 ? <Empty>Nessun pagamento registrato.</Empty> : (
             <TableWrap>
@@ -72,7 +72,7 @@ export default async function PayrollPage({ searchParams }: { searchParams: Prom
   return (
     <>
       {header}
-      <StaffTabs role={user.role} active="stipendi" />
+      <MoneyTabs role={user.role} active="stipendi" />
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatTile label="Da pagare" value={money(due)} hint="settimane concluse" tone="accent" />
         <StatTile label="Già pagato" value={money(paidAll)} />

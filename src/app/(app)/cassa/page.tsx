@@ -9,6 +9,7 @@ import { cashLedger, CASH_KIND_LABEL, type CashKind } from "@/lib/cash";
 import { getSettings } from "@/lib/settings";
 import { PageHeader, Card, Empty } from "@/components/ui";
 import { CashActions, VoidMove } from "./CashClient";
+import { MoneyTabs } from "../MoneyTabs";
 import { CloseCashButton } from "./ClosureClient";
 import { closureSummary } from "@/lib/cash-closure";
 
@@ -64,10 +65,10 @@ export default async function CashPage({ searchParams }: { searchParams: Promise
         title="Cassa"
         subtitle="Quanto c'è in cassa, da dove arriva e dove va. Si aggiorna da solo con vendite, stipendi e rimborsi."
         actions={<>
-          <Link href="/cassa/chiusure" className="btn btn-ghost">Chiusure</Link>
           {canClose && <CloseCashButton canAlign={manage} preview={{ from: preview!.from, income: preview!.income, outgo: preview!.outgo, closing: preview!.closingBalance, movements: preview!.movements }} />}
         </>}
       />
+      <MoneyTabs role={me.role} active="cassa" />
 
       <div className="mb-5 grid gap-4 lg:grid-cols-[1.1fr_2fr]">
         <section className="card relative overflow-hidden p-5">

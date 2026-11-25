@@ -7,6 +7,7 @@ import { assertPermission, hashPassword } from "@/lib/auth";
 import { run, fd, UserError } from "@/lib/action";
 import { audit } from "@/lib/audit";
 import { isDiscordInvite } from "@/lib/discord";
+import { NAV_CHOICE_KEYS } from "@/lib/nav-keys";
 import { DEFAULT_SETTINGS, getSettings, type Settings } from "@/lib/settings";
 import { currentAge } from "@/lib/age";
 import { saveImage, saveImageBuffer, deleteUpload, maxImageMB } from "@/lib/uploads";
@@ -441,6 +442,7 @@ export async function saveSettings(form: FormData) {
         navBadges: z.object({ stalla: z.boolean(), bottega: z.boolean(), bacheca: z.boolean(), personale: z.boolean(), admin: z.boolean() }),
         cashCountGov: z.boolean(),
         customersAutoCreate: z.boolean(),
+        mobileNav: z.array(z.enum(NAV_CHOICE_KEYS as [string, ...string[]])).length(4).refine((a) => new Set(a).size === 4, { message: "Nella barra del telefono ogni voce va scelta una volta sola." }),
         cashCountPayroll: z.boolean(),
         cashCountReimbursements: z.boolean(),
         saleLabelColors: z.object({
@@ -497,6 +499,7 @@ export async function saveSettings(form: FormData) {
         navBadges: { stalla: f.bool("navBadge_stalla"), bottega: f.bool("navBadge_bottega"), bacheca: f.bool("navBadge_bacheca"), personale: f.bool("navBadge_personale"), admin: f.bool("navBadge_admin") },
         cashCountGov: f.bool("cashCountGov"),
         customersAutoCreate: f.bool("customersAutoCreate"),
+        mobileNav: [0, 1, 2, 3].map((i) => f.str(`mobileNav_${i}`)),
         cashCountPayroll: f.bool("cashCountPayroll"),
         cashCountReimbursements: f.bool("cashCountReimbursements"),
         saleLabelColors: { cavallo: f.str("saleColor_cavallo"), addestramento: f.str("saleColor_addestramento"), vetrina: f.str("saleColor_vetrina"), blip: f.str("saleColor_blip") },

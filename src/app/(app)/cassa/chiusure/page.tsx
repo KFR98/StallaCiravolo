@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { MoneyTabs } from "../../MoneyTabs";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { money, dateTime } from "@/lib/format";
@@ -8,12 +8,12 @@ import { PageHeader, Card, Empty } from "@/components/ui";
 export const metadata = { title: "Chiusure di cassa" };
 
 export default async function ClosuresPage() {
-  await requireUser("cash.view");
+  const me = await requireUser("cash.view");
   const list = await prisma.cashClosure.findMany({ orderBy: { periodTo: "desc" }, take: 200 });
   return (
     <>
-      <Link href="/cassa" className="btn btn-ghost btn-sm mb-3 -ml-2"><ArrowLeft size={16} /> Cassa</Link>
       <PageHeader title="Chiusure di cassa" subtitle="Ogni chiusura fotografa entrate, uscite e saldo del periodo, con il contante contato. Non si possono modificare." />
+      <MoneyTabs role={me.role} active="chiusure" />
       <Card pad={false}>
         {list.length === 0 ? <div className="card-pad"><Empty>Ancora nessuna chiusura. Si fa dalla pagina Cassa con “Chiudi cassa”.</Empty></div> : (
           <ul className="divide-y divide-border">

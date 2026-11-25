@@ -7,11 +7,13 @@ import { PageHeader, Card, TableWrap, Empty } from "@/components/ui";
 import { ActionForm, ActionButton } from "@/components/ActionForm";
 import { makeBackup, restoreFromFile, wipeGameData } from "./actions";
 import { can } from "@/lib/permissions";
+import { ImportWizard } from "../import/ImportWizard";
 
 export const metadata = { title: "Backup" };
 
 export default async function BackupPage() {
   const me = await requireUser("data.backup");
+  const canImport = can(me.role, "data.import");
   const [list, s] = await Promise.all([listBackups(), getSettings()]);
   return (
     <>
@@ -85,6 +87,12 @@ export default async function BackupPage() {
           )}
         </div>
       </div>
+      {canImport && (
+        <Card title="Importa il listino Excel" className="mt-5" id="importa">
+          <p className="mb-3 text-[14px] text-fg-2">Carica il file (foglio “LISTINO”). Prima vedrai il riepilogo dei dati e delle anomalie: nulla viene salvato fino alla conferma.</p>
+          <ImportWizard />
+        </Card>
+      )}
     </>
   );
 }

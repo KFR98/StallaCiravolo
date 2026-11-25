@@ -95,6 +95,8 @@ export const DEFAULT_SETTINGS = {
   cashCountPayroll: true,
   /** Cassa: i rimborsi pagati escono dalla cassa */
   cashCountReimbursements: true,
+  /** Telefono: le 4 voci della barra in basso (chiavi: ufficio, stalla, bottega, soldi, mappa, catalogo, bacheca, personale, admin) */
+  mobileNav: ["ufficio", "stalla", "bottega", "soldi"] as string[],
   /** Menu: numerini delle cose da fare accanto alle voci (ognuno vede solo quelli delle sue sezioni) */
   navBadges: { stalla: true, bottega: true, bacheca: true, personale: true, admin: true } as Record<"stalla" | "bottega" | "bacheca" | "personale" | "admin", boolean>,
   /** Clienti: chi compra viene aggiunto da solo alla rubrica (se non c'è già) */

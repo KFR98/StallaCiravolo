@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { prisma } from "@/lib/db";
@@ -25,6 +26,12 @@ export default async function SettingsPage() {
       <AdminTabs role={me.role} active="impostazioni" />
       <Card>
         <SettingsForm s={s} inStable={inStable} shopItems={shopItems} />
+      </Card>
+      <Card title="Mappa degli spawn in alta definizione" className="mt-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="max-w-2xl text-[14px] text-fg-2">Carica l&apos;immagine grande della mappa, genera i tasselli per lo zoom e calibra i punti. Ha una pagina sua perché richiede più passaggi.</p>
+          <Link href="/admin/mappa" className="btn btn-secondary">Apri la mappa HD →</Link>
+        </div>
       </Card>
       <Card title="reCAPTCHA sulla pagina di accesso" className="mt-5">
         <p className="mb-4 text-[14px] text-fg-2">

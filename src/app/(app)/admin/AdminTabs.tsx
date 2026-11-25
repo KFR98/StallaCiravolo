@@ -2,18 +2,28 @@ type Role = string;
 import { Tabs } from "@/components/ui";
 import { can, type Permission } from "@/lib/permissions";
 
-const ITEMS: { key: string; href: string; label: string; perm: Permission; ownerOnly?: boolean }[] = [
-  { key: "home", href: "/admin", label: "Panoramica", perm: "audit.view" },
-  { key: "utenti", href: "/admin/utenti", label: "Utenti", perm: "users.manage" },
-  { key: "ruoli", href: "/admin/ruoli", label: "Ruoli", perm: "audit.view", ownerOnly: true },
-  { key: "catalogo", href: "/admin/catalogo", label: "Catalogo", perm: "catalog.manage" },
-  { key: "impostazioni", href: "/admin/impostazioni", label: "Impostazioni", perm: "settings.manage" },
-  { key: "mappa", href: "/admin/mappa", label: "Mappa", perm: "settings.manage" },
-  { key: "backup", href: "/admin/backup", label: "Backup e dati", perm: "data.backup" },
-  { key: "import", href: "/admin/import", label: "Importa Excel", perm: "data.import" },
-  { key: "audit", href: "/admin/audit", label: "Registro attività", perm: "audit.view" },
+/**
+ * Schede dell'Amministrazione (7). "Importa Excel" sta dentro "Backup e dati", la mappa HD dentro "Impostazioni":
+ * le loro pagine esistono ancora e accendono la scheda che le contiene.
+ */
+const ITEMS: { key: string; href: string | ((role: Role) => string); label: string; perms: Permission[]; ownerOnly?: boolean }[] = [
+  { key: "home", href: "/admin", label: "Panoramica", perms: ["audit.view"] },
+  { key: "utenti", href: "/admin/utenti", label: "Utenti", perms: ["users.manage"] },
+  { key: "ruoli", href: "/admin/ruoli", label: "Ruoli", perms: ["audit.view"], ownerOnly: true },
+  { key: "catalogo", href: "/admin/catalogo", label: "Catalogo", perms: ["catalog.manage"] },
+  { key: "impostazioni", href: "/admin/impostazioni", label: "Impostazioni", perms: ["settings.manage"] },
+  { key: "backup", href: (r) => (can(r, "data.backup") ? "/admin/backup" : "/admin/import"), label: "Backup e dati", perms: ["data.backup", "data.import"] },
+  { key: "audit", href: "/admin/audit", label: "Registro attività", perms: ["audit.view"] },
 ];
 
 export function AdminTabs({ role, active }: { role: Role; active: string }) {
-  return <Tabs active={active} items={ITEMS.filter((i) => can(role, i.perm) && (!i.ownerOnly || role === "ADMIN"))} />;
+  const key = active === "import" ? "backup" : active === "mappa" ? "impostazioni" : active;
+  return (
+    <Tabs
+      active={key}
+      items={ITEMS.filter((i) => i.perms.some((p) => can(role, p)) && (!i.ownerOnly || role === "ADMIN")).map((i) => ({
+        key: i.key, label: i.label, href: typeof i.href === "function" ? i.href(role) : i.href,
+      }))}
+    />
+  );
 }

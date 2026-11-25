@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Search } from "lucide-react";
+import { NAV_CHOICES } from "@/lib/nav-keys";
 import { ActionForm } from "@/components/ActionForm";
 import { STABLE_SORTS } from "../../stalla/sorts";
 import { saveSettings } from "../actions";
@@ -15,8 +17,28 @@ const EVERY = [
   [168, "Una volta a settimana"],
 ] as const;
 
+const slug = (t: string) => "imp-" + t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+const SECTIONS = ["Generale", "Età dei cavalli", "Stalla", "Telefono: barra in basso", "Menu: numerini delle cose da fare", "Strillone", "Catture", "Prezzi e sconti", "Gravidanza e puledri", "Cavalli rari e leggendari", "Vendita: ferri", "Stipendi (percentuali globali)", "Cassa", "Clienti", "Etichette delle vendite", "Stalliere della settimana (punti)", "Sicurezza e accesso", "Backup automatico"];
+
 export function SettingsForm({ s, inStable, shopItems }: { s: Settings; inStable: number; shopItems: { id: number; name: string }[] }) {
   const [auto, setAuto] = useState(s.backupAuto);
+  const [q, setQ] = useState("");
+  const [hidden, setHidden] = useState<string[]>([]);
+  const formRef = useRef<HTMLDivElement>(null);
+  // ricerca: nasconde le sezioni che non contengono le parole cercate (titoli, spiegazioni, nomi dei campi)
+  useEffect(() => {
+    const root = formRef.current;
+    if (!root) return;
+    const words = q.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").split(/\s+/).filter(Boolean);
+    const out: string[] = [];
+    root.querySelectorAll<HTMLElement>("section[data-imp]").forEach((sec) => {
+      const text = (sec.textContent ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const show = words.every((w) => text.includes(w));
+      sec.hidden = !show;
+      if (!show) out.push(sec.id);
+    });
+    setHidden(out);
+  }, [q]);
   const everyOptions = EVERY.some(([h]) => h === s.backupEveryHours) ? EVERY : [...EVERY, [s.backupEveryHours, `Ogni ${s.backupEveryHours} ore`] as const];
   return (
     <ActionForm
@@ -26,8 +48,23 @@ export function SettingsForm({ s, inStable, shopItems }: { s: Settings; inStable
           ? `Stai cambiando l'avanzamento dell'età da ${s.daysPerYear} a ${fd.get("daysPerYear")} giorni per anno.\nL'età già maturata dai ${inStable} cavalli in stalla viene conservata. Confermi?`
           : null
       }
-      className="space-y-7"
+      className="grid gap-6 lg:grid-cols-[210px_minmax(0,1fr)]"
     >
+      <nav aria-label="Sezioni delle impostazioni" className="lg:sticky lg:top-6 lg:self-start">
+        <div className="relative mb-3">
+          <Search size={16} className="absolute top-1/2 left-3 -translate-y-1/2 text-fg-3" aria-hidden="true" />
+          <input className="input !pl-9" placeholder="Trova impostazione…" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }} aria-label="Trova impostazione" />
+        </div>
+        <ul className="flex gap-1.5 overflow-x-auto pb-1 lg:flex-col lg:gap-0.5 lg:overflow-visible">
+          {SECTIONS.map((t) => (
+            <li key={t} className={hidden.includes(slug(t)) ? "hidden" : ""}>
+              <a href={`#${slug(t)}`} className="block rounded-md px-2.5 py-1.5 text-[13.5px] whitespace-nowrap text-fg-2 hover:bg-surface-2 hover:text-fg lg:whitespace-normal">{t}</a>
+            </li>
+          ))}
+        </ul>
+        {q && hidden.length === SECTIONS.length && <p className="mt-2 text-[13px] text-fg-3">Nessuna impostazione trovata.</p>}
+      </nav>
+      <div ref={formRef} className="min-w-0 space-y-7">
       <Section title="Generale">
         <label className="block sm:col-span-2"><span className="field-label">Nome della stalla</span><input name="stableName" defaultValue={s.stableName} className="input" required /></label>
         <label className="block sm:col-span-2">
@@ -57,6 +94,17 @@ export function SettingsForm({ s, inStable, shopItems }: { s: Settings; inStable
             {STABLE_SORTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
           </select>
         </label>
+      </Section>
+
+      <Section title="Telefono: barra in basso" hint="Le 4 voci sempre visibili in basso sul telefono. Chi non ha accesso a una voce vede al suo posto la successiva del menu.">
+        {[0, 1, 2, 3].map((i) => (
+          <label key={i} className="block">
+            <span className="field-label">Posizione {i + 1}</span>
+            <select name={`mobileNav_${i}`} defaultValue={s.mobileNav[i] ?? NAV_CHOICES[i][0]} className="input">
+              {NAV_CHOICES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+            </select>
+          </label>
+        ))}
       </Section>
 
       <Section title="Menu: numerini delle cose da fare" hint="Il numerino rosso accanto alla voce del menu. Ognuno vede solo quelli delle sezioni a cui ha accesso.">
@@ -103,7 +151,7 @@ export function SettingsForm({ s, inStable, shopItems }: { s: Settings; inStable
         <Color name="legendaryColor" label="Colore dei leggendari" value={s.legendaryColor} />
       </Section>
 
-      <Section title="Vendita: ferri" hint="Gli oggetti della bottega proposti come “4 ferri normali” e “4 ferri migliorati” nel modulo di vendita del cavallo. “Automatico” li riconosce dal nome.">
+      <Section title="Vendita: ferri" hint="Gli oggetti della bottega proposti come scorciatoia “4 ferri normali” e “4 ferri migliorati” nella cassa, quando si vende un cavallo. “Automatico” li riconosce dal nome.">
         {([["shoeClassicItemId", "4 ferri normali", s.shoeClassicItemId], ["shoeImprovedItemId", "4 ferri migliorati", s.shoeImprovedItemId]] as const).map(([n, l, v]) => (
           <label key={n} className="block">
             <span className="field-label">{l}</span>
@@ -191,7 +239,10 @@ export function SettingsForm({ s, inStable, shopItems }: { s: Settings; inStable
       </Section>
 
       <div className="sticky bottom-0 -mx-4 border-t border-border bg-surface px-4 py-3 sm:-mx-5 sm:px-5">
-        <button className="btn btn-primary">Salva impostazioni</button>
+        <div className="sticky bottom-20 z-10 flex justify-end lg:bottom-4">
+          <button className="btn btn-primary shadow-lg">Salva impostazioni</button>
+        </div>
+      </div>
       </div>
     </ActionForm>
   );
@@ -199,8 +250,12 @@ export function SettingsForm({ s, inStable, shopItems }: { s: Settings; inStable
 
 function Section({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
-    <section className="border-b border-border pb-6 last-of-type:border-0">
-      <h3 className="h-display mb-1 text-[18px]">{title}</h3>
+    <section id={slug(title)} data-imp className="scroll-mt-20 border-b border-border pb-6 last-of-type:border-0">
+      <div className="mb-1 flex items-start justify-between gap-3">
+        <h3 className="h-display text-[18px]">{title}</h3>
+        {/* salva tutte le impostazioni (anche quelle delle altre sezioni): comodo per non scorrere fino in fondo */}
+        <button className="btn btn-ghost btn-sm shrink-0" title="Salva le impostazioni">Salva</button>
+      </div>
       {hint && <p className="mb-3 max-w-3xl text-[13.5px] text-fg-3">{hint}</p>}
       <div className="grid gap-4 sm:grid-cols-3">{children}</div>
     </section>

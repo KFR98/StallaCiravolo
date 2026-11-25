@@ -11,6 +11,7 @@ import { salesFeed, sortFeed, feedTotals, SORTS, type FeedEntry } from "@/lib/sa
 import { PageHeader, Card, Empty, StatTile, HorseThumb } from "@/components/ui";
 import { SaleTag, type SaleKind } from "@/components/SaleTag";
 import { SaleAdmin, ItemSaleAdmin } from "./SaleAdmin";
+import { MoneyTabs } from "../MoneyTabs";
 
 export const metadata = { title: "Vendite" };
 
@@ -62,6 +63,7 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
   return (
     <>
       {header}
+      <MoneyTabs role={user.role} active="vendite" />
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
         <StatTile label="Incasso" value={money(tot.total)} hint={`${tot.count} fatture`} tone="accent" />
         {KINDS.map(([k]) => (
