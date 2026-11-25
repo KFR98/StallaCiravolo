@@ -55,6 +55,25 @@ function cspHeader(nonce: string, recaptcha: boolean) {
  */
 const ACTION_ID = /^[0-9a-f]{40,64}$/;
 
+/**
+ * Stessa regola di Next per le Server Actions: l'host dell'Origin deve essere quello del sito
+ * (X-Forwarded-Host dal proxy, altrimenti Host) oppure uno di ALLOWED_ORIGINS.
+ * Senza Origin decide Next (i browser lo mandano sempre con le azioni).
+ */
+const ALLOWED = (process.env.ALLOWED_ORIGINS || "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+function sameOrigin(req: NextRequest) {
+  const origin = req.headers.get("origin");
+  if (!origin) return true;
+  let host: string;
+  try {
+    host = new URL(origin).host.toLowerCase();
+  } catch {
+    return false;
+  }
+  const site = (req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "").split(",")[0].trim().toLowerCase();
+  return host === site || ALLOWED.includes(host);
+}
+
 /** Filtro rapido: senza cookie di sessione si va al login. La verifica vera avviene sul server a ogni richiesta. */
 export function middleware(req: NextRequest) {
   if (!req.nextUrl.pathname.startsWith("/api/") && !["GET", "HEAD", "POST"].includes(req.method)) {
@@ -62,6 +81,9 @@ export function middleware(req: NextRequest) {
   }
   const action = req.headers.get("next-action");
   if (action !== null && !ACTION_ID.test(action)) return new NextResponse(null, { status: 400 });
+  // Azione chiamata da un altro sito (tentativo CSRF): Next la blocca comunque, qui la fermiamo prima
+  // con un 403 pulito, così nei log non compare l'errore "Invalid Server Actions request".
+  if (action !== null && !sameOrigin(req)) return new NextResponse(null, { status: 403 });
 
   const toHttps = httpsRedirect(req);
   if (toHttps) return toHttps;
