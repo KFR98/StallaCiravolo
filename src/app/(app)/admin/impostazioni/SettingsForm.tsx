@@ -48,9 +48,9 @@ export function SettingsForm({ s, inStable, shopItems, roles }: { s: Settings; i
           ? `Stai cambiando l'avanzamento dell'età da ${s.daysPerYear} a ${fd.get("daysPerYear")} giorni per anno.\nL'età già maturata dai ${inStable} cavalli in stalla viene conservata. Confermi?`
           : null
       }
-      className="grid gap-6 lg:grid-cols-[210px_minmax(0,1fr)]"
+      className="grid grid-cols-1 gap-6 lg:grid-cols-[210px_minmax(0,1fr)]"
     >
-      <nav aria-label="Sezioni delle impostazioni" className="lg:sticky lg:top-6 lg:self-start">
+      <nav aria-label="Sezioni delle impostazioni" className="min-w-0 lg:sticky lg:top-6 lg:self-start">
         <div className="relative mb-3">
           <Search size={16} className="absolute top-1/2 left-3 -translate-y-1/2 text-fg-3" aria-hidden="true" />
           <input className="input !pl-9" placeholder="Trova impostazione…" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }} aria-label="Trova impostazione" />
@@ -120,6 +120,10 @@ export function SettingsForm({ s, inStable, shopItems, roles }: { s: Settings; i
             <span className="text-[14px]">{l}</span>
           </label>
         ))}
+      </Section>
+
+      <Section title="Confronto cavalli" hint="In Catalogo e prezzi → Confronto cavalli si mettono i cavalli uno accanto all'altro.">
+        <Num name="compareMax" label="Cavalli confrontabili insieme" value={s.compareMax} step="1" min="2" max="8" />
       </Section>
 
       <Section title="Strillone" hint="L'annuncio personale che ognuno salva nell'Ufficio e copia in gioco quando la stalla è aperta.">

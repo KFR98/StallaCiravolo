@@ -31,9 +31,10 @@ export default async function EmployeePage({ params, searchParams }: { params: P
         actions={can(me.role, "payroll.manage") ? <Link href={`/stipendi/${user.id}`} className="btn btn-secondary">Stipendi</Link> : undefined}
       />
       <UserTotalsCards userId={user.id} />
-      <div className="grid gap-5 xl:grid-cols-[1.7fr_1fr]">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
         <UserHistoryList userId={user.id} sp={sp} basePath={`/dipendenti/${user.id}`} />
         <Card title="Ultime 8 settimane" pad={false} className="h-fit">
+          <div className="overflow-x-auto">
           <table className="tbl">
             <thead><tr><th className="!pl-5">Settimana</th><th className="num">Catture</th><th className="num">Vendite</th><th className="num !pr-5">Incasso</th></tr></thead>
             <tbody>
@@ -47,6 +48,7 @@ export default async function EmployeePage({ params, searchParams }: { params: P
               ))}
             </tbody>
           </table>
+          </div>
         </Card>
       </div>
     </>

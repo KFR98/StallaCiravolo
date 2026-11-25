@@ -18,7 +18,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
     <>
       <PageHeader eyebrow={roleLabel(user.role)} title={user.displayName} subtitle={`@${user.username}`} />
       <UserTotalsCards userId={user.id} />
-      <div className="grid gap-5 xl:grid-cols-[1.7fr_1fr]">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
         <UserHistoryList userId={user.id} sp={sp} basePath="/profilo" />
         <div className="h-fit space-y-5">
           <Card title="Il mio account">

@@ -14,9 +14,9 @@ export default async function ComparePage() {
   const rows = all.filter((r) => canSeeBreed(user.role, r.breedId));
   return (
     <>
-      <PageHeader title="Catalogo e prezzi" subtitle="Confronta i cavalli per voto, statistiche e prezzo, per consigliare l'acquirente." />
+      <PageHeader title="Catalogo e prezzi" subtitle="Scegli i cavalli e confrontali uno accanto all'altro: il migliore di ogni voce è evidenziato. Sotto trovi tutto il catalogo da ordinare." />
       <CatalogTabs active="confronto" />
-      <CompareTable rows={rows} meta={meta} labels={{ a: `${s.minSaleAge}-${s.bracketAMax} anni`, b: `${s.bracketAMax + 1}-${s.bracketBMax} anni` }} />
+      <CompareTable rows={rows} meta={meta} labels={{ a: `${s.minSaleAge}-${s.bracketAMax} anni`, b: `${s.bracketAMax + 1}-${s.bracketBMax} anni` }} maxCompare={s.compareMax} />
     </>
   );
 }

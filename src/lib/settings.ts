@@ -103,6 +103,8 @@ export const DEFAULT_SETTINGS = {
   navBadges: { stalla: true, bottega: true, bacheca: true, personale: true, admin: true } as Record<"stalla" | "bottega" | "bacheca" | "personale" | "admin", boolean>,
   /** Clienti: chi compra viene aggiunto da solo alla rubrica (se non c'è già) */
   customersAutoCreate: true,
+  /** Confronto cavalli: quanti cavalli si possono mettere uno accanto all'altro */
+  compareMax: 4,
   /** Strillone: lunghezza massima dell'annuncio (caratteri) */
   shoutMaxLength: 500,
   /** Stalla: ordinamento proposto all'apertura (ognuno può cambiarlo, e il browser lo ricorda) */
