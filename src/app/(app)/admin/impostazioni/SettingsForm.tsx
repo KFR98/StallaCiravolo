@@ -20,7 +20,7 @@ const EVERY = [
 const slug = (t: string) => "imp-" + t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const SECTIONS = ["Generale", "Età dei cavalli", "Stalla", "Telefono: barra in basso", "Menu: numerini delle cose da fare", "Strillone", "Catture", "Prezzi e sconti", "Gravidanza e puledri", "Cavalli rari e leggendari", "Vendita: ferri", "Stipendi (percentuali globali)", "Cassa", "Clienti", "Etichette delle vendite", "Stalliere della settimana (punti)", "Sicurezza e accesso", "Backup automatico"];
 
-export function SettingsForm({ s, inStable, shopItems }: { s: Settings; inStable: number; shopItems: { id: number; name: string }[] }) {
+export function SettingsForm({ s, inStable, shopItems, roles }: { s: Settings; inStable: number; shopItems: { id: number; name: string }[]; roles: { key: string; name: string }[] }) {
   const [auto, setAuto] = useState(s.backupAuto);
   const [q, setQ] = useState("");
   const [hidden, setHidden] = useState<string[]>([]);
@@ -214,6 +214,17 @@ export function SettingsForm({ s, inStable, shopItems }: { s: Settings; inStable
         <Num name="loginUserLockMinutes" label="…poi blocco per (minuti)" value={s.loginUserLockMinutes} step="1" min="1" />
         <Num name="sessionDays" label="Durata della sessione (giorni)" value={s.sessionDays} step="any" min="0.1" />
         <Num name="maxImageMB" label="Dimensione massima delle foto (MB)" value={s.maxImageMB} step="any" min="0.5" max="50" />
+        <fieldset className="rounded-lg border border-border p-3 sm:col-span-3">
+          <legend className="px-1 text-[13px] font-semibold text-fg-2">Doppia verifica obbligatoria (codice a 6 cifre dall&apos;app) per</legend>
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
+            {roles.map((r) => (
+              <label key={r.key} className="flex items-center gap-2 text-[14px]">
+                <input type="checkbox" name="twoFactorRoles" value={r.key} defaultChecked={s.twoFactorRoles.includes(r.key)} /> {r.name}
+              </label>
+            ))}
+          </div>
+          <p className="mt-2 text-[12.5px] text-fg-3">Chi non l&apos;ha ancora attivata la attiva al prossimo accesso (viene fatto uscire subito). Tutti possono attivarla comunque dal proprio profilo. Emergenza: file <code>data/2fa-off</code>.</p>
+        </fieldset>
         <label className="flex min-h-10 items-start gap-3 rounded-lg border border-border px-3 py-2.5 sm:col-span-2">
           <input type="checkbox" name="auditIpAll" defaultChecked={s.auditIpAll} className="mt-1" />
           <span>

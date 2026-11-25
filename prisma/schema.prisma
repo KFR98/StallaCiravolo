@@ -40,6 +40,12 @@ model User {
   active        Boolean   @default(true)
   /// Eliminato mantenendo lo storico: non può più entrare né essere riattivato, i suoi dati restano
   deletedAt     DateTime?
+  /// Doppia verifica: segreto dell'app (cifrato con la chiave del server), attiva da, codici di recupero (impronte SHA-256)
+  totpSecret    String?
+  totpEnabledAt DateTime?
+  totpRecovery  String?
+  /// Ultimo intervallo di 30 secondi usato: lo stesso codice non vale due volte
+  totpLastStep  Int?
   /// Strillone personale: annuncio da copiare e incollare in gioco quando la stalla è aperta
   shoutText     String?
   /// Percentuali stipendio personali (null = usa quelle globali)

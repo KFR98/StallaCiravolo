@@ -141,6 +141,25 @@ export async function userDataSummary(userId: number) {
   return { horses: horseIds.length, stableHorses, sales, salesOnHorses, itemSales, spawns, reservations, payroll, reimb, notes, logs };
 }
 
+/** Azzera la doppia verifica di un utente (es. ha perso il telefono e i codici di recupero): al prossimo accesso la riattiva. */
+export async function resetTwoFactor(form: FormData) {
+  return run(async () => {
+    const actor = await assertPermission("users.manage");
+    const id = fd(form).int("id") ?? 0;
+    const u = await prisma.user.findUnique({ where: { id } });
+    if (!u || u.deletedAt) throw new UserError("Utente non trovato.");
+    if (u.role === ADMIN_ROLE && actor.role !== ADMIN_ROLE) throw new UserError("Solo un amministratore può azzerare la doppia verifica di un amministratore.");
+    assertCanManageUser(actor, u);
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({ where: { id }, data: { totpSecret: null, totpEnabledAt: null, totpRecovery: null, totpLastStep: null } });
+      // chi era dentro deve rientrare (e, se il ruolo la richiede, riattivarla)
+      await tx.session.deleteMany({ where: { userId: id } });
+      await audit(actor, "DOPPIA_VERIFICA_TOLTA", "Utente", id, `Azzerata la doppia verifica di ${u.username}`, undefined, tx);
+    });
+    return { ok: true, message: `Doppia verifica di ${u.displayName} azzerata: al prossimo accesso la riattiverà.` };
+  });
+}
+
 /**
  * Elimina l'utente MANTENENDO lo storico: l'account viene chiuso per sempre (non può più entrare
  * né essere riattivato), ma vendite, cavalli, stipendi e registro restano con il suo nome.
@@ -442,6 +461,7 @@ export async function saveSettings(form: FormData) {
         navBadges: z.object({ stalla: z.boolean(), bottega: z.boolean(), bacheca: z.boolean(), personale: z.boolean(), admin: z.boolean() }),
         cashCountGov: z.boolean(),
         customersAutoCreate: z.boolean(),
+        twoFactorRoles: z.array(z.string().max(40)).max(50),
         mobileNav: z.array(z.enum(NAV_CHOICE_KEYS as [string, ...string[]])).length(4).refine((a) => new Set(a).size === 4, { message: "Nella barra del telefono ogni voce va scelta una volta sola." }),
         cashCountPayroll: z.boolean(),
         cashCountReimbursements: z.boolean(),
@@ -500,6 +520,7 @@ export async function saveSettings(form: FormData) {
         cashCountGov: f.bool("cashCountGov"),
         customersAutoCreate: f.bool("customersAutoCreate"),
         mobileNav: [0, 1, 2, 3].map((i) => f.str(`mobileNav_${i}`)),
+        twoFactorRoles: form.getAll("twoFactorRoles").map(String),
         cashCountPayroll: f.bool("cashCountPayroll"),
         cashCountReimbursements: f.bool("cashCountReimbursements"),
         saleLabelColors: { cavallo: f.str("saleColor_cavallo"), addestramento: f.str("saleColor_addestramento"), vetrina: f.str("saleColor_vetrina"), blip: f.str("saleColor_blip") },
@@ -540,6 +561,11 @@ export async function saveSettings(form: FormData) {
         }
         frozen = horses.length;
       }
+      // doppia verifica: solo ruoli che esistono; chi entra in un ruolo appena reso obbligatorio e non l'ha attivata deve rientrare
+      const roleKeys = new Set((await tx.appRole.findMany({ select: { key: true } })).map((r) => r.key));
+      next.twoFactorRoles = [...new Set(next.twoFactorRoles.filter((k) => roleKeys.has(k)))];
+      const newlyRequired = next.twoFactorRoles.filter((k) => !prev.twoFactorRoles.includes(k));
+      if (newlyRequired.length) await tx.session.deleteMany({ where: { user: { role: { in: newlyRequired }, totpEnabledAt: null } } });
       for (const [key, value] of Object.entries(next)) {
         if (!(key in DEFAULT_SETTINGS)) continue;
         await tx.setting.upsert({ where: { key }, create: { key, value: JSON.stringify(value) }, update: { value: JSON.stringify(value) } });

@@ -19,6 +19,7 @@ export function ActionForm({
   onError,
   prepare,
   successMessage,
+  refresh = true,
 }: {
   action: (fd: FormData) => Promise<ActionResult>;
   children: ReactNode;
@@ -31,6 +32,8 @@ export function ActionForm({
   /** passo asincrono prima dell'invio (es. captcha): può aggiungere campi o annullare (false) */
   prepare?: (fd: FormData) => Promise<boolean>;
   successMessage?: string;
+  /** false = dopo il successo non ricarica i dati della pagina (es. per mostrare qualcosa che non va perso) */
+  refresh?: boolean;
 }) {
   const [pending, start] = useTransition();
   const router = useRouter();
@@ -58,7 +61,7 @@ export function ActionForm({
             if (resetOnSuccess) form.reset();
             onSuccess?.(r);
             if (r.redirect) router.push(r.redirect);
-            else router.refresh();
+            else if (refresh) router.refresh();
           } else {
             toast.error(r.error ?? "Operazione non riuscita.");
             onError?.(r);

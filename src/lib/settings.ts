@@ -81,6 +81,8 @@ export const DEFAULT_SETTINGS = {
   recaptchaSiteKey: "",
   /** Solo v3: punteggio minimo per entrare (0 = robot sicuro, 1 = persona sicura) */
   recaptchaMinScore: 0.5,
+  /** Sicurezza: ruoli che DEVONO usare la doppia verifica (codice a 6 cifre dall'app). Gli altri possono attivarla dal profilo */
+  twoFactorRoles: ["ADMIN", "DIRETTORE"] as string[],
   /** Sicurezza: durata della sessione (giorni), si rinnova da sola se usata */
   sessionDays: 7,
   /** Foto: dimensione massima delle immagini caricate (MB) */

@@ -26,6 +26,10 @@ export const AUDIT_ACTIONS: Record<string, ActionDef> = {
   LOGIN_NUOVO_IP: { label: "Accesso da un IP mai visto", level: "warn", group: "Accessi" },
   LOGIN_FALLITO: { label: "Accesso fallito", level: "warn", group: "Accessi" },
   LOGIN_CAPTCHA_FALLITO: { label: "Verifica anti-robot non superata", level: "warn", group: "Accessi" },
+  LOGIN_2FA_FALLITO: { label: "Codice di doppia verifica sbagliato", level: "alarm", group: "Accessi" },
+  LOGIN_RECUPERO: { label: "Accesso con codice di recupero", level: "alarm", group: "Accessi" },
+  DOPPIA_VERIFICA: { label: "Doppia verifica attivata o cambiata", level: "warn", group: "Accessi" },
+  DOPPIA_VERIFICA_TOLTA: { label: "Doppia verifica disattivata o azzerata", level: "critical", group: "Accessi" },
   LOGIN_FALLITO_RIPETUTO: { label: "Tentativi di accesso ripetuti", level: "alarm", group: "Accessi" },
   MODIFICA_PROFILO: { label: "Profilo modificato", level: "info", group: "Accessi" },
   // Stalla e vendite

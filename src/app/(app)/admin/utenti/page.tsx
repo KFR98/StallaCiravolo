@@ -37,12 +37,12 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
                 <tr key={u.id} className={u.active ? "" : "opacity-60"}>
                   <td className="!pl-5 font-semibold">{u.displayName}{u.id === me.id && <span className="ml-1 text-[13px] font-normal text-fg-3">(tu)</span>}</td>
                   <td className="text-fg-2">@{u.username}</td>
-                  <td><RoleBadge role={u.role} /></td>
+                  <td><RoleBadge role={u.role} />{u.totpEnabledAt && <span className="ml-1.5 badge badge-ok" title="Doppia verifica attiva">2FA</span>}</td>
                   <td>{u.deletedAt ? <span className="badge badge-neutral">Eliminato · storico conservato</span> : u.active ? <span className="badge badge-ok">Attivo</span> : <span className="badge badge-accent">Disattivato</span>}</td>
                   <td className="whitespace-nowrap text-fg-2">{dateTime(u.lastLoginAt)}</td>
                   <td className="!pr-5 text-right whitespace-nowrap">
                     <Link href={`/dipendenti/${u.id}`} className="btn btn-ghost btn-sm">Attività</Link>
-                    {!u.deletedAt && <EditUserButton isMe={u.id === me.id} roles={roles} colleagues={colleagues} user={{ id: u.id, username: u.username, displayName: u.displayName, role: u.role, active: u.active, notes: u.notes }} />}
+                    {!u.deletedAt && <EditUserButton isMe={u.id === me.id} roles={roles} colleagues={colleagues} user={{ id: u.id, username: u.username, displayName: u.displayName, role: u.role, active: u.active, notes: u.notes, twoFactor: !!u.totpEnabledAt }} />}
                   </td>
                 </tr>
               ))}

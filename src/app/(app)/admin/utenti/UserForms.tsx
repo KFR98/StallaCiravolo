@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { ActionForm } from "@/components/ActionForm";
 import { Modal } from "@/components/Modal";
-import { createUser, updateUser, resetPassword, deleteUserCompletely, archiveUser, userDataSummary } from "../actions";
+import { createUser, updateUser, resetPassword, deleteUserCompletely, archiveUser, userDataSummary, resetTwoFactor } from "../actions";
+import { ActionButton } from "@/components/ActionForm";
 
 export type RoleOption = { key: string; name: string };
 
@@ -46,7 +47,7 @@ export function NewUserButton({ roles }: { roles: RoleOption[] }) {
 
 type Summary = Awaited<ReturnType<typeof userDataSummary>>;
 
-export function EditUserButton({ user, isMe, roles, colleagues }: { user: { id: number; username: string; displayName: string; role: string; active: boolean; notes: string | null }; isMe: boolean; roles: RoleOption[]; colleagues: { id: number; name: string }[] }) {
+export function EditUserButton({ user, isMe, roles, colleagues }: { user: { id: number; username: string; displayName: string; role: string; active: boolean; notes: string | null; twoFactor?: boolean }; isMe: boolean; roles: RoleOption[]; colleagues: { id: number; name: string }[] }) {
   const [open, setOpen] = useState<null | "edit" | "delete">(null);
   const [mode, setMode] = useState<"storico" | "tutto">("storico");
   const [role, setRole] = useState(user.role);
@@ -87,6 +88,12 @@ export function EditUserButton({ user, isMe, roles, colleagues }: { user: { id: 
           <PasswordField />
           <button className="btn btn-secondary btn-sm">Reimposta password</button>
         </ActionForm>
+        {user.twoFactor && !isMe && (
+          <div className="mt-5 border-t border-border pt-4">
+            <p className="mb-2 text-[13.5px] text-fg-2">Doppia verifica attiva. Se ha perso il telefono e i codici di recupero:</p>
+            <ActionButton action={resetTwoFactor} fields={{ id: user.id }} label="Azzera doppia verifica" className="btn btn-secondary btn-sm" confirm={`Azzerare la doppia verifica di ${user.displayName}? Verrà fatto uscire e al prossimo accesso la riattiverà.`} />
+          </div>
+        )}
         {!isMe && (
           <div className="mt-5 border-t border-border pt-4">
             <button className="btn btn-ghost btn-sm !text-accent-text" onClick={openDelete}>Elimina utente…</button>

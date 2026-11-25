@@ -4,6 +4,9 @@ import { roleLabel } from "@/lib/permissions";
 import { PageHeader, Card } from "@/components/ui";
 import { UserTotalsCards, UserHistoryList, type HistorySearch } from "@/components/UserHistory";
 import { AccountForm } from "./AccountForm";
+import { TwoFactorCard } from "./TwoFactorCard";
+import { getSettings } from "@/lib/settings";
+import { roleRequires2fa } from "@/lib/two-factor";
 
 export const metadata = { title: "Il mio profilo" };
 
@@ -17,9 +20,19 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
       <UserTotalsCards userId={user.id} />
       <div className="grid gap-5 xl:grid-cols-[1.7fr_1fr]">
         <UserHistoryList userId={user.id} sp={sp} basePath="/profilo" />
-        <Card title="Il mio account" className="h-fit">
-          <AccountForm username={user.username} displayName={user.displayName} isAdmin={user.role === "ADMIN"} />
-        </Card>
+        <div className="h-fit space-y-5">
+          <Card title="Il mio account">
+            <AccountForm username={user.username} displayName={user.displayName} isAdmin={user.role === "ADMIN"} />
+          </Card>
+          <Card title="Doppia verifica">
+            <TwoFactorCard
+              enabled={!!user.totpEnabledAt}
+              enabledAt={user.totpEnabledAt?.toISOString() ?? null}
+              required={roleRequires2fa(user.role, await getSettings())}
+              recoveryLeft={(() => { try { return (JSON.parse(user.totpRecovery ?? "[]") as string[]).length; } catch { return 0; } })()}
+            />
+          </Card>
+        </div>
       </div>
     </>
   );

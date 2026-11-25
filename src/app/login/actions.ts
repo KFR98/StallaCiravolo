@@ -3,10 +3,14 @@
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { headers } from "next/headers";
-import { createSession, destroySession, verifyPassword, ipFrom, getCurrentUser } from "@/lib/auth";
+import { destroySession, verifyPassword, ipFrom, getCurrentUser } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { getSettings } from "@/lib/settings";
 import { getSecret, loginCaptcha, verifyToken } from "@/lib/recaptcha";
+import { roleRequires2fa, setPending, twoFactorOff } from "@/lib/two-factor";
+import { seal } from "@/lib/secret-box";
+import { finishLogin } from "@/lib/login";
+import { newTotpSecret } from "@/lib/totp";
 import { run, type ActionResult } from "@/lib/action";
 import { redirect } from "next/navigation";
 
@@ -77,20 +81,12 @@ export async function loginAction(form: FormData): Promise<ActionResult> {
       return { ok: false, error: user && !user.active && pwOk ? "Account disattivato." : "Credenziali non valide." };
     }
     attempts.delete(key);
-    await createSession(user.id);
-    await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
-    // Primo accesso da un IP mai usato da questo utente (ma non il suo primissimo accesso): da tenere d'occhio
-    let newIp = false;
-    if (ls.auditNewIpLogin && ip !== "?") {
-      const seen = await prisma.auditLog.findFirst({ where: { userId: user.id, action: { in: ["LOGIN", "LOGIN_NUOVO_IP"] }, ip }, select: { id: true } });
-      const any = seen ? null : await prisma.auditLog.findFirst({ where: { userId: user.id, action: { in: ["LOGIN", "LOGIN_NUOVO_IP"] } }, select: { id: true } });
-      newIp = !seen && !!any;
+    // Doppia verifica: se attiva per l'utente (o obbligatoria per il suo ruolo) la sessione si apre solo dopo il codice
+    if (!twoFactorOff() && (user.totpEnabledAt || roleRequires2fa(user.role, ls))) {
+      await setPending(user.totpEnabledAt ? { uid: user.id, mode: "verify" } : { uid: user.id, mode: "enroll", secret: seal(newTotpSecret()) }, user.totpEnabledAt ? 5 : 15);
+      return { ok: true, message: user.totpEnabledAt ? "Password corretta: ora il codice." : "Password corretta: attiva la doppia verifica.", redirect: "/login/verifica" };
     }
-    await audit(
-      { id: user.id, username: user.username }, newIp ? "LOGIN_NUOVO_IP" : "LOGIN", "Utente", user.id,
-      newIp ? `Accesso di ${user.username} da un IP che non aveva mai usato` : `Accesso di ${user.username}`,
-      browser, undefined, ip,
-    );
+    await finishLogin(user, ip, browser);
     return { ok: true, message: `Benvenuto, ${user.displayName}.`, redirect: "/" };
   });
 }
@@ -101,3 +97,4 @@ export async function logoutAction() {
   if (u) await audit(u, "LOGOUT", "Utente", u.id, `Uscita di ${u.username}`);
   redirect("/login");
 }
+

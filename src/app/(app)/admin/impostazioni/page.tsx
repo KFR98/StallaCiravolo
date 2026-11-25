@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
+import { allRoles } from "@/lib/permissions";
 import { getSettings } from "@/lib/settings";
 import { prisma } from "@/lib/db";
 import { AdminTabs } from "../AdminTabs";
@@ -25,7 +26,7 @@ export default async function SettingsPage() {
       <PageHeader title="Amministrazione" subtitle="Parametri di funzionamento della stalla. Ogni modifica viene registrata." />
       <AdminTabs role={me.role} active="impostazioni" />
       <Card>
-        <SettingsForm s={s} inStable={inStable} shopItems={shopItems} />
+        <SettingsForm s={s} inStable={inStable} shopItems={shopItems} roles={allRoles().map((r) => ({ key: r.key, name: r.name }))} />
       </Card>
       <Card title="Mappa degli spawn in alta definizione" className="mt-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
