@@ -1,6 +1,6 @@
 import { fromZonedTime } from "date-fns-tz";
 import { getCurrentUser } from "@/lib/auth";
-import { can } from "@/lib/permissions";
+import { can, canSeeBreed } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
 import { toXlsx, toCsv, type Col } from "@/lib/export";
 import { TZ, dateTime } from "@/lib/format";
@@ -25,7 +25,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ type: st
 
   if (type === "listino") {
     const stats = await prisma.statDefinition.findMany({ orderBy: { sortOrder: "asc" } });
-    const coats = await prisma.coat.findMany({ include: { breed: true, stats: true }, orderBy: [{ breed: { sortOrder: "asc" } }, { sortOrder: "asc" }] });
+    const coats = (await prisma.coat.findMany({ include: { breed: true, stats: true }, orderBy: [{ breed: { sortOrder: "asc" } }, { sortOrder: "asc" }] }))
+      .filter((c) => canSeeBreed(user.role, c.breedId));
     cols = [
       { header: "RAZZA", key: "breed", width: 34 }, { header: "MANTO", key: "coat", width: 24 },
       { header: "5-10 ANNI", key: "basePriceA", money: true }, { header: "11-15 ANNI", key: "basePriceB", money: true },

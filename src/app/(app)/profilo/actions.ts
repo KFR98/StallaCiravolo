@@ -24,6 +24,7 @@ export async function updateMyAccount(form: FormData) {
     const newPw = f.str("newPassword");
     if (newPw) {
       if (newPw.length < 8) throw new UserError("La nuova password deve avere almeno 8 caratteri.");
+      if (newPw.length > 200) throw new UserError("La nuova password può avere al massimo 200 caratteri.");
       if (!(await verifyPassword(user.passwordHash, f.str("currentPassword")))) throw new UserError("La password attuale non è corretta.");
       data.passwordHash = await hashPassword(newPw);
     }

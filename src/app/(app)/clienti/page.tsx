@@ -23,10 +23,12 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
     take: 2000,
   });
   const ids = customers.map((c) => c.id);
+  // chi non vede le vendite di tutti vede nei totali solo le proprie (come nella pagina Vendite)
+  const own = can(user.role, "sales.viewAll") ? {} : { sellerId: user.id };
   const [sales, items] = await Promise.all([
-    prisma.sale.groupBy({ by: ["customerId"], where: { customerId: { in: ids }, voided: false }, _sum: { finalPrice: true }, _count: true, _max: { soldAt: true } }),
+    prisma.sale.groupBy({ by: ["customerId"], where: { customerId: { in: ids }, voided: false, ...own }, _sum: { finalPrice: true }, _count: true, _max: { soldAt: true } }),
     // le fatture collegate a un cavallo sono già contate nell'acquisto del cavallo come pezzo dello stesso conto, ma il totale va sommato
-    prisma.itemSale.groupBy({ by: ["customerId"], where: { customerId: { in: ids }, voided: false }, _sum: { total: true }, _count: true, _max: { soldAt: true } }),
+    prisma.itemSale.groupBy({ by: ["customerId"], where: { customerId: { in: ids }, voided: false, ...own }, _sum: { total: true }, _count: true, _max: { soldAt: true } }),
   ]);
   const stats = new Map<number, { spent: number; count: number; last: Date | null }>();
   for (const c of customers) stats.set(c.id, { spent: 0, count: 0, last: null });

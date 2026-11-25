@@ -8,7 +8,7 @@ import { audit } from "@/lib/audit";
 import { getSettings } from "@/lib/settings";
 import { open, seal } from "@/lib/secret-box";
 import { newTotpSecret, otpauthUrl, verifyTotp, newRecoveryCodes, recoveryHash } from "@/lib/totp";
-import { roleRequires2fa, twoFactorOff } from "@/lib/two-factor";
+import { roleRequires2fa, twoFactorOff, codeAttemptsLeft, codeFailed, codeOk } from "@/lib/two-factor";
 
 /** Primo passo dal profilo: nuovo segreto + QR (il segreto torna indietro firmato/cifrato, non in chiaro nel modulo). */
 export async function startTotp() {
@@ -21,17 +21,21 @@ export async function startTotp() {
   });
 }
 
-async function myCodeOk(me: { id: number }, code: string) {
+async function myCodeOk(me: { id: number; username: string }, code: string) {
+  if (codeAttemptsLeft(me.id) <= 0) throw new UserError("Troppi codici sbagliati: riprova tra qualche minuto.");
   const u = await prisma.user.findUniqueOrThrow({ where: { id: me.id } });
   const secret = u.totpSecret ? open(u.totpSecret) : null;
   if (!secret || !u.totpEnabledAt) throw new UserError("La doppia verifica non è attiva.");
   const c = code.trim();
   const step = verifyTotp(secret, c, u.totpLastStep);
   if (step != null) {
+    codeOk(me.id);
     await prisma.user.update({ where: { id: u.id }, data: { totpLastStep: step } });
     return u;
   }
-  throw new UserError("Codice non valido: usa quello attuale dell'app.");
+  codeFailed(me.id);
+  await audit(me, "LOGIN_2FA_FALLITO", "Utente", me.id, `Codice di doppia verifica sbagliato dal profilo di ${me.username}`);
+  throw new UserError(`Codice non valido: usa quello attuale dell'app. Tentativi rimasti: ${codeAttemptsLeft(me.id)}.`);
 }
 
 /** Conferma con il primo codice: la doppia verifica diventa attiva e si mostrano i codici di recupero. */
@@ -42,8 +46,10 @@ export async function confirmTotp(form: FormData) {
     let payload: { uid: number; secret: string; exp: number } | null = null;
     try { payload = JSON.parse(open(f.str("sealed")) ?? "null"); } catch { payload = null; }
     if (!payload || payload.uid !== me.id || payload.exp < Date.now()) throw new UserError("Attivazione scaduta: ricomincia.");
+    if (codeAttemptsLeft(me.id) <= 0) throw new UserError("Troppi codici sbagliati: riprova tra qualche minuto.");
     const step = verifyTotp(payload.secret, f.str("code"), null);
-    if (step == null) throw new UserError("Codice non valido. Controlla che l'orario del telefono sia giusto.");
+    if (step == null) { codeFailed(me.id); throw new UserError("Codice non valido. Controlla che l'orario del telefono sia giusto."); }
+    codeOk(me.id);
     const codes = newRecoveryCodes();
     await prisma.user.update({
       where: { id: me.id },

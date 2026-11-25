@@ -30,6 +30,7 @@ export async function run(fn: () => Promise<ActionResult | void>): Promise<Actio
 
 /** Helper per leggere FormData */
 export function fd(form: FormData) {
+  if (!(form instanceof FormData)) throw new UserError("Richiesta non valida.");
   const str = (k: string) => {
     const v = form.get(k);
     return typeof v === "string" ? v.trim() : "";
