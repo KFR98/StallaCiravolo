@@ -8,7 +8,7 @@ import { payUser, payWeek, unpayWeek, editWeek, setUserPercents } from "./action
 import { money } from "@/lib/format";
 
 /** Pulsante "Paga" accanto all'utente: un click, importo già compilato e modificabile. */
-export function PayButton({ userId, name, due, weeks, currentDue = 0, className = "btn btn-primary btn-sm" }: { userId: number; name: string; due: number; weeks: string[]; currentDue?: number; className?: string }) {
+export function PayButton({ userId, name, due, weeks, currentDue = 0, className = "btn btn-primary btn-sm", cash = null }: { userId: number; name: string; due: number; weeks: string[]; currentDue?: number; className?: string; cash?: number | null }) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState(String(due || ""));
   const diff = (Number(amount) || 0) - due;
@@ -31,6 +31,7 @@ export function PayButton({ userId, name, due, weeks, currentDue = 0, className 
               {diff > 0 ? `+${money(diff)} in più del dovuto (incentivo)` : `Restano ${money(-diff)} da saldare`}
             </p>
           )}
+          <CashHint cash={cash} amount={Number(amount) || 0} />
           <label className="block"><span className="field-label">Nota</span><input name="notes" className="input" placeholder="Es. bonus per le catture" maxLength={500} /></label>
           <button className="btn btn-primary w-full">Registra pagamento</button>
         </ActionForm>
@@ -39,10 +40,11 @@ export function PayButton({ userId, name, due, weeks, currentDue = 0, className 
   );
 }
 
-export function WeekMenu({ userId, week, label, due, residual, computed, overridden, notes, entryId, paid }: {
-  userId: number; week: string; label: string; due: number; residual: number; computed: number; overridden: boolean; notes: string | null; entryId: number | null; paid: number;
+export function WeekMenu({ userId, week, label, due, residual, computed, overridden, notes, entryId, paid, cash = null }: {
+  userId: number; week: string; label: string; due: number; residual: number; computed: number; overridden: boolean; notes: string | null; entryId: number | null; paid: number; cash?: number | null;
 }) {
   const [open, setOpen] = useState<null | "menu" | "pay" | "edit" | "unpay">(null);
+  const [amount, setAmount] = useState(String(residual || ""));
   return (
     <>
       <button className="btn btn-ghost btn-icon btn-sm" aria-label={`Azioni settimana ${label}`} onClick={() => setOpen("menu")}><MoreHorizontal size={18} /></button>
@@ -58,7 +60,8 @@ export function WeekMenu({ userId, week, label, due, residual, computed, overrid
           <input type="hidden" name="userId" value={userId} />
           <input type="hidden" name="week" value={week} />
           <p>Spetta <b>{money(due)}</b>, già pagato <b>{money(paid)}</b>.</p>
-          <label className="block"><span className="field-label">Importo</span><input name="amount" type="number" step="0.01" min="0.01" defaultValue={residual || ""} className="input" required /></label>
+          <label className="block"><span className="field-label">Importo</span><input name="amount" type="number" step="0.01" min="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className="input" required /></label>
+          <CashHint cash={cash} amount={Number(amount) || 0} />
           <label className="block"><span className="field-label">Nota</span><input name="notes" defaultValue={notes ?? ""} className="input" /></label>
           <button className="btn btn-primary w-full">Registra</button>
         </ActionForm>
@@ -96,5 +99,17 @@ export function PercentForm({ userId, values, globals }: { userId: number; value
       <p className="text-[12.5px] text-fg-3">Campo vuoto = percentuale globale (mostrata in grigio).</p>
       <button className="btn btn-secondary">Salva percentuali</button>
     </ActionForm>
+  );
+}
+
+/** Quanto c'è in cassa mentre si paga: avvisa se non basta (non blocca, il pagamento si può registrare comunque). */
+function CashHint({ cash, amount }: { cash: number | null; amount: number }) {
+  if (cash == null) return null;
+  const short = amount > cash + 0.004;
+  return (
+    <div className={`flex items-center justify-between rounded-lg px-3 py-2 text-[14px] ${short ? "bg-accent-soft text-accent-text" : "bg-surface-2 text-fg-2"}`}>
+      <span>{short ? "In cassa non bastano i soldi" : "In cassa adesso"}</span>
+      <b className="tabular-nums">{money(cash)}{amount > 0 ? <span className="font-normal"> → dopo {cash - amount < 0 ? "−" : ""}{money(Math.abs(cash - amount))}</span> : null}</b>
+    </div>
   );
 }

@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import { randomBytes } from "node:crypto";
 import { prisma } from "@/lib/db";
 import { assertPermission, hashPassword } from "@/lib/auth";
 import { run, fd, UserError } from "@/lib/action";
@@ -69,6 +70,7 @@ export async function updateUser(form: FormData) {
       .parse({ username: f.str("username"), displayName: f.str("displayName"), role: f.str("role"), active: f.bool("active"), notes: f.opt("notes") });
     const before = await prisma.user.findUnique({ where: { id } });
     if (!before) throw new UserError("Utente non trovato.");
+    if (before.deletedAt) throw new UserError("Questo utente è stato eliminato: non si può più modificare né riattivare.");
     assertCanManageUser(actor, before);
     if (before.id === actor.id && data.role !== before.role && actor.role !== ADMIN_ROLE) throw new UserError("Non puoi cambiare il tuo ruolo.");
     if (data.role !== before.role) await checkAssignableRole(actor, data.role);
@@ -101,6 +103,7 @@ export async function resetPassword(form: FormData) {
     const pw = pwSchema.parse(f.str("password"));
     const u = await prisma.user.findUnique({ where: { id } });
     if (!u) throw new UserError("Utente non trovato.");
+    if (u.deletedAt) throw new UserError("Questo utente è stato eliminato: non può più entrare.");
     // nessuno può prendere il controllo di un account più potente del proprio (es. un amministratore)
     if (u.role === ADMIN_ROLE && actor.role !== ADMIN_ROLE) throw new UserError("Solo un amministratore può reimpostare la password di un amministratore.");
     assertCanManageUser(actor, u);
@@ -133,7 +136,58 @@ export async function userDataSummary(userId: number) {
     prisma.shopNote.count({ where: { createdById: userId } }),
     prisma.auditLog.count({ where: { userId } }),
   ]);
-  return { horses: horseIds.length, sales, salesOnHorses, itemSales, spawns, reservations, payroll, reimb, notes, logs };
+  const stableHorses = await prisma.horse.count({ where: { ownerId: userId, status: "IN_STALLA" } });
+  return { horses: horseIds.length, stableHorses, sales, salesOnHorses, itemSales, spawns, reservations, payroll, reimb, notes, logs };
+}
+
+/**
+ * Elimina l'utente MANTENENDO lo storico: l'account viene chiuso per sempre (non può più entrare
+ * né essere riattivato), ma vendite, cavalli, stipendi e registro restano con il suo nome.
+ * I cavalli che ha ancora in stalla passano a un collega scelto.
+ */
+export async function archiveUser(form: FormData) {
+  return run(async () => {
+    const actor = await assertPermission("users.delete");
+    const f = fd(form);
+    const id = f.int("id") ?? 0;
+    const u = await prisma.user.findUnique({ where: { id } });
+    if (!u) throw new UserError("Utente non trovato.");
+    if (u.deletedAt) throw new UserError("Utente già eliminato.");
+    if (u.id === actor.id) throw new UserError("Non puoi eliminare il tuo stesso account.");
+    if (u.role === ADMIN_ROLE && actor.role !== ADMIN_ROLE) throw new UserError("Solo un amministratore può eliminare un amministratore.");
+    assertCanManageUser(actor, u);
+    if (f.str("conferma") !== u.username) throw new UserError(`Per confermare scrivi esattamente il nome utente: ${u.username}`);
+    if (u.role === ADMIN_ROLE && (await prisma.user.count({ where: { role: ADMIN_ROLE, active: true, deletedAt: null, NOT: { id } } })) === 0) throw new UserError("Deve restare almeno un amministratore.");
+    const stable = await prisma.horse.findMany({ where: { ownerId: id, status: "IN_STALLA" }, select: { id: true } });
+    let to: { id: number; displayName: string } | null = null;
+    if (stable.length) {
+      const toId = f.int("moveTo");
+      to = toId ? await prisma.user.findFirst({ where: { id: toId, active: true, deletedAt: null, NOT: { id } }, select: { id: true, displayName: true } }) : null;
+      if (!to) throw new UserError(`Ha ${stable.length} cavalli in stalla: scegli a chi passarli.`);
+    }
+    const summary = await userDataSummary(id);
+    await prisma.$transaction(async (tx) => {
+      if (to) {
+        await tx.horse.updateMany({ where: { ownerId: id, status: "IN_STALLA" }, data: { ownerId: to.id, version: { increment: 1 } } });
+        await tx.horseTransfer.createMany({ data: stable.map((h) => ({ horseId: h.id, fromUserId: id, toUserId: to!.id, byUserId: actor.id, notes: `Utente ${u.displayName} eliminato` })) });
+      }
+      await tx.reservation.updateMany({ where: { assignedToId: id }, data: { assignedToId: null } });
+      await tx.session.deleteMany({ where: { userId: id } });
+      await tx.user.update({
+        where: { id },
+        data: {
+          active: false, deletedAt: new Date(), shoutText: null,
+          // il nome utente si libera (si può riusare per un nuovo account); la password diventa inutilizzabile
+          username: `eliminato-${id}-${u.username}`.slice(0, 50),
+          passwordHash: await hashPassword(randomBytes(32).toString("base64url")),
+        },
+      });
+      await audit(actor, "ELIMINA_UTENTE", "Utente", id,
+        `Eliminato l'utente ${u.username} (${u.displayName}) mantenendo lo storico${to ? `; ${stable.length} cavalli passati a ${to.displayName}` : ""}`,
+        { modalità: "storico conservato", ...summary }, tx);
+    });
+    return { ok: true, message: `Utente ${u.displayName} eliminato. Il suo storico resta.` };
+  });
 }
 
 /** Elimina definitivamente un utente e TUTTO ciò che lo riguarda. */
@@ -384,6 +438,7 @@ export async function saveSettings(form: FormData) {
         rareTrainingPrice: z.number({ message: "Indica l'addestramento dei rari" }).min(0).max(1_000_000),
         rareColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Colore dei rari non valido"),
         trainingPayrollCategory: z.enum(["stable", "items"]),
+        navBadges: z.object({ stalla: z.boolean(), bottega: z.boolean(), bacheca: z.boolean(), personale: z.boolean(), admin: z.boolean() }),
         cashCountGov: z.boolean(),
         cashCountPayroll: z.boolean(),
         cashCountReimbursements: z.boolean(),
@@ -438,6 +493,7 @@ export async function saveSettings(form: FormData) {
         rareTrainingPrice: f.num("rareTrainingPrice"),
         rareColor: f.str("rareColor"),
         trainingPayrollCategory: f.str("trainingPayrollCategory"),
+        navBadges: { stalla: f.bool("navBadge_stalla"), bottega: f.bool("navBadge_bottega"), bacheca: f.bool("navBadge_bacheca"), personale: f.bool("navBadge_personale"), admin: f.bool("navBadge_admin") },
         cashCountGov: f.bool("cashCountGov"),
         cashCountPayroll: f.bool("cashCountPayroll"),
         cashCountReimbursements: f.bool("cashCountReimbursements"),

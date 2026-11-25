@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { cashBalance } from "@/lib/cash";
+import { can } from "@/lib/permissions";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
@@ -17,6 +19,7 @@ export default async function PayrollPage({ searchParams }: { searchParams: Prom
   const sp = await searchParams;
   const s = await getSettings();
   const storico = sp.vista === "storico";
+  const cash = !storico && can(user.role, "cash.view") && s.cashCountPayroll ? await cashBalance() : null;
   const header = (
     <PageHeader
       title="Personale"
@@ -91,7 +94,7 @@ export default async function PayrollPage({ searchParams }: { searchParams: Prom
                     <td className="num text-[16px] font-bold">{money(u.due)}</td>
                     <td className="num text-fg-3">{money(u.current?.due ?? 0)}</td>
                     <td className="!pr-5 text-right">
-                      <PayButton userId={u.userId} name={u.name} due={u.due} weeks={u.arrears.map((w) => weekLabel(w.weekStart, TZ).split(" – ")[0])} currentDue={u.current?.residual ?? 0} className={u.due > 0 ? "btn btn-primary btn-sm" : "btn btn-secondary btn-sm"} />
+                      <PayButton userId={u.userId} name={u.name} due={u.due} weeks={u.arrears.map((w) => weekLabel(w.weekStart, TZ).split(" – ")[0])} currentDue={u.current?.residual ?? 0} className={u.due > 0 ? "btn btn-primary btn-sm" : "btn btn-secondary btn-sm"} cash={cash} />
                     </td>
                   </tr>
                 ))}

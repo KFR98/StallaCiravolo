@@ -10,7 +10,7 @@ import { DiscordBrushDefs, DiscordLink, type DiscordStyle } from "./DiscordLink"
 
 const ICONS = { dashboard: LayoutDashboard, stable: Warehouse, sales: Receipt, shop: Store, map: Map, catalog: BookOpen, notes: NotebookPen, staff: Users, cash: Wallet, admin: Shield };
 
-export type NavItem = { href: string; label: string; icon: keyof typeof ICONS; match: string[]; mobile?: boolean };
+export type NavItem = { href: string; label: string; icon: keyof typeof ICONS; match: string[]; mobile?: boolean; badge?: { n: number; title: string } };
 
 export function AppShell({
   items,
@@ -52,7 +52,8 @@ export function AppShell({
               )}
             >
               <Icon size={19} strokeWidth={1.8} className={clsx("shrink-0", active && "text-[#ff5d55]")} />
-              {it.label}
+              <span className="flex-1">{it.label}</span>
+              {it.badge && <span className="nav-badge" title={it.badge.title} aria-label={it.badge.title}>{it.badge.n > 99 ? "99+" : it.badge.n}</span>}
             </Link>
           </li>
         );
@@ -111,8 +112,9 @@ export function AppShell({
         {brand}
         <div className="flex items-center gap-1">
           <ThemeToggle className="!text-neutral-300" />
-          <button onClick={() => setOpen(true)} aria-label="Apri menu" className="btn btn-ghost btn-icon !text-white">
+          <button onClick={() => setOpen(true)} aria-label={items.some((i) => i.badge) ? "Apri menu (ci sono cose da fare)" : "Apri menu"} className="btn btn-ghost btn-icon relative !text-white">
             <Menu />
+            {items.some((i) => i.badge) && <span className="absolute top-1.5 right-1.5 size-2.5 rounded-full bg-[#e01f27] ring-2 ring-[#0b0a09]" aria-hidden="true" />}
           </button>
         </div>
       </div>
@@ -143,7 +145,10 @@ export function AppShell({
           const active = isActive(it);
           return (
             <Link key={it.href} href={it.href} className={clsx("flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11.5px] font-medium", active ? "text-white" : "text-neutral-400")}>
-              <Icon size={20} className={active ? "text-[#ff5d55]" : ""} />
+              <span className="relative">
+                <Icon size={20} className={active ? "text-[#ff5d55]" : ""} />
+                {it.badge && <span className="nav-badge nav-badge-dot" title={it.badge.title} aria-label={it.badge.title}>{it.badge.n > 9 ? "9+" : it.badge.n}</span>}
+              </span>
               {it.label}
             </Link>
           );

@@ -497,3 +497,11 @@ input[type="radio"] {
 }
 .cash-in { @apply bg-ok-soft text-ok; }
 .cash-out { @apply bg-accent-soft text-accent-text; }
+
+/* ───────── Numerini nel menu (cose da fare) ───────── */
+.nav-badge {
+  @apply inline-flex min-w-5 items-center justify-center rounded-full bg-[#e01f27] px-1.5 text-[11.5px] leading-5 font-bold text-white tabular-nums;
+}
+.nav-badge-dot {
+  @apply absolute -top-1.5 -right-2.5 min-w-4 px-1 text-[10px] leading-4 ring-2 ring-[#0b0a09];
+}

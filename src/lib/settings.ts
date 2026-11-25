@@ -95,6 +95,8 @@ export const DEFAULT_SETTINGS = {
   cashCountPayroll: true,
   /** Cassa: i rimborsi pagati escono dalla cassa */
   cashCountReimbursements: true,
+  /** Menu: numerini delle cose da fare accanto alle voci (ognuno vede solo quelli delle sue sezioni) */
+  navBadges: { stalla: true, bottega: true, bacheca: true, personale: true, admin: true } as Record<"stalla" | "bottega" | "bacheca" | "personale" | "admin", boolean>,
   /** Strillone: lunghezza massima dell'annuncio (caratteri) */
   shoutMaxLength: 500,
   /** Stalla: ordinamento proposto all'apertura (ognuno può cambiarlo, e il browser lo ricorda) */

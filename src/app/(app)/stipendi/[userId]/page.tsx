@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { can } from "@/lib/permissions";
+import { cashBalance } from "@/lib/cash";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
@@ -16,7 +18,7 @@ export const metadata = { title: "Stipendi dipendente" };
 const STATUS = { DA_PAGARE: ["Da pagare", "badge-warn"], PARZIALE: ["Parziale", "badge-warn"], PAGATO: ["Pagato", "badge-ok"] } as const;
 
 export default async function UserPayrollPage({ params }: { params: Promise<{ userId: string }> }) {
-  await requireUser("payroll.manage");
+  const me = await requireUser("payroll.manage");
   const id = Number((await params).userId) || 0;
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) notFound();
@@ -26,10 +28,12 @@ export default async function UserPayrollPage({ params }: { params: Promise<{ us
     prisma.payment.findMany({ where: { userId: id }, orderBy: { createdAt: "desc" }, include: { recordedBy: true } }),
   ]);
   const weeks = ov?.weeks ?? [];
+  // saldo di cassa mostrato mentre si paga (solo a chi può vedere la cassa, e se gli stipendi escono dalla cassa)
+  const cash = can(me.role, "cash.view") && s.cashCountPayroll ? await cashBalance() : null;
   return (
     <>
       <Link href="/stipendi" className="btn btn-ghost btn-sm mb-3 -ml-2"><ArrowLeft size={16} /> Stipendi</Link>
-      <PageHeader title={user.displayName} subtitle={roleLabel(user.role)} actions={ov && <PayButton userId={id} name={user.displayName} due={ov.due} weeks={ov.arrears.map((w) => weekLabel(w.weekStart, TZ).split(" – ")[0])} currentDue={ov.current?.residual ?? 0} className="btn btn-primary" />} />
+      <PageHeader title={user.displayName} subtitle={roleLabel(user.role)} actions={ov && <PayButton userId={id} name={user.displayName} due={ov.due} weeks={ov.arrears.map((w) => weekLabel(w.weekStart, TZ).split(" – ")[0])} currentDue={ov.current?.residual ?? 0} className="btn btn-primary" cash={cash} />} />
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatTile label="Gli spetta" value={money(ov?.due ?? 0)} hint={`${ov?.arrears.length ?? 0} settimane`} tone="accent" />
         <StatTile label="Ultimo pagamento" value={ov?.lastPaidAt ? dateOnly(ov.lastPaidAt) : "Mai"} />
@@ -51,7 +55,7 @@ export default async function UserPayrollPage({ params }: { params: Promise<{ us
                     <td className="num font-semibold">{money(w.due)}{w.overridden && <span className="text-accent-text" title="Dovuto modificato a mano">*</span>}</td>
                     <td className="num">{money(w.paid)}{w.extra > 0 && <div className="text-[12px] text-ok">+{money(w.extra)} extra</div>}{w.status === "PARZIALE" && <div className="text-[12px] text-warn">manca {money(w.residual)}</div>}</td>
                     <td><span className={`badge ${w.due <= 0 && w.paid <= 0 ? "badge-neutral" : STATUS[w.status][1]}`}>{w.due <= 0 && w.paid <= 0 ? "—" : STATUS[w.status][0]}</span></td>
-                    <td className="!pr-5 text-right"><WeekMenu userId={id} week={w.key} label={weekLabel(w.weekStart, TZ)} due={w.due} residual={w.residual} computed={w.computed} overridden={w.overridden} notes={w.notes} entryId={w.entryId} paid={w.paid} /></td>
+                    <td className="!pr-5 text-right"><WeekMenu userId={id} week={w.key} label={weekLabel(w.weekStart, TZ)} due={w.due} residual={w.residual} computed={w.computed} overridden={w.overridden} notes={w.notes} entryId={w.entryId} paid={w.paid} cash={cash} /></td>
                   </tr>
                 ))}
               </tbody>

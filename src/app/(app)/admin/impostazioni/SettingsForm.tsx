@@ -59,6 +59,21 @@ export function SettingsForm({ s, inStable, shopItems }: { s: Settings; inStable
         </label>
       </Section>
 
+      <Section title="Menu: numerini delle cose da fare" hint="Il numerino rosso accanto alla voce del menu. Ognuno vede solo quelli delle sezioni a cui ha accesso.">
+        {([
+          ["navBadge_stalla", "Stalla: parti da fare e puledri senza dati", s.navBadges.stalla],
+          ["navBadge_bottega", "Bottega: rimborsi e proposte da gestire", s.navBadges.bottega],
+          ["navBadge_bacheca", "Bacheca: prenotazioni assegnate ancora aperte", s.navBadges.bacheca],
+          ["navBadge_personale", "Personale: stipendi arretrati", s.navBadges.personale],
+          ["navBadge_admin", "Amministrazione: Alarm e Critico nelle ultime 24 ore", s.navBadges.admin],
+        ] as const).map(([n, l, v]) => (
+          <label key={n} className="flex min-h-10 items-center gap-3 rounded-lg border border-border px-3">
+            <input type="checkbox" name={n} defaultChecked={v} />
+            <span className="text-[14px]">{l}</span>
+          </label>
+        ))}
+      </Section>
+
       <Section title="Strillone" hint="L'annuncio personale che ognuno salva nell'Ufficio e copia in gioco quando la stalla è aperta.">
         <Num name="shoutMaxLength" label="Lunghezza massima (caratteri)" value={s.shoutMaxLength} step="1" min="20" />
       </Section>

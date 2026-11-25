@@ -2,6 +2,7 @@ import { requireUser } from "@/lib/auth";
 import { can, roleLabel, type Permission } from "@/lib/permissions";
 import { getSettings } from "@/lib/settings";
 import { discordLink } from "@/lib/discord";
+import { navBadges } from "@/lib/nav-badges";
 import { AppShell, type NavItem } from "@/components/Sidebar";
 import { logoutAction } from "../login/actions";
 
@@ -21,7 +22,8 @@ const NAV: (NavItem & { perm: Permission })[] = [
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
   const { stableName, discordUrl, discordStyle } = await getSettings();
-  const items = NAV.filter((n) => can(user.role, n.perm)).map(({ perm: _p, ...rest }) => rest);
+  const badges = await navBadges(user);
+  const items = NAV.filter((n) => can(user.role, n.perm)).map(({ perm: _p, ...rest }) => ({ ...rest, badge: badges[rest.href] }));
   return (
     <AppShell
       items={items}

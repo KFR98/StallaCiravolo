@@ -38,6 +38,8 @@ model User {
   /// Chiave di AppRole (es. "ADMIN", "DIPENDENTE", "OSPITE" o un ruolo creato dall'admin)
   role          String    @default("DIPENDENTE")
   active        Boolean   @default(true)
+  /// Eliminato mantenendo lo storico: non può più entrare né essere riattivato, i suoi dati restano
+  deletedAt     DateTime?
   /// Strillone personale: annuncio da copiare e incollare in gioco quando la stalla è aperta
   shoutText     String?
   /// Percentuali stipendio personali (null = usa quelle globali)
