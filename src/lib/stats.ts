@@ -12,9 +12,16 @@ export async function salesSummary(from: Date, to: Date, sellerId?: number) {
     _count: true,
   });
   const get = (t: "STALLA" | "GOVERNO") => rows.find((r) => r.type === t);
+  // fatture della bottega (addestramenti e oggetti); quelle collegate a un cavallo contano nell'incasso ma non come vendita a parte
+  const linked = (await prisma.sale.findMany({ where: { itemSaleId: { not: null }, soldAt: { gte: from, lt: to } }, select: { itemSaleId: true } })).map((x) => x.itemSaleId!);
+  const items = await prisma.itemSale.findMany({ where: { voided: false, soldAt: { gte: from, lt: to }, ...(sellerId ? { sellerId } : {}) }, select: { id: true, total: true } });
+  const shopTotal = items.reduce((t, i) => t + Number(i.total), 0);
+  const shopCount = items.filter((i) => !linked.includes(i.id)).length;
   return {
-    count: rows.reduce((s, r) => s + r._count, 0),
-    total: rows.reduce((s, r) => s + Number(r._sum.finalPrice ?? 0), 0),
+    count: rows.reduce((s, r) => s + r._count, 0) + shopCount,
+    total: Math.round((rows.reduce((s, r) => s + Number(r._sum.finalPrice ?? 0), 0) + shopTotal) * 100) / 100,
+    shopCount,
+    shopTotal: Math.round(shopTotal * 100) / 100,
     stableCount: get("STALLA")?._count ?? 0,
     stableTotal: Number(get("STALLA")?._sum.finalPrice ?? 0),
     govCount: get("GOVERNO")?._count ?? 0,
@@ -30,11 +37,19 @@ export async function dailyTrend(days: number, sellerId?: number) {
     where: { voided: false, soldAt: { gte: from }, ...(sellerId ? { sellerId } : {}) },
     select: { soldAt: true, finalPrice: true, type: true },
   });
-  const buckets = new Map<string, { day: string; stalla: number; governo: number; n: number }>();
+  const shop = await prisma.itemSale.findMany({
+    where: { voided: false, soldAt: { gte: from }, ...(sellerId ? { sellerId } : {}) },
+    select: { soldAt: true, total: true },
+  });
+  const buckets = new Map<string, { day: string; stalla: number; governo: number; bottega: number; n: number }>();
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date(Date.now() - i * 86400_000);
     const key = formatInTimeZone(d, TZ, "yyyy-MM-dd");
-    buckets.set(key, { day: formatInTimeZone(d, TZ, "dd/MM"), stalla: 0, governo: 0, n: 0 });
+    buckets.set(key, { day: formatInTimeZone(d, TZ, "dd/MM"), stalla: 0, governo: 0, bottega: 0, n: 0 });
+  }
+  for (const s of shop) {
+    const b = buckets.get(formatInTimeZone(s.soldAt, TZ, "yyyy-MM-dd"));
+    if (b) b.bottega += Number(s.total);
   }
   for (const s of sales) {
     const b = buckets.get(formatInTimeZone(s.soldAt, TZ, "yyyy-MM-dd"));
@@ -43,7 +58,7 @@ export async function dailyTrend(days: number, sellerId?: number) {
     else b.stalla += Number(s.finalPrice);
     b.n++;
   }
-  return [...buckets.values()].map((b) => ({ ...b, stalla: Math.round(b.stalla * 100) / 100, governo: Math.round(b.governo * 100) / 100 }));
+  return [...buckets.values()].map((b) => ({ ...b, stalla: Math.round(b.stalla * 100) / 100, governo: Math.round(b.governo * 100) / 100, bottega: Math.round(b.bottega * 100) / 100 }));
 }
 
 export type EmployeeStats = {

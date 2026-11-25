@@ -7,33 +7,54 @@ import { ActionForm, ActionButton } from "@/components/ActionForm";
 import { Modal } from "@/components/Modal";
 import { money } from "@/lib/format";
 import { SaleTag } from "@/components/SaleTag";
+import { HorseThumb } from "@/components/ui";
+import { HorsePicker, buildHorseOptions, type HorseOption } from "@/components/HorsePicker";
 import { sellItems, saveItem, deleteItem, saveSupplier, deleteSupplier, handleShopNote, handleReimbursement } from "./actions";
 
-export type ShopItemRow = { id: number; kind: "VENDITA" | "MATERIA_PRIMA"; name: string; group: string | null; price: number | null; priceNote: string | null; notes: string | null };
+export type ShopItemRow = { id: number; kind: "VENDITA" | "MATERIA_PRIMA"; name: string; group: string | null; subgroup: string | null; price: number | null; priceNote: string | null; notes: string | null };
 
 const newId = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now());
 const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+const byName = (a: string, b: string) => a.localeCompare(b, "it", { sensitivity: "base", numeric: true });
 
-export type TrainingBreed = { id: number; name: string; coats: { id: number; name: string; trainingPrice: number | null }[] };
-type TrainingLine = { key: string; coatId: number; label: string; rarity: "RARO" | "LEGGENDARIO" | null; plate: string; price: number };
+export type TrainingBreed = { id: number; name: string; coats: { id: number; name: string; image: string | null; trainingPrice: number | null }[] };
+/** Cavallo in stalla non ancora addestrato, con il prezzo dell'addestramento già calcolato dal server */
+export type StableHorse = {
+  id: number; breedId: number; coatId: number; breed: string; coat: string; plate: string | null; image: string | null;
+  rarity: "RARO" | "LEGGENDARIO" | null; owner: string; price: number | null;
+};
+type TrainingLine = { key: string; coatId: number; horseId: number | null; label: string; image: string | null; rarity: "RARO" | "LEGGENDARIO" | null; plate: string; price: number };
 
 /**
  * Fattura della bottega: addestramenti di cavalli + oggetti in vetrina, un unico totale.
  * I prezzi mostrati sono solo un'anteprima: il server li ricalcola dal listino.
  */
-export function ShopSell({ items, breeds, rareTrainingPrice, maxDiscount, canFlat, canOverride }: {
-  items: ShopItemRow[]; breeds: TrainingBreed[]; rareTrainingPrice: number; maxDiscount: number; canFlat: boolean; canOverride: boolean;
+export function ShopSell({ items, breeds, stable, rareTrainingPrice, maxDiscount, canFlat, canOverride }: {
+  items: ShopItemRow[]; breeds: TrainingBreed[]; stable: StableHorse[]; rareTrainingPrice: number; maxDiscount: number; canFlat: boolean; canOverride: boolean;
 }) {
   const [q, setQ] = useState("");
+  const [group, setGroup] = useState<string>("");
   const [cart, setCart] = useState<Record<number, number>>({});
   const [trainings, setTrainings] = useState<TrainingLine[]>([]);
   const [flatOn, setFlatOn] = useState(false);
   const [flat, setFlat] = useState("");
   const [requestId, setRequestId] = useState("");
   useEffect(() => setRequestId(newId()), []);
-  const sellable = items.filter((i) => i.price != null);
-  const list = useMemo(() => sellable.filter((i) => !q || q.trim().split(/\s+/).every((t) => norm(`${i.name} ${i.group ?? ""}`).includes(norm(t)))), [sellable, q]);
-  const groups = [...new Set(list.map((i) => i.group ?? "Altro"))];
+  const sellable = useMemo(() => items.filter((i) => i.price != null).sort((a, b) => byName(a.name, b.name)), [items]);
+  // gruppi (pulsanti in alto) e, dentro, sottogruppi in ordine alfabetico; gli oggetti senza sottogruppo vanno in fondo
+  const allGroups = useMemo(() => [...new Set(sellable.map((i) => i.group ?? "Altro"))].sort(byName), [sellable]);
+  const list = useMemo(
+    () => sellable.filter((i) => (!group || (i.group ?? "Altro") === group) && (!q || q.trim().split(/\s+/).every((t) => norm(`${i.name} ${i.group ?? ""} ${i.subgroup ?? ""}`).includes(norm(t))))),
+    [sellable, q, group],
+  );
+  const sections = useMemo(() => {
+    const m = new Map<string, ShopItemRow[]>();
+    for (const i of list) {
+      const k = `${i.group ?? "Altro"}${i.subgroup ? ` · ${i.subgroup}` : ""}`;
+      m.set(k, [...(m.get(k) ?? []), i]);
+    }
+    return [...m].sort(([a, ia], [b, ib]) => byName(ia[0].group ?? "Altro", ib[0].group ?? "Altro") || Number(!ia[0].subgroup) - Number(!ib[0].subgroup) || byName(a, b));
+  }, [list]);
   const lines = Object.entries(cart).filter(([, n]) => n > 0).map(([id, n]) => ({ item: items.find((i) => i.id === Number(id))!, quantity: n }));
   const itemsTotal = lines.reduce((t, l) => t + (l.item.price ?? 0) * l.quantity, 0);
   const trainingTotal = trainings.reduce((t, l) => t + l.price, 0);
@@ -47,25 +68,32 @@ export function ShopSell({ items, breeds, rareTrainingPrice, maxDiscount, canFla
   const reset = () => { setCart({}); setTrainings([]); setFlatOn(false); setFlat(""); };
 
   const payload = [
-    ...trainings.map((t) => ({ type: "training", coatId: t.coatId, rarity: t.rarity, plate: t.plate.trim() || null })),
+    ...trainings.map((t) => ({ type: "training", coatId: t.coatId, horseId: t.horseId, rarity: t.rarity, plate: t.plate.trim() || null })),
     ...lines.map((l) => ({ type: "item", itemId: l.item.id, quantity: l.quantity })),
   ];
 
   return (
     <div className="grid gap-5 lg:grid-cols-[1.5fr_1fr]">
       <div className="space-y-5">
-        <TrainingPicker breeds={breeds} rareTrainingPrice={rareTrainingPrice} onAdd={(t) => setTrainings((x) => [...x, t])} />
+        <TrainingPicker breeds={breeds} stable={stable} rareTrainingPrice={rareTrainingPrice} inCart={trainings.map((t) => t.horseId).filter((x): x is number => x != null)} onAdd={(t) => setTrainings((x) => [...x, t])} />
         <div className="card card-pad">
           <h3 className="mb-3 flex items-center gap-2 font-semibold"><SaleTag kind="vetrina" /> Oggetti in vetrina</h3>
-          <div className="relative mb-4">
+          <div className="relative mb-3">
             <Search size={17} className="absolute top-1/2 left-3 -translate-y-1/2 text-fg-3" aria-hidden="true" />
             <input className="input !pl-9" placeholder="Cerca un oggetto…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Cerca oggetto" />
           </div>
-          {groups.map((g) => (
-            <section key={g} className="mb-4">
-              <h4 className="eyebrow mb-2">{g}</h4>
+          {allGroups.length > 1 && (
+            <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Gruppo di oggetti">
+              {[["", `Tutti (${sellable.length})`], ...allGroups.map((g) => [g, `${g} (${sellable.filter((i) => (i.group ?? "Altro") === g).length})`])].map(([k, l]) => (
+                <button key={k} type="button" className="chip" aria-pressed={group === k} onClick={() => setGroup(k)}>{l}</button>
+              ))}
+            </div>
+          )}
+          {sections.map(([title, rows]) => (
+            <section key={title} className="mb-4">
+              <h4 className="eyebrow mb-2">{title}</h4>
               <div className="grid gap-2 sm:grid-cols-2">
-                {list.filter((i) => (i.group ?? "Altro") === g).map((i) => (
+                {rows.map((i) => (
                   <button key={i.id} type="button" onClick={() => add(i.id, 1)}
                     className={clsx("flex min-h-12 items-center justify-between gap-2 rounded-lg border px-3 text-left transition-colors", cart[i.id] ? "border-accent bg-accent-soft" : "border-border hover:bg-surface-2")}>
                     <span className="font-medium">{i.name}</span>
@@ -95,7 +123,10 @@ export function ShopSell({ items, breeds, rareTrainingPrice, maxDiscount, canFla
           <ul className="mb-3 divide-y divide-border">
             {trainings.map((t) => (
               <li key={t.key} className="flex items-center gap-2 py-2">
-                <SaleTag kind="addestramento" short />
+                <span className="relative shrink-0">
+                  <HorseThumb src={t.image} size={36} />
+                  <span className="absolute -right-1 -bottom-1"><SaleTag kind="addestramento" short /></span>
+                </span>
                 <span className="min-w-0 flex-1">
                   <span className="block break-words">{t.label}</span>
                   {(t.rarity || t.plate) && <span className="block text-[12.5px] text-fg-3">{[t.rarity === "RARO" ? "Raro" : t.rarity === "LEGGENDARIO" ? "Leggendario" : null, t.plate && `Targa ${t.plate}`].filter(Boolean).join(" · ")}</span>}
@@ -167,57 +198,89 @@ export function ShopSell({ items, breeds, rareTrainingPrice, maxDiscount, canFla
   );
 }
 
-/** Scelta del cavallo da addestrare: razza → manto, rarità e targa facoltativa. Il prezzo arriva dal catalogo. */
-function TrainingPicker({ breeds, rareTrainingPrice, onAdd }: { breeds: TrainingBreed[]; rareTrainingPrice: number; onAdd: (t: TrainingLine) => void }) {
-  const [breedId, setBreedId] = useState<number | "">("");
-  const [coatId, setCoatId] = useState<number | "">("");
+/**
+ * Scelta del cavallo da addestrare, con lo stesso campo di ricerca (foto, razza, manto) della registrazione cattura.
+ * - "In stalla": cavalli presenti e non ancora addestrati; dopo la vendita vengono segnati "addestrato".
+ * - "Altro cavallo": dal catalogo (cavalli del cliente o già venduti), con rarità e targa facoltativa.
+ */
+function TrainingPicker({ breeds, stable, rareTrainingPrice, inCart, onAdd }: {
+  breeds: TrainingBreed[]; stable: StableHorse[]; rareTrainingPrice: number; inCart: number[]; onAdd: (t: TrainingLine) => void;
+}) {
+  const [mode, setMode] = useState<"stalla" | "catalogo">(stable.length ? "stalla" : "catalogo");
+  const [pick, setPick] = useState<HorseOption | null>(null);
   const [rarity, setRarity] = useState<"" | "RARO" | "LEGGENDARIO">("");
   const [plate, setPlate] = useState("");
-  const breed = breeds.find((b) => b.id === breedId);
-  const coat = breed?.coats.find((c) => c.id === coatId);
-  const price = rarity ? rareTrainingPrice : coat?.trainingPrice ?? null;
+  const [resetKey, setResetKey] = useState(0);
+
+  const catalogOptions = useMemo(
+    () => buildHorseOptions(breeds.map((b) => ({ id: b.id, name: b.name, coats: b.coats.map((c) => ({ id: c.id, name: c.name, image: c.image })) })))
+      .map((o) => {
+        const c = breeds.find((b) => b.id === o.breedId)?.coats.find((x) => x.id === o.coatId);
+        return { ...o, meta: c?.trainingPrice != null ? `addestramento ${money(c.trainingPrice)}` : "senza prezzo di addestramento" };
+      }),
+    [breeds],
+  );
+  const stableOptions: HorseOption[] = useMemo(
+    () => stable.filter((h) => !inCart.includes(h.id)).map((h) => ({
+      key: `h:${h.id}`, breedId: h.breedId, coatId: h.coatId, breed: h.breed,
+      coat: `${h.coat}${h.plate ? ` · ${h.plate}` : ""}`, image: h.image,
+      meta: [h.rarity === "RARO" ? "raro" : h.rarity === "LEGGENDARIO" ? "leggendario" : null, h.owner, h.price != null ? money(h.price) : "senza prezzo"].filter(Boolean).join(" · "),
+    })),
+    [stable, inCart],
+  );
+
+  const horse = mode === "stalla" && pick ? stable.find((h) => `h:${h.id}` === pick.key) ?? null : null;
+  const coat = mode === "catalogo" && pick?.coatId ? breeds.find((b) => b.id === pick.breedId)?.coats.find((c) => c.id === pick.coatId) ?? null : null;
+  const price = horse ? horse.price : coat ? (rarity ? rareTrainingPrice : coat.trainingPrice) : null;
+
+  const add = () => {
+    if (price == null || !pick) return;
+    if (horse) {
+      onAdd({ key: newId(), coatId: horse.coatId, horseId: horse.id, label: `${horse.breed} – ${horse.coat}`, image: horse.image, rarity: horse.rarity, plate: horse.plate ?? "", price });
+    } else if (coat) {
+      onAdd({ key: newId(), coatId: coat.id, horseId: null, label: `${pick.breed} – ${coat.name}`, image: coat.image, rarity: rarity || null, plate: plate.trim().toUpperCase(), price });
+    }
+    setPick(null); setPlate(""); setRarity(""); setResetKey((k) => k + 1);
+  };
+
   return (
     <div className="card card-pad">
       <h3 className="mb-1 flex items-center gap-2 font-semibold"><SaleTag kind="addestramento" /> Addestramento di un cavallo</h3>
-      <p className="mb-3 text-[13.5px] text-fg-3">Per i cavalli che hai addestrato (anche se li ha venduti un altro o sono del cliente). Il prezzo è quello del listino.</p>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="block">
-          <span className="field-label">Razza</span>
-          <select className="input" value={breedId} onChange={(e) => { setBreedId(e.target.value ? Number(e.target.value) : ""); setCoatId(""); }}>
-            <option value="">Scegli la razza…</option>
-            {breeds.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-          </select>
-        </label>
-        <label className="block">
-          <span className="field-label">Manto</span>
-          <select className="input" value={coatId} disabled={!breed} onChange={(e) => setCoatId(e.target.value ? Number(e.target.value) : "")}>
-            <option value="">{breed ? "Scegli il manto…" : "Prima la razza"}</option>
-            {breed?.coats.map((c) => <option key={c.id} value={c.id}>{c.name}{c.trainingPrice != null ? ` · ${money(c.trainingPrice)}` : " · senza prezzo"}</option>)}
-          </select>
-        </label>
-        <label className="block">
-          <span className="field-label">Rarità</span>
-          <select className="input" value={rarity} onChange={(e) => setRarity(e.target.value as "" | "RARO" | "LEGGENDARIO")}>
-            <option value="">Normale</option>
-            <option value="RARO">Raro ({money(rareTrainingPrice)})</option>
-            <option value="LEGGENDARIO">Leggendario ({money(rareTrainingPrice)})</option>
-          </select>
-        </label>
-        <label className="block">
-          <span className="field-label">Targa (facoltativa)</span>
-          <input className="input uppercase" value={plate} onChange={(e) => setPlate(e.target.value)} maxLength={40} placeholder="Es. AB123" />
-        </label>
+      <p className="mb-3 text-[13.5px] text-fg-3">Il prezzo è quello del listino. Puoi mettere più addestramenti nella stessa fattura.</p>
+      <div className="mb-3 grid grid-cols-2 gap-1 rounded-lg bg-surface-3 p-1" role="radiogroup" aria-label="Quale cavallo">
+        {([["stalla", `In stalla (${stable.length})`], ["catalogo", "Altro cavallo (catalogo)"]] as const).map(([k, l]) => (
+          <button key={k} type="button" role="radio" aria-checked={mode === k} onClick={() => { setMode(k); setPick(null); setResetKey((x) => x + 1); }}
+            className={clsx("min-h-10 rounded-md px-2 text-[13.5px] font-semibold transition-colors", mode === k ? "bg-surface text-fg shadow-sm" : "text-fg-3 hover:text-fg")}>{l}</button>
+        ))}
       </div>
+      {mode === "stalla" ? (
+        stableOptions.length ? (
+          <HorsePicker key={`s${resetKey}`} label="Cavallo in stalla" options={stableOptions} onChange={setPick} breedName={null} coatName={null} placeholder="Cerca razza, manto o targa…" />
+        ) : <p className="rounded-lg border border-dashed border-border p-3 text-[14px] text-fg-3">Nessun cavallo in stalla da addestrare (sono già tutti addestrati o in fattura). Usa “Altro cavallo”.</p>
+      ) : (
+        <div className="space-y-3">
+          <HorsePicker key={`c${resetKey}`} label="Razza e manto" options={catalogOptions} onChange={setPick} breedName={null} coatName={null} placeholder="Scrivi per cercare, es. arabo bianco…" />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block">
+              <span className="field-label">Rarità</span>
+              <select className="input" value={rarity} onChange={(e) => setRarity(e.target.value as "" | "RARO" | "LEGGENDARIO")}>
+                <option value="">Normale</option>
+                <option value="RARO">Raro ({money(rareTrainingPrice)})</option>
+                <option value="LEGGENDARIO">Leggendario ({money(rareTrainingPrice)})</option>
+              </select>
+            </label>
+            <label className="block">
+              <span className="field-label">Targa (facoltativa)</span>
+              <input className="input uppercase" value={plate} onChange={(e) => setPlate(e.target.value)} maxLength={40} placeholder="Es. AB123" />
+            </label>
+          </div>
+        </div>
+      )}
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
         <span className="text-[14px] text-fg-2">
-          {coat ? (price != null ? <>Prezzo addestramento: <b className="text-fg">{money(price)}</b></> : <span className="text-accent-text">Questo manto non ha un prezzo di addestramento nel listino.</span>) : "Scegli razza e manto."}
+          {pick ? (price != null ? <>Prezzo addestramento: <b className="text-fg">{money(price)}</b>{horse && <span className="text-fg-3"> · verrà segnato “addestrato”</span>}</> : <span className="text-accent-text">Questo manto non ha un prezzo di addestramento nel listino.</span>) : "Scegli il cavallo."}
         </span>
-        <button type="button" className="btn btn-primary" disabled={!coat || price == null}
-          onClick={() => {
-            if (!breed || !coat || price == null) return;
-            onAdd({ key: newId(), coatId: coat.id, label: `${breed.name} – ${coat.name}`, rarity: rarity || null, plate: plate.trim().toUpperCase(), price });
-            setPlate("");
-          }}>
+        <button type="button" className="btn btn-primary" disabled={!pick || price == null} onClick={add}>
           <Plus size={16} /> Aggiungi alla fattura
         </button>
       </div>
@@ -228,7 +291,9 @@ function TrainingPicker({ breeds, rareTrainingPrice, onAdd }: { breeds: Training
 /** Tabella articoli con ricerca e (per la direzione) modifica. */
 export function ItemTable({ items, kind, canManage }: { items: ShopItemRow[]; kind: "VENDITA" | "MATERIA_PRIMA"; canManage: boolean }) {
   const [q, setQ] = useState("");
-  const list = items.filter((i) => !q || norm(`${i.name} ${i.group ?? ""}`).includes(norm(q)));
+  const list = items.filter((i) => !q || norm(`${i.name} ${i.group ?? ""} ${i.subgroup ?? ""}`).includes(norm(q))).sort((a, b) => byName(a.group ?? "", b.group ?? "") || byName(a.subgroup ?? "~", b.subgroup ?? "~") || byName(a.name, b.name));
+  const groups = [...new Set(items.map((i) => i.group).filter((x): x is string => !!x))].sort(byName);
+  const subgroups = [...new Set(items.map((i) => i.subgroup).filter((x): x is string => !!x))].sort(byName);
   return (
     <div className="card">
       <div className="flex flex-wrap items-center gap-2 border-b border-border p-3">
@@ -236,7 +301,7 @@ export function ItemTable({ items, kind, canManage }: { items: ShopItemRow[]; ki
           <Search size={17} className="absolute top-1/2 left-3 -translate-y-1/2 text-fg-3" aria-hidden="true" />
           <input className="input !pl-9" placeholder="Cerca…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Cerca" />
         </div>
-        {canManage && <ItemEdit kind={kind} label="+ Aggiungi" className="btn btn-primary" />}
+        {canManage && <ItemEdit kind={kind} label="+ Aggiungi" className="btn btn-primary" groups={groups} subgroups={subgroups} />}
       </div>
       <div className="overflow-x-auto">
         <table className="tbl">
@@ -245,10 +310,10 @@ export function ItemTable({ items, kind, canManage }: { items: ShopItemRow[]; ki
             {list.map((i) => (
               <tr key={i.id}>
                 <td className="!pl-5 font-semibold">{i.name}</td>
-                <td className="text-fg-2">{i.group ?? "—"}</td>
+                <td className="text-fg-2">{i.group ?? "—"}{i.subgroup ? <span className="text-fg-3"> · {i.subgroup}</span> : null}</td>
                 <td className="num font-semibold">{i.price != null ? money(i.price) : <span className="text-fg-3">—</span>}</td>
                 <td className="max-w-[320px] text-[13.5px] text-fg-2">{[i.priceNote, i.notes].filter(Boolean).join(" · ")}</td>
-                {canManage && <td className="!pr-5 text-right"><ItemEdit kind={kind} item={i} label="Modifica" className="btn btn-ghost btn-sm" /></td>}
+                {canManage && <td className="!pr-5 text-right"><ItemEdit kind={kind} item={i} label="Modifica" className="btn btn-ghost btn-sm" groups={groups} subgroups={subgroups} /></td>}
               </tr>
             ))}
           </tbody>
@@ -258,7 +323,7 @@ export function ItemTable({ items, kind, canManage }: { items: ShopItemRow[]; ki
   );
 }
 
-function ItemEdit({ item, kind, label, className }: { item?: ShopItemRow; kind: "VENDITA" | "MATERIA_PRIMA"; label: string; className: string }) {
+function ItemEdit({ item, kind, label, className, groups, subgroups }: { item?: ShopItemRow; kind: "VENDITA" | "MATERIA_PRIMA"; label: string; className: string; groups: string[]; subgroups: string[] }) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -269,9 +334,12 @@ function ItemEdit({ item, kind, label, className }: { item?: ShopItemRow; kind: 
           <input type="hidden" name="kind" value={kind} />
           <label className="block"><span className="field-label">Nome</span><input name="name" defaultValue={item?.name} className="input" required /></label>
           <div className="grid grid-cols-2 gap-3">
-            <label className="block"><span className="field-label">Gruppo</span><input name="group" defaultValue={item?.group ?? ""} className="input" placeholder="Es. Cavalli" /></label>
-            <label className="block"><span className="field-label">Prezzo $</span><input name="price" type="number" step="0.01" min="0" defaultValue={item?.price ?? ""} className="input" /></label>
+            <label className="block"><span className="field-label">Gruppo</span><input name="group" defaultValue={item?.group ?? ""} className="input" placeholder="Es. Cavalli" list="gruppi-bottega" /></label>
+            <label className="block"><span className="field-label">Sottogruppo</span><input name="subgroup" defaultValue={item?.subgroup ?? ""} className="input" placeholder="Es. Ferri" list="sottogruppi-bottega" maxLength={60} /></label>
           </div>
+          <label className="block"><span className="field-label">Prezzo $</span><input name="price" type="number" step="0.01" min="0" defaultValue={item?.price ?? ""} className="input" /></label>
+          <datalist id="gruppi-bottega">{groups.map((g) => <option key={g} value={g} />)}</datalist>
+          <datalist id="sottogruppi-bottega">{subgroups.map((g) => <option key={g} value={g} />)}</datalist>
           <label className="block"><span className="field-label">Nota sul prezzo</span><input name="priceNote" defaultValue={item?.priceNote ?? ""} className="input" placeholder="Es. 5 Fenix" /></label>
           <label className="block"><span className="field-label">Note</span><textarea name="notes" defaultValue={item?.notes ?? ""} className="input" /></label>
           <button className="btn btn-primary w-full">Salva</button>

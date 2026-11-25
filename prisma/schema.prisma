@@ -516,6 +516,8 @@ model ShopItem {
   name      String
   /// Gruppo (es. Cavalli, Carri, Stalla)
   group     String?
+  /// Sottogruppo dentro il gruppo (es. Ferri, Cura e cibo): serve a trovarli in fretta in bottega
+  subgroup  String?
   price     Decimal?
   /// Valore tra parentesi nel file o note sul prezzo (es. "5 Fenix")
   priceNote String?
@@ -646,6 +648,8 @@ model ItemSaleLine {
   plate      String?
   /// "RARO" / "LEGGENDARIO" se il cavallo lo era (prezzo addestramento dedicato)
   rarity     String?
+  /// Se l'addestramento era di un cavallo in stalla: viene segnato "addestrato" (e tolto se la vendita si annulla)
+  horseId    Int?
 }
 
 /// Movimenti manuali della cassa: prelievi, versamenti e allineamenti al contante reale.

@@ -20,11 +20,12 @@ export async function saveItem(form: FormData) {
         kind: z.enum(["VENDITA", "MATERIA_PRIMA"]),
         name: z.string().trim().min(1, "Inserisci il nome").max(120),
         group: z.string().max(60).nullable(),
+        subgroup: z.string().max(60, "Sottogruppo: massimo 60 caratteri").nullable(),
         price: z.number().min(0, "Prezzo non valido").nullable(),
         priceNote: z.string().max(200).nullable(),
         notes: z.string().max(1000).nullable(),
       })
-      .parse({ kind: f.str("kind"), name: f.str("name"), group: f.opt("group"), price: f.num("price"), priceNote: f.opt("priceNote"), notes: f.opt("notes") });
+      .parse({ kind: f.str("kind"), name: f.str("name"), group: f.opt("group"), subgroup: f.opt("subgroup"), price: f.num("price"), priceNote: f.opt("priceNote"), notes: f.opt("notes") });
     if (id) {
       const before = await prisma.shopItem.findUnique({ where: { id } });
       if (!before) throw new UserError("Articolo non trovato.");
@@ -98,6 +99,8 @@ const lineSchema = z
       z.object({
         type: z.literal("training"),
         coatId: z.number().int().positive(),
+        /** cavallo in stalla: manto, rarità e targa si prendono dal cavallo (non dal browser) */
+        horseId: z.number().int().positive().nullable().optional(),
         rarity: z.enum(["RARO", "LEGGENDARIO"]).nullable(),
         plate: z.string().trim().max(40).nullable(),
       }),
@@ -123,11 +126,23 @@ export async function sellItems(form: FormData) {
     const s = await getSettings();
 
     // Prezzi SEMPRE dal database: oggetti dal listino della bottega, addestramenti dal catalogo (o prezzo rari)
+    // Addestramenti di cavalli in stalla: devono esserci, non essere già addestrati, e serve il permesso di addestrare
+    const horseIds = lines.flatMap((l) => (l.type === "training" && l.horseId ? [l.horseId] : []));
+    if (new Set(horseIds).size !== horseIds.length) throw new UserError("Lo stesso cavallo è nella fattura due volte.");
+    if (horseIds.length && !can(user.role, "horses.train")) throw new UserError("Non puoi segnare i cavalli come addestrati.");
+    const horses = horseIds.length ? await prisma.horse.findMany({ where: { id: { in: horseIds } } }) : [];
+    const horseById = new Map(horses.map((h) => [h.id, h]));
+    for (const id of horseIds) {
+      const h = horseById.get(id);
+      if (!h || h.status !== "IN_STALLA") throw new UserError("Uno dei cavalli non è più in stalla: ricarica la pagina.");
+      if (h.trained) throw new UserError(`Il cavallo ${h.plate ?? "#" + h.id} è già addestrato.`);
+      if (!canSeeBreed(user.role, h.breedId)) throw new UserError("Uno dei cavalli scelti non è disponibile.");
+    }
     const itemIds: number[] = [];
     const coatIds: number[] = [];
     for (const l of lines) {
       if (l.type === "item") itemIds.push(l.itemId);
-      else coatIds.push(l.coatId);
+      else coatIds.push(l.horseId ? horseById.get(l.horseId)!.coatId : l.coatId);
     }
     const [items, coats] = await Promise.all([
       prisma.shopItem.findMany({ where: { id: { in: itemIds }, kind: "VENDITA", archived: false } }),
@@ -143,14 +158,17 @@ export async function sellItems(form: FormData) {
         const unit = Number(it.price);
         return { kind: "OGGETTO", itemId: it.id, itemName: it.name, quantity: l.quantity, unitPrice: unit, lineTotal: round2(unit * l.quantity) };
       }
-      const c = coatById.get(l.coatId);
-      if (!c || c.breed.archived || !canSeeBreed(user.role, c.breedId)) throw new UserError("Uno dei cavalli scelti non è più nel catalogo.");
-      const price = l.rarity ? s.rareTrainingPrice : c.trainingPrice == null ? null : Number(c.trainingPrice);
+      const h = l.horseId ? horseById.get(l.horseId)! : null;
+      const c = coatById.get(h ? h.coatId : l.coatId);
+      if (!c || (!h && (c.breed.archived || !canSeeBreed(user.role, c.breedId)))) throw new UserError("Uno dei cavalli scelti non è più nel catalogo.");
+      const rarity = h ? (h.rarity === "RARO" || h.rarity === "LEGGENDARIO" ? h.rarity : null) : l.rarity;
+      const plate = h ? h.plate : l.plate || null;
+      const price = rarity ? s.rareTrainingPrice : c.trainingPrice == null ? null : Number(c.trainingPrice);
       if (price == null) throw new UserError(`Per ${c.breed.name} – ${c.name} non c'è un prezzo di addestramento nel listino: avvisa la direzione.`);
-      const rareTxt = l.rarity === "RARO" ? " (raro)" : l.rarity === "LEGGENDARIO" ? " (leggendario)" : "";
+      const rareTxt = rarity === "RARO" ? " (raro)" : rarity === "LEGGENDARIO" ? " (leggendario)" : "";
       return {
-        kind: "ADDESTRAMENTO", itemId: null, itemName: `Addestramento ${c.breed.name} – ${c.name}${rareTxt}${l.plate ? ` [${l.plate}]` : ""}`,
-        quantity: 1, unitPrice: price, lineTotal: round2(price), coatId: c.id, breedName: c.breed.name, coatName: c.name, plate: l.plate || null, rarity: l.rarity,
+        kind: "ADDESTRAMENTO", itemId: null, itemName: `Addestramento ${c.breed.name} – ${c.name}${rareTxt}${plate ? ` [${plate}]` : ""}`,
+        quantity: 1, unitPrice: price, lineTotal: round2(price), coatId: c.id, breedName: c.breed.name, coatName: c.name, plate, rarity, horseId: h?.id ?? null,
       };
     });
     const listTotal = round2(rows.reduce((t, r) => t + r.lineTotal, 0));
@@ -173,6 +191,11 @@ export async function sellItems(form: FormData) {
       const sale = await tx.itemSale.create({
         data: { sellerId: user.id, sellerName: user.displayName, buyerName: f.opt("buyerName"), notes: f.opt("notes"), total, listTotal, requestId, lines: { create: rows } },
       });
+      // cavalli in stalla addestrati con questa fattura: spunta "addestrato" (se nel frattempo qualcuno l'ha già messa, si annulla tutto)
+      for (const id of horseIds) {
+        const r = await tx.horse.updateMany({ where: { id, status: "IN_STALLA", trained: false }, data: { trained: true, trainedAt: new Date(), trainedById: user.id, version: { increment: 1 } } });
+        if (r.count !== 1) throw new UserError("Uno dei cavalli è appena stato addestrato o venduto da un altro utente. Ricarica la pagina.");
+      }
       const what = rows.map((r) => (r.kind === "ADDESTRAMENTO" ? r.itemName : `${r.quantity}× ${r.itemName}`)).join(", ");
       await audit(
         user, flatUsed ? "PREZZO_FORFETTARIO" : "VENDITA_OGGETTI", "Bottega", sale.id,
@@ -192,9 +215,19 @@ export async function voidItemSale(form: FormData) {
     const f = fd(form);
     const id = f.int("id") ?? 0;
     const reason = z.string().trim().min(3, "Indica il motivo").max(255).parse(f.str("reason"));
-    const r = await prisma.itemSale.updateMany({ where: { id, voided: false }, data: { voided: true, voidedAt: new Date(), voidedById: user.id, voidReason: reason } });
-    if (r.count !== 1) throw new UserError("Vendita già annullata o inesistente.");
-    await audit(user, "ANNULLA_VENDITA_OGGETTI", "Bottega", id, `Annullata vendita oggetti #${id}: ${reason}`);
+    const untrained = await prisma.$transaction(async (tx) => {
+      const r = await tx.itemSale.updateMany({ where: { id, voided: false }, data: { voided: true, voidedAt: new Date(), voidedById: user.id, voidReason: reason } });
+      if (r.count !== 1) throw new UserError("Vendita già annullata o inesistente.");
+      // gli addestramenti annullati tolgono la spunta "addestrato" ai cavalli ancora in stalla
+      const lines = await tx.itemSaleLine.findMany({ where: { saleId: id, horseId: { not: null } }, select: { horseId: true } });
+      let n = 0;
+      for (const l of lines) {
+        n += (await tx.horse.updateMany({ where: { id: l.horseId!, status: "IN_STALLA", trained: true }, data: { trained: false, trainedAt: null, trainedById: null, version: { increment: 1 } } })).count;
+      }
+      await audit(user, "ANNULLA_VENDITA_OGGETTI", "Bottega", id, `Annullata fattura bottega #${id}: ${reason}${n ? ` (${n} cavalli tornano “non addestrati”)` : ""}`, undefined, tx);
+      return n;
+    });
+    if (untrained) return { ok: true, message: `Vendita annullata. ${untrained === 1 ? "Il cavallo torna" : `${untrained} cavalli tornano`} “non addestrato”.` };
     return { ok: true, message: "Vendita annullata (resta nello storico)." };
   });
 }

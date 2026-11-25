@@ -1,5 +1,4 @@
 import { fromZonedTime } from "date-fns-tz";
-import type { Prisma } from "@prisma/client";
 import { getCurrentUser } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
@@ -8,6 +7,8 @@ import { TZ, dateTime } from "@/lib/format";
 import { getSettings } from "@/lib/settings";
 import { horseAge, STATUS_LABEL, sexLabel } from "@/lib/horses";
 import { audit } from "@/lib/audit";
+import { salesFeed, sortFeed } from "@/lib/sales-feed";
+import type { SaleKind } from "@/components/SaleTag";
 
 const n = (v: unknown) => (v == null ? null : Number(v));
 
@@ -40,30 +41,33 @@ export async function GET(req: Request, { params }: { params: Promise<{ type: st
       ...Object.fromEntries(c.stats.map((s) => ["s_" + s.statId, n(s.value)])), archived: c.archived || c.breed.archived ? "SI" : "",
     }));
   } else if (type === "vendite") {
-    const where: Prisma.SaleWhereInput = {};
+    // Stesso elenco unico della pagina Vendite: cavalli, addestramenti, vetrina e blip, una riga per fattura
     const sp = url.searchParams;
-    if (sp.get("venditore")) where.sellerId = Number(sp.get("venditore"));
-    if (sp.get("annullate") !== "1") where.voided = false;
-    const t = sp.get("tipo");
-    if (t === "STALLA" || t === "GOVERNO") where.type = t;
-    if (sp.get("razza")) where.breedName = { contains: sp.get("razza")! };
-    if (sp.get("manto")) where.coatName = { contains: sp.get("manto")! };
     const da = sp.get("da"), a = sp.get("a");
-    if (da || a) where.soldAt = { ...(da ? { gte: fromZonedTime(da + "T00:00:00", TZ) } : {}), ...(a ? { lte: fromZonedTime(a + "T23:59:59", TZ) } : {}) };
-    const sales = await prisma.sale.findMany({ where, orderBy: { soldAt: "desc" } });
+    const okDate = (d: string | null): d is string => !!d && /^\d{4}-\d{2}-\d{2}$/.test(d);
+    const soldAt = okDate(da) || okDate(a)
+      ? { ...(okDate(da) ? { gte: fromZonedTime(da + "T00:00:00", TZ) } : {}), ...(okDate(a) ? { lte: fromZonedTime(a + "T23:59:59", TZ) } : {}) }
+      : undefined;
+    const sellerId = can(user.role, "sales.viewAll") ? (Number(sp.get("venditore")) || undefined) : user.id;
+    let feed = await salesFeed({ sellerId, soldAt, q: sp.get("q") ?? undefined, includeVoided: sp.get("annullate") === "1", cap: 20000 }, () => null);
+    const tipo = sp.get("tipo");
+    if (tipo && ["cavallo", "addestramento", "vetrina", "blip"].includes(tipo)) feed = feed.filter((e) => e.tags.includes(tipo as SaleKind));
+    feed = sortFeed(feed, sp.get("ordina") ?? "recenti");
+    const TAG: Record<SaleKind, string> = { cavallo: "Cavallo", addestramento: "Addestramento", vetrina: "Vetrina", blip: "Blip" };
     cols = [
-      { header: "ID", key: "id", width: 7 }, { header: "Data", key: "date", width: 18 }, { header: "Tipo", key: "type", width: 10 },
-      { header: "Razza", key: "breed", width: 30 }, { header: "Manto", key: "coat", width: 22 }, { header: "Sesso", key: "sex", width: 10 },
-      { header: "Targa", key: "plate", width: 12 }, { header: "Età", key: "age", width: 8 }, { header: "Fascia", key: "bracket", width: 22 },
-      { header: "Listino", key: "list", money: true }, { header: "Sconto", key: "discount", width: 10 }, { header: "Prezzo finale", key: "final", money: true },
-      { header: "Venditore", key: "seller", width: 20 }, { header: "Acquirente", key: "buyer", width: 20 }, { header: "Note", key: "notes", width: 30 },
-      { header: "Annullata", key: "voided", width: 10 },
+      { header: "Fattura", key: "id", width: 10 }, { header: "Data", key: "date", width: 18 }, { header: "Etichette", key: "tags", width: 28 },
+      { header: "Descrizione", key: "title", width: 44 }, { header: "Targa", key: "plate", width: 12 },
+      { header: "Venditore", key: "seller", width: 20 }, { header: "Acquirente", key: "buyer", width: 20 },
+      { header: "Listino", key: "list", money: true }, { header: "Incassato", key: "total", money: true },
+      { header: "di cui Cavallo", key: "pCavallo", money: true }, { header: "di cui Addestramento", key: "pAdd", money: true },
+      { header: "di cui Vetrina", key: "pVetrina", money: true }, { header: "di cui Blip", key: "pBlip", money: true },
+      { header: "Righe", key: "lines", width: 60 }, { header: "Note", key: "notes", width: 30 }, { header: "Annullata", key: "voided", width: 10 },
     ];
-    rows = sales.map((s) => ({
-      id: s.id, date: dateTime(s.soldAt), type: s.type, breed: s.breedName, coat: s.coatName, sex: sexLabel(s.sex), plate: s.plate,
-      age: n(s.ageAtSale), bracket: s.priceBracket, list: n(s.listPrice),
-      discount: s.discountValue ? (s.discountType === "PERCENTUALE" ? `${n(s.discountValue)}%` : `$${n(s.discountValue)}`) : "",
-      final: n(s.finalPrice), seller: s.sellerName, buyer: s.buyerName, notes: s.notes, voided: s.voided ? "SI" : "",
+    rows = feed.map((e) => ({
+      id: (e.source === "sale" ? "V" : "B") + e.id, date: dateTime(e.soldAt), tags: e.tags.map((t) => TAG[t]).join(", "), title: e.title, plate: e.plate,
+      seller: e.sellerName, buyer: e.buyerName, list: e.listTotal ?? e.total, total: e.total,
+      pCavallo: e.parts.cavallo ?? null, pAdd: e.parts.addestramento ?? null, pVetrina: e.parts.vetrina ?? null, pBlip: e.parts.blip ?? null,
+      lines: e.lines.map((l) => `${l.qty > 1 ? l.qty + "× " : ""}${l.label} $${l.amount}`).join(" | "), notes: e.notes, voided: e.voided ? "SI" : "",
     }));
   } else if (type === "cavalli") {
     const settings = await getSettings();

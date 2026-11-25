@@ -11,7 +11,9 @@ import { horseAge, pregnancyState } from "@/lib/horses";
 import { currentWeekEstimate } from "@/lib/payroll";
 import { weekLabel } from "@/lib/weeks";
 import { PageHeader, Card, StatTile, Empty, HorseName } from "@/components/ui";
-import { SaleTypeBadge, PregnancyBadge } from "@/components/StatusBadge";
+import { PregnancyBadge } from "@/components/StatusBadge";
+import { SaleTag } from "@/components/SaleTag";
+import { salesFeed, sortFeed } from "@/lib/sales-feed";
 import { SalesTrendChart } from "@/components/Charts";
 import { WeeklyChampion } from "@/components/WeeklyChampion";
 import { Shout } from "@/components/Shout";
@@ -34,7 +36,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
     salesSummary(p.today, p.tomorrow, mine),
     salesSummary(p.week, p.nextWeek, mine),
     dailyTrend(14, mine),
-    prisma.sale.findMany({ where: { voided: false, ...(mine ? { sellerId: mine } : {}) }, orderBy: { soldAt: "desc" }, take: 6, include: { horse: { include: { coat: { select: { imagePath: true } } } } } }),
+    salesFeed({ sellerId: mine, soldAt: { gte: new Date(Date.now() - 60 * 86400_000) }, cap: 30 }, imageUrl).then((f) => sortFeed(f, "recenti").slice(0, 6)),
     mine ? currentWeekEstimate(user.id) : Promise.resolve(null),
   ]);
   const sellable = stable.filter((h) => (horseAge(h, s) ?? 0) >= s.minSaleAge).length;
@@ -63,8 +65,8 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <StatTile label="Cavalli in stalla" value={stable.length} hint={`${sellable} vendibili`} href="/stalla" />
         <StatTile label={overview ? "Catture settimana" : "Le mie catture"} value={capturesWeek} hint="questa settimana" />
-        <StatTile label={overview ? "Vendite oggi" : "Mie vendite oggi"} value={today.count} hint={`${today.govCount} al blip`} />
-        <StatTile label={overview ? "Vendite settimana" : "Mie vendite sett."} value={week.count} hint={`${week.govCount} al blip`} />
+        <StatTile label={overview ? "Vendite oggi" : "Mie vendite oggi"} value={today.count} hint={`${today.govCount} al blip · ${today.shopCount} in bottega`} />
+        <StatTile label={overview ? "Vendite settimana" : "Mie vendite sett."} value={week.count} hint={`${week.govCount} al blip · ${week.shopCount} in bottega`} />
         <StatTile label="Incasso oggi" value={money(today.total)} />
         {mine ? (
           <StatTile label="Stipendio stimato" value={money(myWeek?.due ?? 0)} hint="settimana in corso" tone="accent" />
@@ -124,9 +126,16 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
           {lastSales.length === 0 ? <Empty>Nessuna vendita registrata.</Empty> : (
             <ul className="divide-y divide-border">
               {lastSales.map((x) => (
-                <li key={x.id} className="flex items-center justify-between gap-3 py-2">
-                  <HorseName image={imageUrl(x.horse.coat.imagePath)} breed={x.breedName} coat={x.coatName} sub={`${dateTime(x.soldAt)}${overview ? " · " + x.sellerName : ""}`} />
-                  <div className="flex shrink-0 items-center gap-2"><SaleTypeBadge type={x.type} /><b className="tabular-nums">{money(x.finalPrice)}</b></div>
+                <li key={x.key} className="flex items-center justify-between gap-3 py-2">
+                  {x.horseId ? (
+                    <HorseName image={x.image} breed={x.title.split(" – ")[0]} coat={x.title.split(" – ").slice(1).join(" – ")} sub={`${dateTime(x.soldAt)}${overview ? " · " + x.sellerName : ""}`} />
+                  ) : (
+                    <div className="min-w-0">
+                      <div className="truncate font-semibold">{x.title}</div>
+                      <div className="text-[13px] text-fg-3">{dateTime(x.soldAt)}{overview ? " · " + x.sellerName : ""}</div>
+                    </div>
+                  )}
+                  <div className="flex shrink-0 items-center gap-1.5">{x.tags.map((t) => <SaleTag key={t} kind={t} short />)}<b className="ml-1 tabular-nums">{money(x.total)}</b></div>
                 </li>
               ))}
             </ul>

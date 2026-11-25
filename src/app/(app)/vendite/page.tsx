@@ -62,7 +62,7 @@ export default async function SalesPage({ searchParams }: { searchParams: Promis
       {header}
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
         <StatTile label="Incasso" value={money(tot.total)} hint={`${tot.count} fatture`} tone="accent" />
-        {KINDS.map(([k, l]) => (
+        {KINDS.map(([k]) => (
           <Link key={k} href={`/vendite?${keep({ tipo: tipo === k ? "" : k })}`} className={clsx("card block p-3.5 transition-colors hover:border-border-strong", tipo === k && "ring-2 ring-accent")}>
             <SaleTag kind={k} />
             <div className="mt-1.5 text-[22px] font-bold tabular-nums">{money(tot[k])}</div>

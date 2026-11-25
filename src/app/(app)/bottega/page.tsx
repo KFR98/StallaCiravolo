@@ -1,11 +1,11 @@
 import { requireUser } from "@/lib/auth";
 import { can, canSeeBreed } from "@/lib/permissions";
-import { getBreedOptions } from "@/lib/catalog";
+import { getBreedOptions, imageUrl } from "@/lib/catalog";
 import { getSettings } from "@/lib/settings";
 import { prisma } from "@/lib/db";
 import { money, dateTime } from "@/lib/format";
 import { PageHeader, Card, Tabs, Empty } from "@/components/ui";
-import { ShopSell, ItemTable, SupplierTable, HandleButton, type ShopItemRow } from "./ShopClient";
+import { ShopSell, ItemTable, SupplierTable, HandleButton, type ShopItemRow, type StableHorse } from "./ShopClient";
 import { NoteForm, ReimbursementForm } from "./RequestForms";
 import { ActionButton } from "@/components/ActionForm";
 import { deleteShopNote } from "./actions";
@@ -26,7 +26,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
     prisma.shopItem.findMany({ where: { archived: false }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }),
     manage ? prisma.reimbursement.count({ where: { status: { in: ["RICHIESTO", "APPROVATO"] } } }).then(async (n) => n + (await prisma.shopNote.count({ where: { status: "APERTA" } }))) : Promise.resolve(undefined),
   ]);
-  const rows: ShopItemRow[] = items.map((i) => ({ id: i.id, kind: i.kind, name: i.name, group: i.group, price: i.price == null ? null : Number(i.price), priceNote: i.priceNote, notes: i.notes }));
+  const rows: ShopItemRow[] = items.map((i) => ({ id: i.id, kind: i.kind, name: i.name, group: i.group, subgroup: i.subgroup, price: i.price == null ? null : Number(i.price), priceNote: i.priceNote, notes: i.notes }));
 
   let body: React.ReactNode = null;
   if (tab === "vendi") {
@@ -35,13 +35,31 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
       getBreedOptions(),
       getSettings(),
     ]);
-    const breeds = breedOpts.filter((b) => canSeeBreed(user.role, b.id)).map((b) => ({ id: b.id, name: b.name, coats: b.coats.map((c) => ({ id: c.id, name: c.name, trainingPrice: c.trainingPrice })) }));
+    const breeds = breedOpts.filter((b) => canSeeBreed(user.role, b.id)).map((b) => ({ id: b.id, name: b.name, coats: b.coats.map((c) => ({ id: c.id, name: c.name, image: c.image, trainingPrice: c.trainingPrice })) }));
+    // cavalli in stalla non ancora addestrati (servono anche il permesso di segnare l'addestramento)
+    const stableRaw = can(user.role, "horses.train")
+      ? await prisma.horse.findMany({
+          where: { status: "IN_STALLA", trained: false },
+          include: { breed: true, coat: true, owner: { select: { displayName: true } } },
+          orderBy: [{ breed: { name: "asc" } }, { coat: { name: "asc" } }],
+        })
+      : [];
+    const stable: StableHorse[] = stableRaw
+      .filter((h) => canSeeBreed(user.role, h.breedId))
+      .map((h) => {
+        const rarity = h.rarity === "RARO" || h.rarity === "LEGGENDARIO" ? h.rarity : null;
+        return {
+          id: h.id, breedId: h.breedId, coatId: h.coatId, breed: h.breed.name, coat: h.coat.name, plate: h.plate, image: imageUrl(h.coat.imagePath),
+          rarity, owner: h.owner.displayName, price: rarity ? st.rareTrainingPrice : h.coat.trainingPrice == null ? null : Number(h.coat.trainingPrice),
+        };
+      });
     body = (
       <>
         {can(user.role, "shop.sell") && (
           <ShopSell
             items={rows.filter((r) => r.kind === "VENDITA")}
             breeds={breeds}
+            stable={stable}
             rareTrainingPrice={st.rareTrainingPrice}
             maxDiscount={st.maxDiscountPercent}
             canFlat={can(user.role, "shop.flatPrice")}

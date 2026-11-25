@@ -6,7 +6,7 @@ const AXIS = "var(--fg-3)";
 const GRID = "var(--border)";
 const tip = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--fg)" };
 
-export function SalesTrendChart({ data }: { data: { day: string; stalla: number; governo: number }[] }) {
+export function SalesTrendChart({ data }: { data: { day: string; stalla: number; governo: number; bottega: number }[] }) {
   return (
     <div className="h-[240px] w-full">
       <ResponsiveContainer>
@@ -16,7 +16,8 @@ export function SalesTrendChart({ data }: { data: { day: string; stalla: number;
           <YAxis tick={{ fill: AXIS, fontSize: 12 }} axisLine={false} tickLine={false} />
           <Tooltip contentStyle={tip} formatter={(v) => "$" + Number(v ?? 0).toLocaleString("it-IT")} cursor={{ fill: "var(--surface-3)" }} />
           <Legend wrapperStyle={{ fontSize: 13 }} />
-          <Bar dataKey="stalla" name="Stalla" stackId="a" fill="var(--accent)" />
+          <Bar dataKey="stalla" name="Cavalli" stackId="a" fill="var(--accent)" />
+          <Bar dataKey="bottega" name="Bottega" stackId="a" fill="var(--sale-vetrina)" />
           <Bar dataKey="governo" name="Blip" stackId="a" fill="var(--fg-3)" radius={[3, 3, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>

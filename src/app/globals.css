@@ -353,7 +353,9 @@ input[type="radio"] {
   @apply inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded-full border border-border-strong bg-surface px-3 text-[13.5px] font-medium text-fg-2 select-none hover:text-fg;
   transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease, transform 160ms var(--ease-out);
 }
-.chip[aria-pressed="true"] {
+.chip[aria-pressed="true"],
+.chip[aria-pressed="true"]:hover {
+  /* anche al passaggio del mouse: senza questo la scritta diventava dello stesso colore dello sfondo */
   @apply border-fg bg-fg text-bg;
 }
 
