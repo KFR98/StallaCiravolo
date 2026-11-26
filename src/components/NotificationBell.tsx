@@ -8,7 +8,7 @@ import { Bell, X, ChevronRight, Check, CheckCheck, RotateCcw } from "lucide-reac
 import { dismissNotices, restoreNotices } from "@/app/(app)/notification-actions";
 
 export type BellNotice = { id: string; key: string; section: string; group: string; title: string; detail: string; href: string; level: "warn" | "alarm" };
-export type BellData = { items: BellNotice[]; total: number; hidden: number; badges: Partial<Record<string, { n: number }>> };
+export type BellData = { items: BellNotice[]; total: number; hidden: number; badges: Partial<Record<string, { n: number; title?: string }>> };
 
 /** Pagina della sezione, per "vedi tutte" quando nell'elenco non ci stanno tutte. */
 const SECTION_PAGE: Record<string, string> = { stalla: "/stalla", bottega: "/bottega?tab=richieste", bacheca: "/prenotazioni?mie=1", soldi: "/stipendi", admin: "/admin/audit?periodo=1" };
@@ -45,17 +45,17 @@ export function HashFlash() {
   return null;
 }
 
-export function NotificationBell({ initial, tone = "dark" }: { initial: BellData; tone?: "dark" }) {
-  const [open, setOpen] = useState(false);
-  const [data, setData] = useState<BellData>(initial);
-  const [loading, setLoading] = useState(false);
-  const path = usePathname();
-  const panel = useRef<HTMLDivElement>(null);
-  const btn = useRef<HTMLButtonElement>(null);
-  const router = useRouter();
-  const [busy, startBusy] = useTransition();
-  const [msg, setMsg] = useState<string | null>(null);
+export type BellState = { data: BellData; setData: React.Dispatch<React.SetStateAction<BellData>>; reload: () => Promise<void> };
 
+/**
+ * Stato unico delle notifiche per tutta la pagina (campanella PC, campanella telefono e numerini del menu).
+ * Si aggiorna da solo: al cambio pagina, quando si torna sulla scheda del browser e ogni N secondi (Impostazioni).
+ */
+export function useNotifications(initial: BellData | null, refreshSeconds: number): BellState | null {
+  const [data, setData] = useState<BellData | null>(initial);
+  // il layout manda dati nuovi quando la pagina si aggiorna dal server
+  useEffect(() => setData(initial), [initial]);
+  const enabled = initial != null;
   const reload = useCallback(async () => {
     try {
       const r = await fetch("/api/notifiche", { cache: "no-store" });
@@ -63,6 +63,33 @@ export function NotificationBell({ initial, tone = "dark" }: { initial: BellData
       if (d && Array.isArray(d.items)) setData({ items: d.items, total: d.total, hidden: d.hidden ?? 0, badges: d.badges ?? {} });
     } catch { /* resta l'elenco che c'era */ }
   }, []);
+  const path = usePathname();
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) { first.current = false; return; }
+    if (enabled) void reload();
+  }, [path, enabled, reload]);
+  useEffect(() => {
+    if (!enabled) return;
+    const onShow = () => { if (document.visibilityState === "visible") void reload(); };
+    document.addEventListener("visibilitychange", onShow);
+    const t = refreshSeconds > 0 ? window.setInterval(onShow, refreshSeconds * 1000) : undefined;
+    return () => { document.removeEventListener("visibilitychange", onShow); if (t) window.clearInterval(t); };
+  }, [enabled, refreshSeconds, reload]);
+  if (!data) return null;
+  return { data, setData: setData as BellState["setData"], reload };
+}
+
+export function NotificationBell({ state, tone = "dark" }: { state: BellState; tone?: "dark" }) {
+  const { data, setData, reload } = state;
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const path = usePathname();
+  const panel = useRef<HTMLDivElement>(null);
+  const btn = useRef<HTMLButtonElement>(null);
+  const router = useRouter();
+  const [busy, startBusy] = useTransition();
+  const [msg, setMsg] = useState<string | null>(null);
 
   /** "segna come vista": vale solo per me; il server controlla che la notifica sia davvero mia */
   const dismiss = (keys: string[] | "tutte") => {
@@ -86,8 +113,6 @@ export function NotificationBell({ initial, tone = "dark" }: { initial: BellData
     router.refresh();
   });
 
-  // il layout manda dati nuovi quando la pagina si aggiorna
-  useEffect(() => setData(initial), [initial]);
   useEffect(() => setOpen(false), [path]);
 
   useEffect(() => {

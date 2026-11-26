@@ -49,16 +49,6 @@ export function Empty({ children, action }: { children: ReactNode; action?: Reac
   );
 }
 
-export function Field({ label, children, hint, className }: { label: string; children: ReactNode; hint?: ReactNode; className?: string }) {
-  return (
-    <label className={clsx("block", className)}>
-      <span className="field-label">{label}</span>
-      {children}
-      {hint && <span className="mt-1 block text-[12.5px] text-fg-3">{hint}</span>}
-    </label>
-  );
-}
-
 export function TableWrap({ children }: { children: ReactNode }) {
   return <div className="-mx-4 overflow-x-auto px-4 sm:-mx-5 sm:px-5">{children}</div>;
 }

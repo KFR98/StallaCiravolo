@@ -10,6 +10,7 @@ import { TZ } from "@/lib/format";
 import { parseWeekKey, weekLabel } from "@/lib/weeks";
 import { payrollOverview, type PayrollWeek } from "@/lib/payroll";
 import { round2 } from "@/lib/pricing";
+import { forgetPayrollNotices } from "@/lib/notifications";
 
 type Actor = { id: number; username: string };
 
@@ -91,6 +92,7 @@ export async function payWeek(form: FormData) {
       const e = await payOnWeek(tx, actor, userId, w, round2(amount), notes);
       await audit(actor, "STIPENDIO_PAGATO", "Stipendio", e.id, `Pagati $${amount} a ${ov.name} per ${weekLabel(weekStart, TZ)} (dovuti $${w.residual})`, undefined, tx);
     });
+    forgetPayrollNotices(); // gli arretrati sono cambiati: la notifica si ricalcola subito
     return { ok: true, message: `Registrato pagamento di $${amount}.` };
   });
 }
@@ -114,6 +116,7 @@ export async function unpayWeek(form: FormData) {
       });
       await audit(actor, "STIPENDIO_NON_PAGATO", "Stipendio", e.id, `Pagamento di ${e.user.displayName} (${weekLabel(e.weekStart, TZ)}) annullato: ${notes}`, undefined, tx);
     });
+    forgetPayrollNotices(); // gli arretrati sono cambiati: la notifica si ricalcola subito
     return { ok: true, message: "Pagamento annullato (resta nello storico)." };
   });
 }
@@ -138,6 +141,7 @@ export async function editWeek(form: FormData) {
         dopo: { dovuto: amount ?? "calcolato", note: notes },
       }, tx);
     });
+    forgetPayrollNotices(); // gli arretrati sono cambiati: la notifica si ricalcola subito
     return { ok: true, message: "Registrazione aggiornata." };
   });
 }
@@ -161,6 +165,7 @@ export async function setUserPercents(form: FormData) {
       prima: { stalla: before.pctStable?.toString() ?? "globale", blip: before.pctGov?.toString() ?? "globale", oggetti: before.pctItems?.toString() ?? "globale" },
       dopo: { stalla: data.pctStable ?? "globale", blip: data.pctGov ?? "globale", oggetti: data.pctItems ?? "globale" },
     });
+    forgetPayrollNotices(); // gli arretrati sono cambiati: la notifica si ricalcola subito
     return { ok: true, message: "Percentuali aggiornate. Valgono per le settimane non ancora pagate." };
   });
 }

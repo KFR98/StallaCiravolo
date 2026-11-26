@@ -14,7 +14,7 @@ import { NoteForm, ReimbursementForm } from "./RequestForms";
 import { ActionButton } from "@/components/ActionForm";
 import { deleteShopNote } from "./actions";
 import { NoticeDot } from "@/components/NoticeDot";
-import { noticeIds, anchor } from "@/lib/notifications";
+import { noticeIds, anchor, getNotifications } from "@/lib/notifications";
 import { SaleTag } from "@/components/SaleTag";
 
 export const metadata = { title: "Bottega" };
@@ -33,7 +33,8 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
   const tab = shopView && ["vendi", "listino", "materie", "fornitori", "richieste"].includes(sp.tab ?? "") ? sp.tab! : "vendi";
   const [items, openReq] = await Promise.all([
     prisma.shopItem.findMany({ where: { archived: false }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }),
-    manage ? prisma.reimbursement.count({ where: { status: { in: ["RICHIESTO", "APPROVATO"] } } }).then(async (n) => n + (await prisma.shopNote.count({ where: { status: "APERTA" } }))) : Promise.resolve(undefined),
+    // numerino rosso sulla scheda: le stesse notifiche della campanella (senza quelle già viste)
+    manage ? getNotifications(user, { only: "bottega" }).then((n) => n.badges.bottega?.n) : Promise.resolve(undefined),
   ]);
   const rows: ShopItemRow[] = items.map((i) => ({ id: i.id, kind: i.kind, name: i.name, group: i.group, subgroup: i.subgroup, price: i.price == null ? null : Number(i.price), priceNote: i.priceNote, notes: i.notes }));
 

@@ -60,12 +60,12 @@ export function SearchPalette({ pages, open, onOpenChange }: { pages: Page[]; op
   const groups = [...new Set(all.map((h) => h.group))];
   return (
     <div className="fixed inset-0 z-[60] flex items-start justify-center bg-black/60 p-3 pt-[10vh]" onClick={() => onOpenChange(false)} role="presentation">
-      <div className="card w-full max-w-[620px] overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Cerca nel gestionale">
+      <div className="card w-full max-w-[620px] overflow-hidden shadow-2xl outline-2 outline-offset-0 outline-transparent transition-[outline-color] focus-within:outline-[#c8161d]" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Cerca nel gestionale">
         <div className="flex items-center gap-2 border-b border-border px-3">
           <Search size={18} className="shrink-0 text-fg-3" aria-hidden="true" />
           <input
             ref={input} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cerca targa, cavallo, cliente, oggetto, persona…"
-            className="min-h-13 w-full border-0 bg-transparent py-3 text-[16px] shadow-none outline-none focus:shadow-none" style={{ boxShadow: "none" }} aria-label="Cerca"
+            className="min-h-13 w-full border-0 bg-transparent py-3 text-[16px] shadow-none outline-none focus:shadow-none" style={{ boxShadow: "none", outline: "none" }} aria-label="Cerca"
             onKeyDown={(e) => {
               if (e.key === "ArrowDown") { e.preventDefault(); setSel((s) => Math.min(all.length - 1, s + 1)); }
               if (e.key === "ArrowUp") { e.preventDefault(); setSel((s) => Math.max(0, s - 1)); }

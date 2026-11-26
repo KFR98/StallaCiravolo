@@ -22,7 +22,7 @@ const NAV: (Omit<NavItem, "href"> & { href: string | ((role: string) => string);
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
-  const { stableName, discordUrl, discordStyle, mobileNav, notifyBell } = await getSettings();
+  const { stableName, discordUrl, discordStyle, mobileNav, notifyBell, notifyRefreshSeconds } = await getSettings();
   const notes = await getNotifications(user);
   const badges = notes.badges;
   const bell = notifyBell && can(user.role, "notifications.view") ? { items: notes.items, total: notes.total, hidden: notes.hidden, badges: notes.badges } : null;
@@ -43,6 +43,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       discordStyle={discordStyle}
       logout={logoutAction}
       bell={bell}
+      bellRefresh={notifyRefreshSeconds}
     >
       {children}
     </AppShell>

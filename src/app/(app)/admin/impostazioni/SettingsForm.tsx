@@ -116,6 +116,7 @@ export function SettingsForm({ s, inStable, shopItems, roles }: { s: Settings; i
           ["navBadge_admin", "Amministrazione: Alarm e Critico del registro", s.navBadges.admin],
           ["notifyBell", "Mostra la campanella con l'elenco delle notifiche", s.notifyBell],
           ["notifyDots", "Mostra il pallino rosso accanto alla cosa precisa sulle pagine", s.notifyDots],
+          ["notifyAuditOwn", "Registro: avvisa anche delle proprie operazioni Alarm/Critico", s.notifyAuditOwn],
         ] as const).map(([n, l, v]) => (
           <label key={n} className="flex min-h-10 items-center gap-3 rounded-lg border border-border px-3">
             <input type="checkbox" name={n} defaultChecked={v} />
@@ -124,6 +125,7 @@ export function SettingsForm({ s, inStable, shopItems, roles }: { s: Settings; i
         ))}
         <Num name="notifyListMax" label="Voci al massimo per sezione nella campanella" value={s.notifyListMax} step="1" min="1" max="100" />
         <Num name="notifyAuditHours" label="Ore in cui restano le notifiche Alarm/Critico" value={s.notifyAuditHours} step="1" min="1" max="720" />
+        <Num name="notifyRefreshSeconds" label="Aggiornamento automatico (secondi, 0 = spento)" value={s.notifyRefreshSeconds} step="1" min="0" max="3600" />
       </Section>
 
       <Section title="Confronto cavalli" hint="In Catalogo e prezzi → Confronto cavalli si mettono i cavalli uno accanto all'altro.">

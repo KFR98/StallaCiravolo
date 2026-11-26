@@ -31,7 +31,12 @@ export type NavBadges = Partial<Record<string, { n: number; title: string }>>;
 export type Notifications = { items: Notice[]; badges: NavBadges; total: number; /** quante ne ha segnate come viste */ hidden: number };
 
 // gli arretrati degli stipendi sono un calcolo pesante: si tengono per un minuto
-const g = globalThis as unknown as { __payNotice?: { at: number; list: { userId: number; name: string; due: number }[] } };
+const g = globalThis as unknown as { __payNotice?: { at: number; list: { userId: number; name: string; due: number; last: string }[] } };
+
+/** Da chiamare dopo un pagamento di stipendi: la notifica degli arretrati si ricalcola subito. */
+export function forgetPayrollNotices() {
+  g.__payNotice = undefined;
+}
 
 /** Ancore usate sulle pagine (stesso nome nella campanella e nel pallino accanto alla cosa). */
 export const anchor = {
@@ -43,7 +48,7 @@ export const anchor = {
   audit: (id: number) => `voce-${id}`,
 };
 
-export async function getNotifications(user: { id: number; role: string }, opts: { all?: boolean; only?: Notice["section"] } = {}): Promise<Notifications> {
+export async function getNotifications(user: { id: number; role: string }, opts: { all?: boolean; only?: Notice["section"]; /** anche quelle segnate come viste (per i controlli del server) */ withDismissed?: boolean } = {}): Promise<Notifications> {
   const s = await getSettings();
   const on = s.navBadges;
   const now = new Date();
@@ -109,17 +114,17 @@ export async function getNotifications(user: { id: number; role: string }, opts:
 
   if (want("soldi") && on.personale && can(user.role, "payroll.manage")) {
     jobs.push((async () => {
-      let list: { userId: number; name: string; due: number }[];
+      let list: { userId: number; name: string; due: number; last: string }[];
       if (g.__payNotice && Date.now() - g.__payNotice.at < 60_000) list = g.__payNotice.list;
       else {
-        list = (await payrollOverview()).filter((u) => u.due > 0.004).map((u) => ({ userId: u.userId, name: u.name, due: u.due }));
+        list = (await payrollOverview()).filter((u) => u.due > 0.004).map((u) => ({ userId: u.userId, name: u.name, due: u.due, last: u.arrears.at(-1)?.weekStart.toISOString().slice(0, 10) ?? "" }));
         g.__payNotice = { at: Date.now(), list };
       }
       for (const u of list) {
         const due = Math.round(u.due * 100) / 100;
         items.push({
-          // l'importo fa parte della chiave: se matura un'altra settimana la notifica torna
-          id: anchor.payroll(u.userId), key: `${anchor.payroll(u.userId)}:${due}`, section: "soldi", group: "Stipendi", level: "warn",
+          // nella chiave c'è l'ultima settimana arretrata: la notifica vista torna solo se ne matura un'altra
+          id: anchor.payroll(u.userId), key: `${anchor.payroll(u.userId)}:${u.last}`, section: "soldi", group: "Stipendi", level: "warn",
           title: `Stipendio arretrato: ${u.name}`, detail: `Gli spettano $${due} di settimane concluse`,
           href: `/stipendi#${anchor.payroll(u.userId)}`,
         });
@@ -132,7 +137,11 @@ export async function getNotifications(user: { id: number; role: string }, opts:
       const known = (await prisma.auditLog.findMany({ distinct: ["action"], select: { action: true } })).map((r) => r.action);
       const serious = [...actionsAt("alarm", s.auditLevelOverrides, known), ...actionsAt("critical", s.auditLevelOverrides, known)];
       const list = await prisma.auditLog.findMany({
-        where: { action: { in: serious }, createdAt: { gte: new Date(Date.now() - s.notifyAuditHours * 3600_000) } },
+        where: {
+          action: { in: serious }, createdAt: { gte: new Date(Date.now() - s.notifyAuditHours * 3600_000) },
+          // le proprie operazioni (es. "ho allineato la cassa") di solito non servono come avviso: si sceglie in Impostazioni
+          ...(s.notifyAuditOwn ? {} : { OR: [{ userId: null }, { userId: { not: user.id } }] }),
+        },
         orderBy: { createdAt: "desc" }, take: 500, select: { id: true, action: true, summary: true, username: true, user: { select: { displayName: true } } },
       });
       // filtro del registro che di sicuro contiene la voce (1, 7 o 30 giorni)
@@ -151,7 +160,7 @@ export async function getNotifications(user: { id: number; role: string }, opts:
 
   await Promise.all(jobs);
   const dismissed = await dismissedP;
-  const visible = items.filter((i) => !dismissed.has(i.key));
+  const visible = opts.withDismissed ? items : items.filter((i) => !dismissed.has(i.key));
   const hidden = items.length - visible.length;
 
   // numerini del menu: contano solo quelle non ignorate
@@ -178,7 +187,8 @@ export async function getNotifications(user: { id: number; role: string }, opts:
 
 /** Chiavi delle notifiche attive per questo utente (controllo lato server prima di segnarle come viste). */
 export async function activeNoticeKeys(user: { id: number; role: string }): Promise<Set<string>> {
-  const { items } = await getNotifications(user, { all: true });
+  // tutte quelle che esistono adesso, comprese quelle già viste: altrimenti la pulizia le cancellerebbe e tornerebbero
+  const { items } = await getNotifications(user, { all: true, withDismissed: true });
   return new Set(items.map((i) => i.key));
 }
 

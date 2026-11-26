@@ -109,6 +109,10 @@ export const DEFAULT_SETTINGS = {
   notifyListMax: 15,
   /** Notifiche: per quante ore restano le voci Alarm/Critico del registro */
   notifyAuditHours: 24,
+  /** Notifiche: avvisare anche delle proprie operazioni Alarm/Critico (di solito no: le hai fatte tu) */
+  notifyAuditOwn: false,
+  /** Notifiche: ogni quanti secondi si aggiornano da sole (0 = solo cambiando pagina o tornando sulla scheda) */
+  notifyRefreshSeconds: 120,
   /** Clienti: chi compra viene aggiunto da solo alla rubrica (se non c'è già) */
   customersAutoCreate: true,
   /** Confronto cavalli: quanti cavalli si possono mettere uno accanto all'altro */

@@ -24,19 +24,6 @@ export function weekLabel(weekStart: Date, tz: string) {
   return `${formatInTimeZone(weekStart, tz, "dd/MM")} – ${formatInTimeZone(last, tz, "dd/MM/yyyy")}`;
 }
 
-/** Elenco delle settimane da `from` a `to` incluse. */
-export function weeksBetween(from: Date, to: Date, tz: string): Date[] {
-  const out: Date[] = [];
-  let w = weekStartOf(from, tz);
-  const last = weekStartOf(to, tz);
-  let guard = 0;
-  while (w.getTime() <= last.getTime() && guard++ < 1000) {
-    out.push(w);
-    w = addWeeks(w, 1, tz);
-  }
-  return out;
-}
-
 export function isoWeekKey(weekStart: Date, tz: string) {
   return formatInTimeZone(weekStart, tz, "yyyy-MM-dd");
 }
